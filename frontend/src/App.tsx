@@ -1,4 +1,9 @@
-import { Navigate, Route, BrowserRouter as Router, Routes } from "react-router-dom";
+import {
+  Navigate,
+  Route,
+  BrowserRouter as Router,
+  Routes,
+} from "react-router-dom";
 
 import { AdminLayout } from "./layouts/AdminLayout";
 import { AdminAtRiskReview } from "./pages/AdminAtRiskReview";
