@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "roommate-matcher-backend"
+version = "0.1.0"
+description = "Backend services for Roommate Matcher"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.116.0,<1.0.0",
+  "uvicorn[standard]>=0.35.0,<1.0.0",
+  "pydantic>=2.10.0,<3.0.0",
+  "pydantic-settings>=2.7.0,<3.0.0",
+  "sqlalchemy>=2.0.36,<3.0.0",
+  "alembic>=1.14.0,<2.0.0",
+  "python-multipart>=0.0.20,<1.0.0",
+  "networkx>=3.4.0,<4.0.0",
+  "numpy>=2.2.0,<3.0.0",
+  "pandas>=2.2.0,<3.0.0"
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3.0,<9.0.0",
+  "httpx>=0.28.0,<1.0.0"
+]
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q"
