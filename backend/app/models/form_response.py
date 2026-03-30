@@ -1,6 +1,6 @@
 from datetime import date, datetime
 
-from sqlalchemy import CheckConstraint, Date, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import CheckConstraint, Date, DateTime, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 
@@ -9,7 +9,10 @@ from app.models.base import Base
 
 class FormResponse(Base):
     __tablename__ = "form_responses"
-    __table_args__ = (CheckConstraint("validation_status IN ('valid', 'invalid')", name="ck_form_responses_status"),)
+    __table_args__ = (
+        CheckConstraint("validation_status IN ('valid', 'invalid')", name="ck_form_responses_status"),
+        Index("ix_form_responses_admission_submitted_at", "admission_number", "submitted_at"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     admission_number: Mapped[str] = mapped_column(ForeignKey("students.admission_number"), nullable=False, index=True)

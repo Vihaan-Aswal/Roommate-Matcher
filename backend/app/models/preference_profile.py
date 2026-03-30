@@ -1,4 +1,4 @@
-from sqlalchemy import CheckConstraint, Float, ForeignKey, Integer, Text
+from sqlalchemy import CheckConstraint, Float, ForeignKey, Index, Integer, Text, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base, TimestampMixin
@@ -9,6 +9,12 @@ class PreferenceProfile(TimestampMixin, Base):
     __table_args__ = (
         CheckConstraint("has_preferences IN (0, 1)", name="ck_preference_profiles_has_preferences"),
         CheckConstraint("is_active IN (0, 1)", name="ck_preference_profiles_is_active"),
+        Index(
+            "ux_preference_profiles_one_active",
+            "admission_number",
+            unique=True,
+            sqlite_where=text("is_active = 1"),
+        ),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
