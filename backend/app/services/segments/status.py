@@ -42,7 +42,11 @@ def compute_segment_status(db: Session, segment_key: str) -> SegmentStatusResult
         select(func.count(Student.admission_number)).where(Student.segment_key == segment_key)
     ) or 0
 
-    total_capacity = db.scalar(
+    uploaded_room_count = db.scalar(
+        select(func.count(Room.room_id)).where(Room.segment_key == segment_key)
+    ) or 0
+
+    uploaded_capacity = db.scalar(
         select(func.coalesce(func.sum(Room.capacity), 0)).where(Room.segment_key == segment_key)
     ) or 0
 
@@ -66,7 +70,10 @@ def compute_segment_status(db: Session, segment_key: str) -> SegmentStatusResult
 
     missing_ratio = (missing_preferences_count / student_count) if student_count else 0.0
 
-    if student_count > total_capacity:
+    has_uploaded_rooms = uploaded_room_count > 0
+    total_capacity = uploaded_capacity if has_uploaded_rooms else student_count
+
+    if has_uploaded_rooms and student_count > total_capacity:
         return SegmentStatusResult(
             segment_key=segment_key,
             status="Impossible",
@@ -87,6 +94,12 @@ def compute_segment_status(db: Session, segment_key: str) -> SegmentStatusResult
             reason=(
                 "More than 20% of students have missing preferences "
                 f"({missing_preferences_count}/{student_count})."
+            )
+            if has_uploaded_rooms
+            else (
+                "More than 20% of students have missing preferences "
+                f"({missing_preferences_count}/{student_count}). "
+                "Rooms are not uploaded, so capacity will be auto-generated at matching time."
             ),
             student_count=student_count,
             total_capacity=total_capacity,
@@ -97,7 +110,11 @@ def compute_segment_status(db: Session, segment_key: str) -> SegmentStatusResult
     return SegmentStatusResult(
         segment_key=segment_key,
         status="Ready",
-        reason="Segment is ready for matching.",
+        reason=(
+            "Segment is ready for matching."
+            if has_uploaded_rooms
+            else "Segment is ready for matching; room capacity will be auto-generated at matching time."
+        ),
         student_count=student_count,
         total_capacity=total_capacity,
         missing_preferences_count=missing_preferences_count,

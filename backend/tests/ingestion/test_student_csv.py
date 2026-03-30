@@ -39,7 +39,7 @@ def test_ingest_students_csv_accepts_valid_rows(db_session: Session, tmp_path: P
     assert [segment.segment_key for segment in segments] == ["F_1st_year_NonAC_3", "M_1st_year_AC_2"]
 
 
-def test_ingest_students_csv_uses_valid_segment_override(db_session: Session, tmp_path: Path) -> None:
+def test_ingest_students_csv_rejects_segment_override_until_supported(db_session: Session, tmp_path: Path) -> None:
     csv_path = _write_csv(
         tmp_path,
         "students_override.csv",
@@ -49,10 +49,11 @@ def test_ingest_students_csv_uses_valid_segment_override(db_session: Session, tm
 
     result = ingest_students_csv(db_session, csv_path)
 
-    assert result["accepted_rows"] == 1
-    student = db_session.get(Student, "ADM003")
-    assert student is not None
-    assert student.segment_key == "F_2nd_to_4th_NonAC_4"
+    assert result["accepted_rows"] == 0
+    assert result["rejected_rows"] == 1
+    assert result["invalid_rows"][0]["field"] == "segment_override"
+    assert result["invalid_rows"][0]["reason"] == "segment_override_not_supported_yet"
+    assert db_session.get(Student, "ADM003") is None
 
 
 def test_ingest_students_csv_rejects_conflicting_segment_override(db_session: Session, tmp_path: Path) -> None:
@@ -68,7 +69,7 @@ def test_ingest_students_csv_rejects_conflicting_segment_override(db_session: Se
     assert result["accepted_rows"] == 0
     assert result["rejected_rows"] == 1
     assert result["invalid_rows"][0]["field"] == "segment_override"
-    assert result["invalid_rows"][0]["reason"] == "segment_override_conflicts_with_row_dimensions"
+    assert result["invalid_rows"][0]["reason"] == "segment_override_not_supported_yet"
     assert db_session.get(Student, "ADM004") is None
 
 

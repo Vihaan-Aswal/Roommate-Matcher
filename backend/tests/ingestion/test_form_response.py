@@ -148,26 +148,28 @@ def test_ingest_form_response_applies_latest_valid_wins(db_session: Session) -> 
     assert profiles[1].q1_enc == 4.0
 
 
-def test_ingest_form_response_marks_missing_preferences_and_uses_neutral_values(db_session: Session) -> None:
+def test_ingest_form_response_rejects_incomplete_submission(db_session: Session) -> None:
     _seed_student(db_session)
 
     partial_answers = _valid_answers()
     partial_answers["q5b_raw"] = None
     partial_answers["q8_raw"] = None
 
-    result = ingest_form_response(
-        db=db_session,
-        admission_number="ADM100",
-        dob=date(2005, 1, 1),
-        raw_answers=partial_answers,
-    )
+    try:
+        ingest_form_response(
+            db=db_session,
+            admission_number="ADM100",
+            dob=date(2005, 1, 1),
+            raw_answers=partial_answers,
+        )
+        raise AssertionError("Expected FormIntakeError for incomplete form submission")
+    except FormIntakeError as exc:
+        assert exc.code == "incomplete_form_submission"
 
-    assert result["has_preferences"] is False
+    responses = db_session.scalars(select(FormResponse)).all()
+    assert len(responses) == 1
+    assert responses[0].validation_status == "invalid"
+    assert responses[0].invalid_reason == "incomplete_form_submission"
 
     profile = db_session.scalars(select(PreferenceProfile)).first()
-    assert profile is not None
-    assert profile.has_preferences == 0
-    assert profile.q5b_raw is None
-    assert profile.q5b_enc == 1.5
-    assert profile.q8_raw is None
-    assert profile.q8_enc == 2.0
+    assert profile is None

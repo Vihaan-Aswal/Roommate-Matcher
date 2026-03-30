@@ -82,27 +82,6 @@ def _parse_dob(value: str) -> date | None:
         return None
 
 
-def _parse_segment_override(value: str) -> tuple[str, str, str, int] | None:
-    parts = [part.strip() for part in value.split("_") if part.strip()]
-    if len(parts) < 4:
-        return None
-
-    gender_raw = parts[0]
-    ac_type_raw = parts[-2]
-    room_size_raw = parts[-1]
-    year_group = "_".join(parts[1:-2])
-    if not year_group:
-        return None
-
-    gender = _normalize_gender(gender_raw)
-    ac_type = _normalize_ac_type(ac_type_raw)
-    room_size = _parse_room_size(room_size_raw)
-    if not gender or not ac_type or room_size is None:
-        return None
-
-    return (gender, year_group, ac_type, room_size)
-
-
 def _validate_header(fieldnames: list[str] | None) -> None:
     if fieldnames is None:
         raise ValueError("CSV file is empty or missing header row")
@@ -156,32 +135,14 @@ def _build_row_payload(row: dict[str, str | None], row_number: int) -> tuple[dic
 
     segment_override_raw = _safe_text(row.get("segment_override"))
     if segment_override_raw:
-        parsed_override = _parse_segment_override(segment_override_raw)
-        if parsed_override is None:
-            errors.append(
-                RowError(
-                    row_number,
-                    "segment_override",
-                    "invalid_segment_override_format",
-                    row.get("segment_override"),
-                )
+        errors.append(
+            RowError(
+                row_number,
+                "segment_override",
+                "segment_override_not_supported_yet",
+                row.get("segment_override"),
             )
-        elif gender and ac_type and room_size is not None and year_group:
-            override_gender, override_year_group, override_ac_type, override_room_size = parsed_override
-            if (
-                override_gender != gender
-                or override_year_group != year_group
-                or override_ac_type != ac_type
-                or override_room_size != room_size
-            ):
-                errors.append(
-                    RowError(
-                        row_number,
-                        "segment_override",
-                        "segment_override_conflicts_with_row_dimensions",
-                        row.get("segment_override"),
-                    )
-                )
+        )
 
     if errors:
         return None, errors
@@ -191,7 +152,7 @@ def _build_row_payload(row: dict[str, str | None], row_number: int) -> tuple[dic
     assert room_size is not None
     assert dob_value is not None
 
-    segment_key = segment_override_raw or derive_segment_key(gender, year_group, ac_type, room_size)
+    segment_key = derive_segment_key(gender, year_group, ac_type, room_size)
     return {
         "admission_number": admission_number,
         "full_name": full_name,

@@ -72,6 +72,19 @@ def test_compute_segment_status_ready(db_session: Session) -> None:
     assert result.total_capacity == 4
 
 
+def test_compute_segment_status_ready_without_uploaded_rooms(db_session: Session) -> None:
+    segment_key = "M_1st_year_AC_2"
+    _seed_segment(db_session, segment_key, room_size=2)
+    _add_students(db_session, segment_key, count=3)
+    _add_active_profiles(db_session, ["ADM001", "ADM002", "ADM003"], has_preferences=1)
+
+    result = compute_segment_status(db_session, segment_key)
+
+    assert result.status == "Ready"
+    assert result.student_count == 3
+    assert result.total_capacity == 3
+
+
 def test_compute_segment_status_impossible_when_capacity_low(db_session: Session) -> None:
     segment_key = "M_1st_year_AC_2"
     _seed_segment(db_session, segment_key, room_size=2)

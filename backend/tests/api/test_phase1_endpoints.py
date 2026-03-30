@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.api.routes import upload as upload_routes
+from app.models.preference_profile import PreferenceProfile
 from app.models.room import Room
 from app.models.segment import Segment
 from app.models.student import Student
@@ -130,6 +131,23 @@ def test_form_submit_dob_mismatch_returns_400(client: TestClient, db_session: Se
     assert payload["detail"]["code"] == "dob_mismatch"
 
 
+def test_form_submit_incomplete_submission_returns_400(client: TestClient, db_session: Session) -> None:
+    _seed_student(db_session, admission_number="ADM205")
+
+    response = client.post(
+        "/api/form/submit",
+        json={
+            "admission_number": "ADM205",
+            "dob": "2005-01-01",
+            "q1_raw": "Before 11 PM (early)",
+        },
+    )
+
+    assert response.status_code == 400
+    payload = response.json()
+    assert payload["detail"]["code"] == "incomplete_form_submission"
+
+
 def test_segment_status_endpoint_returns_impossible(client: TestClient, db_session: Session) -> None:
     _seed_student(db_session, admission_number="ADM202")
     db_session.add(
@@ -163,6 +181,25 @@ def test_segment_status_endpoint_returns_impossible(client: TestClient, db_sessi
     assert response.status_code == 200
     payload = response.json()
     assert payload["status"] == "Impossible"
+
+
+def test_segment_status_endpoint_ready_when_no_rooms_uploaded(client: TestClient, db_session: Session) -> None:
+    _seed_student(db_session, admission_number="ADM206")
+    db_session.add(
+        PreferenceProfile(
+            admission_number="ADM206",
+            has_preferences=1,
+            is_active=1,
+        )
+    )
+    db_session.commit()
+
+    response = client.get("/api/segments/M_1st_year_AC_2")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "Ready"
+    assert payload["total_capacity"] == 1
 
 
 def test_segment_status_endpoint_returns_404_for_unknown_segment(client: TestClient) -> None:

@@ -109,21 +109,6 @@ QUESTION_OPTION_VALUES: dict[str, dict[str, float]] = {
     },
 }
 
-NEUTRAL_MIDPOINTS = {
-    "q1_raw": 2.5,
-    "q2_raw": 2.0,
-    "q3_raw": 2.0,
-    "q4a_raw": 1.0,
-    "q4b_raw": 1.5,
-    "q5a_raw": 1.0,
-    "q5b_raw": 1.5,
-    "q6_raw": 2.0,
-    "q7_raw": 2.0,
-    "q8_raw": 2.0,
-    "q9_raw": 2.0,
-    "q10_raw": 1.5,
-}
-
 
 class FormIntakeError(Exception):
     def __init__(self, code: str, message: str) -> None:
@@ -173,22 +158,27 @@ def _validate_answer_options(raw_answers: dict[str, str | None]) -> ValidationRe
     return ValidationResult(is_valid=True, invalid_reason=None)
 
 
-def _build_encoded_answers(raw_answers: dict[str, str | None]) -> tuple[dict[str, float], bool]:
+def _find_missing_answer_keys(raw_answers: dict[str, str | None]) -> list[str]:
+    missing: list[str] = []
+    for key in QUESTION_KEYS:
+        if raw_answers.get(key) is None:
+            missing.append(key)
+    return missing
+
+
+def _build_encoded_answers(raw_answers: dict[str, str | None]) -> dict[str, float]:
     encoded_answers: dict[str, float] = {}
-    has_preferences = True
 
     for key in QUESTION_KEYS:
         raw_value = raw_answers.get(key)
         encoded_key = ENCODED_FIELD_MAP[key]
 
         if raw_value is None:
-            has_preferences = False
-            encoded_answers[encoded_key] = NEUTRAL_MIDPOINTS[key]
-            continue
+            raise ValueError(f"Missing required answer for {key}")
 
         encoded_answers[encoded_key] = QUESTION_OPTION_VALUES[key][raw_value]
 
-    return encoded_answers, has_preferences
+    return encoded_answers
 
 
 def _latest_valid_profile(db: Session, admission_number: str) -> PreferenceProfile | None:
@@ -250,6 +240,24 @@ def ingest_form_response(
         )
 
     option_validation = _validate_answer_options(normalized_answers)
+    missing_answer_keys = _find_missing_answer_keys(normalized_answers)
+    if missing_answer_keys:
+        db.add(
+            FormResponse(
+                admission_number=admission_number,
+                dob=dob,
+                submitted_at=submitted_at_value,
+                validation_status="invalid",
+                invalid_reason="incomplete_form_submission",
+                **normalized_answers,
+            )
+        )
+        db.commit()
+        raise FormIntakeError(
+            code="incomplete_form_submission",
+            message="All form questions must be answered before submission.",
+        )
+
     if not option_validation.is_valid:
         db.add(
             FormResponse(
@@ -278,7 +286,7 @@ def ingest_form_response(
     db.add(form_response)
     db.flush()
 
-    encoded_answers, has_preferences = _build_encoded_answers(normalized_answers)
+    encoded_answers = _build_encoded_answers(normalized_answers)
 
     should_activate = True
     active_profile = _latest_valid_profile(db, admission_number)
@@ -293,7 +301,7 @@ def ingest_form_response(
     profile = PreferenceProfile(
         admission_number=admission_number,
         source_form_response_id=form_response.id,
-        has_preferences=1 if has_preferences else 0,
+        has_preferences=1,
         is_active=1 if should_activate else 0,
         **normalized_answers,
         **encoded_answers,
@@ -306,5 +314,5 @@ def ingest_form_response(
         "form_response_id": form_response.id,
         "preference_profile_id": profile.id,
         "is_active": bool(profile.is_active),
-        "has_preferences": bool(profile.has_preferences),
+        "has_preferences": True,
     }
