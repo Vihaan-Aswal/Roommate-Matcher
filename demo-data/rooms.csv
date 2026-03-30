@@ -1,0 +1,9 @@
+room_id,segment_key,capacity
+A-101,M_1st_year_AC_2,2
+A-102,M_1st_year_AC_2,2
+B-201,F_1st_year_NonAC_3,3
+B-202,F_1st_year_NonAC_3,3
+C-301,M_2nd_to_4th_NonAC_4,4
+D-401,F_2nd_to_4th_AC_2,2
+D-402,F_2nd_to_4th_AC_2,2
+BAD-001,UNKNOWN_SEGMENT,2

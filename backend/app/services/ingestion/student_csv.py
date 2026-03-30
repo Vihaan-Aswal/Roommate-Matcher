@@ -218,6 +218,9 @@ def ingest_students_csv(db: Session, csv_path: str) -> dict[str, object]:
         admission_number
         for admission_number in db.scalars(select(Student.admission_number)).all()
     }
+    existing_segments = {
+        segment_key for segment_key in db.scalars(select(Segment.segment_key)).all()
+    }
     seen_in_file: set[str] = set()
 
     with path.open("r", encoding="utf-8", newline="") as handle:
@@ -266,8 +269,7 @@ def ingest_students_csv(db: Session, csv_path: str) -> dict[str, object]:
 
             segment_key = row_payload["segment_key"]
             assert isinstance(segment_key, str)
-            segment = db.get(Segment, segment_key)
-            if segment is None:
+            if segment_key not in existing_segments:
                 db.add(
                     Segment(
                         segment_key=segment_key,
@@ -277,6 +279,7 @@ def ingest_students_csv(db: Session, csv_path: str) -> dict[str, object]:
                         room_size=row_payload["room_size"],
                     )
                 )
+                existing_segments.add(segment_key)
 
             db.add(
                 Student(

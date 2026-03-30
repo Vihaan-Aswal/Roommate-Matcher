@@ -1,0 +1,15 @@
+admission_number,full_name,gender,year_group,ac_type,room_size,dob,segment_override
+ADM001,Aarav Khanna,M,1st_year,AC,2,2005-01-10,
+ADM002,Rohan Mehta,M,1st_year,AC,2,2005-02-11,
+ADM003,Kunal Sethi,M,1st_year,AC,2,2005-03-12,
+ADM004,Pranav Jain,M,1st_year,AC,2,2005-04-13,
+ADM005,Diya Nair,F,1st_year,NonAC,3,2005-01-08,
+ADM006,Sia Kapoor,F,1st_year,NonAC,3,2005-02-09,
+ADM007,Meera Das,F,1st_year,NonAC,3,2005-03-10,
+ADM008,Tanya Rao,F,1st_year,NonAC,3,2005-04-11,
+ADM009,Harsh Verma,M,2nd_to_4th,NonAC,4,2003-08-14,M_2nd_to_4th_NonAC_4
+ADM010,Ritvik Shah,M,2nd_to_4th,NonAC,4,2003-09-15,
+ADM011,Neha Iyer,F,2nd_to_4th,AC,2,2004-05-16,F_2nd_to_4th_AC_2
+ADM012,Priya Sen,F,2nd_to_4th,AC,2,2004-06-17,
+ADM013,Bad Dob,F,1st_year,AC,2,15-05-2005,
+ADM014,Bad Override,M,1st_year,AC,2,2005-05-18,F_1st_year_AC_2
