@@ -30,3 +30,10 @@ def test_excellent_candidate_rejects_missing_heavy_factor() -> None:
     breakdown["q1_enc"] = FactorScore(raw_score=1.0, weight_used=0.2, missing_data=True)
 
     assert is_excellent_candidate(0.95, breakdown) is False
+
+
+def test_excellent_candidate_rejects_if_heavy_factor_entry_absent() -> None:
+    breakdown = _baseline_breakdown()
+    del breakdown["q2_enc"]
+
+    assert is_excellent_candidate(0.95, breakdown) is False

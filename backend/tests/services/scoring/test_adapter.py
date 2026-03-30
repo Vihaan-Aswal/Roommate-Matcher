@@ -1,6 +1,6 @@
 from app.models.preference_profile import PreferenceProfile
+from app.services.matching.adapter import profile_to_scoring_profile, profiles_to_scoring_profiles
 from app.services.scoring.types import ScoringProfile
-from app.services.scoring_adapter import profile_to_scoring_profile, profiles_to_scoring_profiles
 
 
 def test_profile_to_scoring_profile_maps_all_fields() -> None:

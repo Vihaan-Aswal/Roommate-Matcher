@@ -42,3 +42,8 @@ def test_distance_factor_rejects_unknown_factor() -> None:
 def test_distance_factor_rejects_non_integer_distance() -> None:
     with pytest.raises(ValueError, match="must be an integer"):
         score_q1_sleep(1.0, 2.5)
+
+
+def test_distance_factor_rejects_unsupported_distance() -> None:
+    with pytest.raises(ValueError, match="Unsupported distance"):
+        score_q2_cleanliness(1.0, 4.0)
