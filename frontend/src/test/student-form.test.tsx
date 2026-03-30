@@ -38,9 +38,13 @@ describe("StudentForm", () => {
   it("shows identity validation errors", () => {
     render(<StudentForm />);
 
-    fireEvent.click(screen.getByRole("button", { name: /continue to questions/i }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /continue to questions/i }),
+    );
 
-    expect(screen.getByText("Admission number is required.")).toBeInTheDocument();
+    expect(
+      screen.getByText("Admission number is required."),
+    ).toBeInTheDocument();
   });
 
   it("validates unanswered questions before submit", () => {
@@ -53,8 +57,12 @@ describe("StudentForm", () => {
       target: { value: "2005-01-01" },
     });
 
-    fireEvent.click(screen.getByRole("button", { name: /continue to questions/i }));
-    fireEvent.click(screen.getByRole("button", { name: /submit preferences/i }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /continue to questions/i }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: /submit preferences/i }),
+    );
 
     expect(
       screen.getByText("Please answer all questions before submitting."),
@@ -76,7 +84,9 @@ describe("StudentForm", () => {
     fireEvent.change(screen.getByLabelText("Date of Birth"), {
       target: { value: "2005-01-01" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /continue to questions/i }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /continue to questions/i }),
+    );
 
     for (const questionId of QUESTION_IDS) {
       const firstOption = container.querySelector(
@@ -88,7 +98,9 @@ describe("StudentForm", () => {
       }
     }
 
-    fireEvent.click(screen.getByRole("button", { name: /submit preferences/i }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /submit preferences/i }),
+    );
 
     await waitFor(() => {
       expect(screen.getByText("Thank you")).toBeInTheDocument();

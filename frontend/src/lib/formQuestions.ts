@@ -51,7 +51,8 @@ export const QUESTION_CONFIGS: QuestionConfig[] = [
   {
     id: "q3_raw",
     title: "Q3 Late Return",
-    prompt: "On most days, by what time are you usually back in your room/hostel?",
+    prompt:
+      "On most days, by what time are you usually back in your room/hostel?",
     options: [
       { label: "Before 10 PM", value: "Before 10 PM" },
       {
@@ -92,7 +93,10 @@ export const QUESTION_CONFIGS: QuestionConfig[] = [
         value: "Prefer to avoid, but can manage",
       },
       { label: "Okay if it's occasional", value: "Okay if it's occasional" },
-      { label: "Fine even if it's frequent", value: "Fine even if it's frequent" },
+      {
+        label: "Fine even if it's frequent",
+        value: "Fine even if it's frequent",
+      },
     ],
   },
   {

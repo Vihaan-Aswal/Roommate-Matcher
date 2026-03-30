@@ -2,10 +2,7 @@ import { useMemo, useState } from "react";
 
 import { FormQuestion } from "../components/FormQuestion";
 import { useFormSubmit } from "../hooks/useFormSubmit";
-import {
-  QUESTION_CONFIGS,
-  type QuestionConfig,
-} from "../lib/formQuestions";
+import { QUESTION_CONFIGS, type QuestionConfig } from "../lib/formQuestions";
 
 type Step = "identity" | "questions" | "success";
 
@@ -62,7 +59,10 @@ export function StudentForm(): JSX.Element {
     setStep("questions");
   };
 
-  const handleAnswerChange = (id: QuestionConfig["id"], value: string): void => {
+  const handleAnswerChange = (
+    id: QuestionConfig["id"],
+    value: string,
+  ): void => {
     setAnswers((previous) => ({ ...previous, [id]: value }));
     setQuestionErrors((previous) => ({ ...previous, [id]: undefined }));
     setStatusMessage(null);
@@ -125,7 +125,9 @@ export function StudentForm(): JSX.Element {
           {step === "identity" ? (
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="space-y-2">
-                <span className="text-sm font-medium text-foreground">Admission Number</span>
+                <span className="text-sm font-medium text-foreground">
+                  Admission Number
+                </span>
                 <input
                   type="text"
                   value={admissionNumber}
@@ -136,7 +138,9 @@ export function StudentForm(): JSX.Element {
               </label>
 
               <label className="space-y-2">
-                <span className="text-sm font-medium text-foreground">Date of Birth</span>
+                <span className="text-sm font-medium text-foreground">
+                  Date of Birth
+                </span>
                 <input
                   type="date"
                   value={dob}
@@ -146,7 +150,9 @@ export function StudentForm(): JSX.Element {
               </label>
 
               {identityError ? (
-                <p className="sm:col-span-2 text-sm text-destructive">{identityError}</p>
+                <p className="sm:col-span-2 text-sm text-destructive">
+                  {identityError}
+                </p>
               ) : null}
 
               <div className="sm:col-span-2 flex justify-end">
@@ -216,7 +222,8 @@ export function StudentForm(): JSX.Element {
                 Thank you
               </h2>
               <p className="mt-2 text-sm text-foreground sm:text-base">
-                {statusMessage ?? "Your response has been recorded successfully."}
+                {statusMessage ??
+                  "Your response has been recorded successfully."}
               </p>
               <p className="mt-3 text-xs uppercase tracking-[0.12em] text-muted-foreground">
                 You may close this page now.

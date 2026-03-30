@@ -25,7 +25,8 @@ export function useFormSubmit(): UseFormSubmitResult {
       const result = await submitStudentForm(payload);
       return result;
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to submit.";
+      const message =
+        error instanceof Error ? error.message : "Failed to submit.";
       setSubmitError(message);
       throw error;
     } finally {
