@@ -2,14 +2,23 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
+import {
+  expect,
+  test,
+  type APIRequestContext,
+  type Page,
+} from "@playwright/test";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
 const STUDENTS_CSV = path.join(REPO_ROOT, "demo-data", "master_students.csv");
 const ROOMS_CSV = path.join(REPO_ROOT, "demo-data", "rooms.csv");
-const FORM_RESPONSES_CSV = path.join(REPO_ROOT, "demo-data", "form_responses.csv");
+const FORM_RESPONSES_CSV = path.join(
+  REPO_ROOT,
+  "demo-data",
+  "form_responses.csv",
+);
 const API_BASE = "http://127.0.0.1:8000";
 
 const QUESTION_KEYS = [
@@ -89,7 +98,9 @@ async function uploadCsv(
   await expect(page.getByText("Upload completed")).toBeVisible();
 }
 
-async function submitAllFormResponses(request: APIRequestContext): Promise<void> {
+async function submitAllFormResponses(
+  request: APIRequestContext,
+): Promise<void> {
   const rows = parseCsv(FORM_RESPONSES_CSV);
 
   for (let index = 0; index < rows.length; index += 8) {
@@ -134,26 +145,21 @@ test.describe.serial("primary admin and student workflow", () => {
       STUDENTS_CSV,
     );
 
-    await uploadCsv(
-      page,
-      "Rooms CSV file input",
-      "Upload Rooms",
-      ROOMS_CSV,
-    );
+    await uploadCsv(page, "Rooms CSV file input", "Upload Rooms", ROOMS_CSV);
 
     await page.goto("/admin/matching-runs");
     await expect(page.getByText("M_1st_year_AC_2")).toBeVisible();
     await expect(page.getByText("F_1st_year_NonAC_3")).toBeVisible();
   });
 
-  test("submit student form and verify admin collection updates", async ({ page }) => {
+  test("submit student form and verify admin collection updates", async ({
+    page,
+  }) => {
     await page.goto("/form");
 
     await page.getByLabel("Admission Number").fill("ADM0001");
     await page.getByLabel("Date of Birth").fill("2005-01-02");
-    await page
-      .getByRole("button", { name: "Continue to Questions" })
-      .click();
+    await page.getByRole("button", { name: "Continue to Questions" }).click();
 
     for (const key of QUESTION_KEYS) {
       await page.locator(`input[name="${key}"]`).first().check();
@@ -177,9 +183,7 @@ test.describe.serial("primary admin and student workflow", () => {
     await submitAllFormResponses(request);
 
     await page.goto("/admin/matching-runs");
-    await page
-      .getByRole("button", { name: "Run All Ready Segments" })
-      .click();
+    await page.getByRole("button", { name: "Run All Ready Segments" }).click();
 
     await expect(
       page.getByText(/completed with status completed\./i),
@@ -193,10 +197,7 @@ test.describe.serial("primary admin and student workflow", () => {
     runId = runIdMatch ? runIdMatch[0] : "";
     expect(runId).toMatch(/^run_/);
 
-    await page
-      .getByRole("link", { name: "Student View" })
-      .first()
-      .click();
+    await page.getByRole("link", { name: "Student View" }).first().click();
 
     await expect(
       page.getByRole("heading", { name: "Student Results", exact: true }),

@@ -13,7 +13,12 @@ function candidateList(repoRoot) {
     });
   }
 
-  const localVenvWindows = path.join(repoRoot, ".venv", "Scripts", "python.exe");
+  const localVenvWindows = path.join(
+    repoRoot,
+    ".venv",
+    "Scripts",
+    "python.exe",
+  );
   if (fs.existsSync(localVenvWindows)) {
     candidates.push({
       command: localVenvWindows,
