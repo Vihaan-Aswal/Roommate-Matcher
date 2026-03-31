@@ -19,6 +19,7 @@ class CheckerStudentResult(BaseModel):
     satisfaction_label: Literal["Excellent", "Good", "Okay", "Poor"]
     reasons: list[str]
     is_at_risk: bool
+    factor_trace: list[dict[str, str]]
 
 
 class CheckerResponse(BaseModel):

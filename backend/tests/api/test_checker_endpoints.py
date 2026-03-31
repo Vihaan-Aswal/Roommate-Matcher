@@ -24,6 +24,19 @@ def test_checker_endpoint_returns_group_compatibility(client: TestClient, db_ses
     assert "group_label" in payload
     assert len(payload["students"]) == 2
     assert all(len(student["reasons"]) >= 1 for student in payload["students"])
+    assert all("factor_trace" in student for student in payload["students"])
+    assert all(isinstance(student["factor_trace"], list) for student in payload["students"])
+
+    for student in payload["students"]:
+        for item in student["factor_trace"]:
+            assert set(item.keys()) == {
+                "factor_key",
+                "factor_class",
+                "reason_bucket",
+                "polarity",
+                "template_id",
+                "claim_scope",
+            }
 
 
 def test_checker_endpoint_rejects_invalid_group_size(client: TestClient, db_session: Session) -> None:

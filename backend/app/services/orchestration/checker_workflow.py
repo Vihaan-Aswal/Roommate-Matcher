@@ -182,6 +182,7 @@ def run_manual_checker(
                 "satisfaction_label": student_labels[student_id],
                 "reasons": explanation.reasons,
                 "is_at_risk": student_id in at_risk_students,
+                "factor_trace": explanation.factor_trace,
             }
         )
 
