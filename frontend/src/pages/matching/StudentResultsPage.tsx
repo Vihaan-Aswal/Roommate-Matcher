@@ -107,6 +107,14 @@ export function StudentResultsPage(): JSX.Element {
   const queryError =
     selectedSegment === "all" ? allSegmentsQuery.error : singleSegmentQuery.error;
 
+  const retryStudents = () => {
+    if (selectedSegment === "all") {
+      void allSegmentsQuery.refetchAll();
+      return;
+    }
+    void singleSegmentQuery.refetch();
+  };
+
   const atRiskOnly = atRiskFlag === "1";
   const filteredStudents = useMemo(
     () =>
@@ -213,6 +221,11 @@ export function StudentResultsPage(): JSX.Element {
             queryError instanceof Error
               ? queryError.message
               : "Student results request failed."
+          }
+          actions={
+            <Button size="sm" variant="outline" onClick={retryStudents}>
+              Retry
+            </Button>
           }
           tone="error"
         />

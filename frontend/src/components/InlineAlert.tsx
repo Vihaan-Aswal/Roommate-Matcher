@@ -1,15 +1,19 @@
+import type { ReactNode } from "react";
+
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
 
 interface InlineAlertProps {
   title: string;
   message: string;
   tone?: "info" | "success" | "error";
+  actions?: ReactNode;
 }
 
 export function InlineAlert({
   title,
   message,
   tone = "info",
+  actions,
 }: InlineAlertProps): JSX.Element {
   const classNameByTone = {
     info: "border-border bg-secondary/40",
@@ -21,6 +25,7 @@ export function InlineAlert({
     <Alert className={classNameByTone[tone]}>
       <AlertTitle>{title}</AlertTitle>
       <AlertDescription>{message}</AlertDescription>
+      {actions ? <div className="mt-3">{actions}</div> : null}
     </Alert>
   );
 }

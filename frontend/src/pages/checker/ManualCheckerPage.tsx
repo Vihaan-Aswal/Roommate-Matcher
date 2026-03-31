@@ -5,6 +5,7 @@ import { AdminPageHeader } from "../../components/AdminPageHeader";
 import { InlineAlert } from "../../components/InlineAlert";
 import { CheckerResultPanel } from "../../components/checker/CheckerResultPanel";
 import { CheckerSelectionPanel } from "../../components/checker/CheckerSelectionPanel";
+import { Button } from "../../components/ui/button";
 import { useAdminSegmentsQuery } from "../../hooks/useAdminSegments";
 import { useManualCheckerMutation } from "../../hooks/useManualCheckerMutation";
 import { useSegmentStudentsQuery } from "../../hooks/useSegmentStudentsQuery";
@@ -127,6 +128,23 @@ export function ManualCheckerPage(): JSX.Element {
           title="Loading segments"
           message="Preparing segment list for checker input."
           tone="info"
+        />
+      ) : null}
+
+      {segmentsQuery.isError ? (
+        <InlineAlert
+          title="Unable to load segments"
+          message={
+            segmentsQuery.error instanceof Error
+              ? segmentsQuery.error.message
+              : "Segments request failed."
+          }
+          actions={
+            <Button size="sm" variant="outline" onClick={() => void segmentsQuery.refetch()}>
+              Retry
+            </Button>
+          }
+          tone="error"
         />
       ) : null}
 

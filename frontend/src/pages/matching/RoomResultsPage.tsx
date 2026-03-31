@@ -159,6 +159,11 @@ export function RoomResultsPage(): JSX.Element {
               ? segmentsQuery.error.message
               : "Segment filter data is unavailable."
           }
+          actions={
+            <Button size="sm" variant="outline" onClick={() => void segmentsQuery.refetch()}>
+              Retry
+            </Button>
+          }
           tone="error"
         />
       ) : null}
@@ -199,6 +204,11 @@ export function RoomResultsPage(): JSX.Element {
               ? roomsQuery.error.message
               : "Room results request failed."
           }
+          actions={
+            <Button size="sm" variant="outline" onClick={() => void roomsQuery.refetch()}>
+              Retry
+            </Button>
+          }
           tone="error"
         />
       ) : null}
@@ -230,6 +240,11 @@ export function RoomResultsPage(): JSX.Element {
             studentsQuery.error instanceof Error
               ? studentsQuery.error.message
               : "Student details request failed."
+          }
+          actions={
+            <Button size="sm" variant="outline" onClick={() => void studentsQuery.refetch()}>
+              Retry
+            </Button>
           }
           tone="error"
         />

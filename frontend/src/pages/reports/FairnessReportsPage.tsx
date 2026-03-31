@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { AdminPageHeader } from "../../components/AdminPageHeader";
 import { InlineAlert } from "../../components/InlineAlert";
@@ -117,6 +117,27 @@ export function FairnessReportsPage(): JSX.Element {
         description={`Fairness snapshot for run ${resolvedRunId}.`}
       />
 
+      {runsQuery.isError ? (
+        <InlineAlert
+          title="Unable to load runs"
+          message={
+            runsQuery.error instanceof Error
+              ? runsQuery.error.message
+              : "Runs request failed."
+          }
+          actions={
+            <button
+              className="rounded-md border border-input px-3 py-2 text-sm hover:bg-muted"
+              type="button"
+              onClick={() => void runsQuery.refetch()}
+            >
+              Retry
+            </button>
+          }
+          tone="error"
+        />
+      ) : null}
+
       {runsQuery.data ? (
         <RunSegmentSelector
           runs={runOptions}
@@ -154,7 +175,32 @@ export function FairnessReportsPage(): JSX.Element {
               ? fairnessQuery.error.message
               : "Fairness report request failed."
           }
+          actions={
+            <button
+              className="rounded-md border border-input px-3 py-2 text-sm hover:bg-muted"
+              type="button"
+              onClick={() => void fairnessQuery.refetch()}
+            >
+              Retry
+            </button>
+          }
           tone="error"
+        />
+      ) : null}
+
+      {fairnessQuery.data && fairnessQuery.data.by_segment.length === 0 ? (
+        <InlineAlert
+          title="No fairness snapshot data"
+          message="This run has no segment fairness breakdown yet."
+          actions={
+            <Link
+              className="inline-flex rounded-md border border-input px-3 py-2 text-sm hover:bg-muted"
+              to="/admin/matching-runs"
+            >
+              Open Matching Runs
+            </Link>
+          }
+          tone="info"
         />
       ) : null}
 
