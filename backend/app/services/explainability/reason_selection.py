@@ -5,10 +5,8 @@ from functools import cmp_to_key
 from typing import Literal
 
 from app.services.explainability.factor_classification import ClassifiedFactor
+from app.services.explainability.privacy_rules import SENSITIVE_FACTOR_KEYS
 from app.services.scoring.constants import SCORING_FACTOR_KEYS
-
-# Keep this constant local until privacy_rules centralization is added.
-SENSITIVE_FACTOR_KEYS: frozenset[str] = frozenset({"q6_enc", "q7_enc", "q8_enc"})
 
 MAX_REASONS = 3
 SCORE_EQUIVALENCE_DELTA = 0.02

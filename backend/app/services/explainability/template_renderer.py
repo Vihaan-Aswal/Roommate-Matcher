@@ -3,6 +3,11 @@ from __future__ import annotations
 import hashlib
 
 from app.services.explainability.contracts import ReasonTrace
+from app.services.explainability.privacy_rules import (
+    PrivacyViolationError,
+    is_sensitive_factor,
+    validate_privacy_text,
+)
 from app.services.explainability.reason_selection import ReasonCandidate
 from app.services.explainability.template_catalog import TEMPLATE_CATALOG
 
@@ -20,7 +25,11 @@ def _family_for_candidate(candidate: ReasonCandidate) -> str:
 
 
 def _sensitivity_mode(candidate: ReasonCandidate) -> str:
-    if candidate.reason_bucket == "sensitive_lifestyle":
+    if is_sensitive_factor(candidate.factor_key):
+        if candidate.reason_bucket != "sensitive_lifestyle":
+            raise PrivacyViolationError(
+                "Sensitive factor was routed to a non-sensitive reason bucket"
+            )
         return "sensitive_generic"
     return "non_sensitive"
 
@@ -79,4 +88,5 @@ def render_reason_lines(
             )
         )
 
+    validate_privacy_text(rendered_lines)
     return rendered_lines, traces
