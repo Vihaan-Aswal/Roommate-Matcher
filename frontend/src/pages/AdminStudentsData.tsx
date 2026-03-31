@@ -5,14 +5,22 @@ import { DataTable, type DataTableColumn } from "../components/DataTable";
 import { FileUploadPanel } from "../components/FileUploadPanel";
 import { InlineAlert } from "../components/InlineAlert";
 import { StatCard } from "../components/StatCard";
-import { getErrorReportDownloadUrl, type UploadSummaryResponse } from "../lib/apiClient";
+import {
+  getErrorReportDownloadUrl,
+  type UploadSummaryResponse,
+} from "../lib/apiClient";
 import { useAdminFormStatusQuery } from "../hooks/useAdminFormCollection";
 import {
   useUploadRoomsMutation,
   useUploadStudentsMutation,
 } from "../hooks/useAdminUploads";
 import { Button } from "../components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/card";
 
 interface CsvPreviewRow {
   id: string;
@@ -65,7 +73,11 @@ async function parseCsvPreview(file: File): Promise<CsvPreviewState> {
     .filter(Boolean);
 
   if (lines.length === 0) {
-    return { headers: [], rows: [], parseError: "The selected CSV appears empty." };
+    return {
+      headers: [],
+      rows: [],
+      parseError: "The selected CSV appears empty.",
+    };
   }
 
   const rawHeaders = splitCsvLine(lines[0]);
@@ -95,8 +107,13 @@ interface UploadSummaryPanelProps {
   summary: UploadSummaryResponse;
 }
 
-function UploadSummaryPanel({ title, summary }: UploadSummaryPanelProps): JSX.Element {
-  const invalidColumns: DataTableColumn<UploadSummaryResponse["invalid_rows"][number]>[] = [
+function UploadSummaryPanel({
+  title,
+  summary,
+}: UploadSummaryPanelProps): JSX.Element {
+  const invalidColumns: DataTableColumn<
+    UploadSummaryResponse["invalid_rows"][number]
+  >[] = [
     {
       key: "row_number",
       header: "Row",
@@ -156,10 +173,10 @@ export function AdminStudentsData(): JSX.Element {
   const roomsUpload = useUploadRoomsMutation();
   const formStatusQuery = useAdminFormStatusQuery();
 
-  const [studentsSummary, setStudentsSummary] = useState<UploadSummaryResponse | null>(
-    null,
-  );
-  const [roomsSummary, setRoomsSummary] = useState<UploadSummaryResponse | null>(null);
+  const [studentsSummary, setStudentsSummary] =
+    useState<UploadSummaryResponse | null>(null);
+  const [roomsSummary, setRoomsSummary] =
+    useState<UploadSummaryResponse | null>(null);
   const [studentsPreview, setStudentsPreview] = useState<CsvPreviewState>({
     headers: [],
     rows: [],
@@ -195,13 +212,15 @@ export function AdminStudentsData(): JSX.Element {
               return;
             }
 
-            void parseCsvPreview(file).then(setStudentsPreview).catch(() => {
-              setStudentsPreview({
-                headers: [],
-                rows: [],
-                parseError: "Could not parse the selected file for preview.",
+            void parseCsvPreview(file)
+              .then(setStudentsPreview)
+              .catch(() => {
+                setStudentsPreview({
+                  headers: [],
+                  rows: [],
+                  parseError: "Could not parse the selected file for preview.",
+                });
               });
-            });
           }}
           onUpload={async (file) => {
             const summary = await studentsUpload.mutateAsync(file);
@@ -243,7 +262,9 @@ export function AdminStudentsData(): JSX.Element {
 
       <Card className="border-border/80 bg-white/90">
         <CardHeader>
-          <CardTitle className="text-lg">Student CSV Preview (first 10 rows)</CardTitle>
+          <CardTitle className="text-lg">
+            Student CSV Preview (first 10 rows)
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {studentsPreview.parseError ? (
@@ -269,7 +290,9 @@ export function AdminStudentsData(): JSX.Element {
         </CardHeader>
         <CardContent>
           {formStatusQuery.isLoading ? (
-            <p className="text-sm text-muted-foreground">Loading form status...</p>
+            <p className="text-sm text-muted-foreground">
+              Loading form status...
+            </p>
           ) : null}
           {formStatusQuery.isError ? (
             <InlineAlert
@@ -303,11 +326,17 @@ export function AdminStudentsData(): JSX.Element {
       </Card>
 
       {studentsSummary ? (
-        <UploadSummaryPanel title="Students Upload Summary" summary={studentsSummary} />
+        <UploadSummaryPanel
+          title="Students Upload Summary"
+          summary={studentsSummary}
+        />
       ) : null}
 
       {roomsSummary ? (
-        <UploadSummaryPanel title="Rooms Upload Summary" summary={roomsSummary} />
+        <UploadSummaryPanel
+          title="Rooms Upload Summary"
+          summary={roomsSummary}
+        />
       ) : null}
     </section>
   );

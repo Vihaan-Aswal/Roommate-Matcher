@@ -4,12 +4,15 @@ import { vi } from "vitest";
 import { AdminStudentsData } from "../pages/AdminStudentsData";
 import { renderWithProviders } from "./renderWithProviders";
 
-const { useUploadStudentsMutationMock, useUploadRoomsMutationMock, useAdminFormStatusQueryMock } =
-  vi.hoisted(() => ({
-    useUploadStudentsMutationMock: vi.fn(),
-    useUploadRoomsMutationMock: vi.fn(),
-    useAdminFormStatusQueryMock: vi.fn(),
-  }));
+const {
+  useUploadStudentsMutationMock,
+  useUploadRoomsMutationMock,
+  useAdminFormStatusQueryMock,
+} = vi.hoisted(() => ({
+  useUploadStudentsMutationMock: vi.fn(),
+  useUploadRoomsMutationMock: vi.fn(),
+  useAdminFormStatusQueryMock: vi.fn(),
+}));
 
 const studentsMutateAsyncMock = vi.fn();
 const roomsMutateAsyncMock = vi.fn();

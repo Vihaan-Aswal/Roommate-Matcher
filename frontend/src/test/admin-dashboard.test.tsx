@@ -52,6 +52,8 @@ describe("AdminDashboard", () => {
     expect(screen.getByText("Total Students")).toBeInTheDocument();
     expect(screen.getByText("42")).toBeInTheDocument();
     expect(screen.getByText("run-001")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /upload data/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /upload data/i }),
+    ).toBeInTheDocument();
   });
 });

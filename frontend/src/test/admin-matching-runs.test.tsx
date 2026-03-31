@@ -84,7 +84,9 @@ describe("AdminMatchingRuns", () => {
   it("triggers run all ready segments action", () => {
     renderWithProviders(<AdminMatchingRuns />);
 
-    fireEvent.click(screen.getByRole("button", { name: /run all ready segments/i }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /run all ready segments/i }),
+    );
 
     expect(mutateAsyncMock).toHaveBeenCalledWith({
       scope: "all_ready_segments",

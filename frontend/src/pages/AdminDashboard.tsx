@@ -5,7 +5,12 @@ import { InlineAlert } from "../components/InlineAlert";
 import { StatCard } from "../components/StatCard";
 import { StatusBadge } from "../components/StatusBadge";
 import { useAdminDashboardQuery } from "../hooks/useAdminDashboard";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/card";
 import { Button } from "../components/ui/button";
 
 function yesNoLabel(value: boolean): string {
@@ -79,7 +84,10 @@ export function AdminDashboard(): JSX.Element {
             />
             <StatCard
               label="Valid Preferences"
-              value={dashboardQuery.data.form_collection_stats.students_with_valid_preferences}
+              value={
+                dashboardQuery.data.form_collection_stats
+                  .students_with_valid_preferences
+              }
             />
             <StatCard
               label="Collection Complete"
@@ -98,7 +106,9 @@ export function AdminDashboard(): JSX.Element {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex items-center justify-between gap-3 rounded-lg border border-border/70 p-3">
-                  <p className="text-sm text-foreground">Master students uploaded</p>
+                  <p className="text-sm text-foreground">
+                    Master students uploaded
+                  </p>
                   <StatusBadge
                     value={yesNoLabel(
                       dashboardQuery.data.setup_status.master_students_uploaded,
@@ -108,11 +118,15 @@ export function AdminDashboard(): JSX.Element {
                 <div className="flex items-center justify-between gap-3 rounded-lg border border-border/70 p-3">
                   <p className="text-sm text-foreground">Rooms uploaded</p>
                   <StatusBadge
-                    value={yesNoLabel(dashboardQuery.data.setup_status.rooms_uploaded)}
+                    value={yesNoLabel(
+                      dashboardQuery.data.setup_status.rooms_uploaded,
+                    )}
                   />
                 </div>
                 <div className="flex items-center justify-between gap-3 rounded-lg border border-border/70 p-3">
-                  <p className="text-sm text-foreground">Form collection started</p>
+                  <p className="text-sm text-foreground">
+                    Form collection started
+                  </p>
                   <StatusBadge
                     value={yesNoLabel(
                       dashboardQuery.data.setup_status.forms_collection_started,
@@ -120,10 +134,13 @@ export function AdminDashboard(): JSX.Element {
                   />
                 </div>
                 <div className="flex items-center justify-between gap-3 rounded-lg border border-border/70 p-3">
-                  <p className="text-sm text-foreground">At least one segment ready</p>
+                  <p className="text-sm text-foreground">
+                    At least one segment ready
+                  </p>
                   <StatusBadge
                     value={yesNoLabel(
-                      dashboardQuery.data.setup_status.at_least_one_segment_ready,
+                      dashboardQuery.data.setup_status
+                        .at_least_one_segment_ready,
                     )}
                   />
                 </div>
@@ -150,7 +167,10 @@ export function AdminDashboard(): JSX.Element {
                     Status
                   </p>
                   <StatusBadge
-                    value={dashboardQuery.data.latest_matching_run.status ?? "Pending"}
+                    value={
+                      dashboardQuery.data.latest_matching_run.status ??
+                      "Pending"
+                    }
                   />
                 </div>
 
@@ -159,7 +179,9 @@ export function AdminDashboard(): JSX.Element {
                     Created At
                   </p>
                   <p className="text-sm text-foreground">
-                    {formatRunTime(dashboardQuery.data.latest_matching_run.created_at)}
+                    {formatRunTime(
+                      dashboardQuery.data.latest_matching_run.created_at,
+                    )}
                   </p>
                 </div>
               </CardContent>

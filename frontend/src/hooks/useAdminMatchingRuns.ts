@@ -21,7 +21,9 @@ export function useRunMatchingMutation() {
     mutationFn: (payload: MatchingRunRequest) => runMatching(payload),
     onSuccess: async () => {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: adminQueryKeys.matchingRuns }),
+        queryClient.invalidateQueries({
+          queryKey: adminQueryKeys.matchingRuns,
+        }),
         queryClient.invalidateQueries({ queryKey: adminQueryKeys.dashboard }),
         queryClient.invalidateQueries({ queryKey: adminQueryKeys.segments }),
       ]);

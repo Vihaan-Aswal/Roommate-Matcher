@@ -10,7 +10,12 @@ import {
 } from "../hooks/useAdminFormCollection";
 import { QUESTION_CONFIGS } from "../lib/formQuestions";
 import { Button } from "../components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/card";
 
 function triggerCsvDownload(fileName: string, content: string): void {
   const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
@@ -132,7 +137,9 @@ export function AdminFormCollection(): JSX.Element {
         <StatCard
           label="Completion"
           value={
-            formStatusQuery.data ? `${formStatusQuery.data.percentage_valid}%` : "-"
+            formStatusQuery.data
+              ? `${formStatusQuery.data.percentage_valid}%`
+              : "-"
           }
         />
       </div>
@@ -159,7 +166,10 @@ export function AdminFormCollection(): JSX.Element {
         <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="text-lg">Non-Submitters</CardTitle>
           <Button
-            disabled={!nonSubmittersQuery.data || nonSubmittersQuery.data.total_count === 0}
+            disabled={
+              !nonSubmittersQuery.data ||
+              nonSubmittersQuery.data.total_count === 0
+            }
             size="sm"
             variant="outline"
             onClick={() => {
@@ -193,7 +203,9 @@ export function AdminFormCollection(): JSX.Element {
 
       <Card className="border-border/80 bg-white/90">
         <CardHeader>
-          <CardTitle className="text-lg">Questionnaire Preview (read-only)</CardTitle>
+          <CardTitle className="text-lg">
+            Questionnaire Preview (read-only)
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {QUESTION_CONFIGS.map((question) => (
@@ -201,8 +213,12 @@ export function AdminFormCollection(): JSX.Element {
               key={question.id}
               className="rounded-lg border border-border/70 bg-background/70 p-4"
             >
-              <h3 className="text-sm font-semibold text-foreground">{question.title}</h3>
-              <p className="mt-1 text-sm text-muted-foreground">{question.prompt}</p>
+              <h3 className="text-sm font-semibold text-foreground">
+                {question.title}
+              </h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {question.prompt}
+              </p>
               <ul className="mt-3 space-y-1 text-sm text-foreground">
                 {question.options.map((option) => (
                   <li key={option.value}>- {option.label}</li>

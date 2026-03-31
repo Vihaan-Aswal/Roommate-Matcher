@@ -241,7 +241,9 @@ export async function uploadStudentsCsv(
   return uploadCsv("/api/students/upload", file);
 }
 
-export async function uploadRoomsCsv(file: File): Promise<UploadSummaryResponse> {
+export async function uploadRoomsCsv(
+  file: File,
+): Promise<UploadSummaryResponse> {
   return uploadCsv("/api/rooms/upload", file);
 }
 
@@ -262,5 +264,7 @@ export async function getMatchingRuns(): Promise<MatchingRunListResponse> {
 }
 
 export function getErrorReportDownloadUrl(reportName: string): string {
-  return buildUrl(`/api/upload/error-reports/${encodeURIComponent(reportName)}`);
+  return buildUrl(
+    `/api/upload/error-reports/${encodeURIComponent(reportName)}`,
+  );
 }

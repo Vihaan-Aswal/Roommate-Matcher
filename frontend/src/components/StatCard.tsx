@@ -15,7 +15,9 @@ export function StatCard({ label, value, hint }: StatCardProps): JSX.Element {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-1">
-        <p className="text-3xl font-semibold tracking-tight text-foreground">{value}</p>
+        <p className="text-3xl font-semibold tracking-tight text-foreground">
+          {value}
+        </p>
         {hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
       </CardContent>
     </Card>

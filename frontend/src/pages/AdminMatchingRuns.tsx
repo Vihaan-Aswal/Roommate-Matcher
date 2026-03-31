@@ -4,10 +4,18 @@ import { AdminPageHeader } from "../components/AdminPageHeader";
 import { DataTable, type DataTableColumn } from "../components/DataTable";
 import { InlineAlert } from "../components/InlineAlert";
 import { StatusBadge } from "../components/StatusBadge";
-import { useAdminMatchingRunsQuery, useRunMatchingMutation } from "../hooks/useAdminMatchingRuns";
+import {
+  useAdminMatchingRunsQuery,
+  useRunMatchingMutation,
+} from "../hooks/useAdminMatchingRuns";
 import { useAdminSegmentsQuery } from "../hooks/useAdminSegments";
 import { Button } from "../components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/card";
 
 function formatDateTime(value: string): string {
   const parsed = new Date(value);
@@ -23,7 +31,10 @@ export function AdminMatchingRuns(): JSX.Element {
   const runMutation = useRunMatchingMutation();
 
   const readySegments = useMemo(
-    () => (segmentsQuery.data?.segments ?? []).filter((segment) => segment.status === "Ready"),
+    () =>
+      (segmentsQuery.data?.segments ?? []).filter(
+        (segment) => segment.status === "Ready",
+      ),
     [segmentsQuery.data?.segments],
   );
 
@@ -117,7 +128,10 @@ export function AdminMatchingRuns(): JSX.Element {
       size="sm"
       variant="accent"
       onClick={() => {
-        void runMutation.mutateAsync({ scope: "all_ready_segments", segment_key: null });
+        void runMutation.mutateAsync({
+          scope: "all_ready_segments",
+          segment_key: null,
+        });
       }}
     >
       {runMutation.isPending ? "Running..." : "Run All Ready Segments"}
@@ -156,7 +170,8 @@ export function AdminMatchingRuns(): JSX.Element {
         <InlineAlert
           title="Unable to load matching data"
           message={
-            (segmentsQuery.error instanceof Error && segmentsQuery.error.message) ||
+            (segmentsQuery.error instanceof Error &&
+              segmentsQuery.error.message) ||
             (runsQuery.error instanceof Error && runsQuery.error.message) ||
             "A matching data request failed."
           }
@@ -189,7 +204,9 @@ export function AdminMatchingRuns(): JSX.Element {
         <CardContent>
           <DataTable
             columns={runColumns}
-            emptyText={runsQuery.isLoading ? "Loading runs..." : "No runs recorded yet."}
+            emptyText={
+              runsQuery.isLoading ? "Loading runs..." : "No runs recorded yet."
+            }
             getRowId={(row) => row.run_id}
             rows={runsQuery.data?.runs ?? []}
           />

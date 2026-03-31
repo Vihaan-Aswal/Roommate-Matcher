@@ -18,18 +18,18 @@ These three engines are the soul of the product. Everything else — CSV ingesti
 
 ### Main Architectural Areas
 
-| Area | Description |
-|---|---|
-| Data layer | SQLite + SQLAlchemy models + Alembic migrations. Stores students, segments, rooms, form responses, preference profiles, pair scores (with factor breakdowns), and matching run artifacts. |
-| Ingestion pipeline | CSV parsing and validation for master students and room files. Form response ingestion, admission number + DOB validation, deduplication (latest-wins). |
-| Scoring engine | Pure Python functions: encoding, factor scoring, weighted pair score. Must emit a factor breakdown object alongside every final score. Fully testable in isolation. |
-| Matching engine | NetworkX-based graph construction + matching algorithms per segment. Depends on pair scores. Lives behind a service interface. Fully testable in isolation with synthetic data. |
-| Explanation + fairness engine | Factor classification using breakdown objects → label → template-based text generation. Privacy-aware wording for sensitive factors. Fairness distribution computation. Manual Checker reuses this engine. |
-| Backend API | FastAPI endpoints + Pydantic schemas. Orchestrates all services, persists run artifacts, serves the admin dashboard and student form. |
-| Admin frontend — core | Upload flows, matching run trigger and status, basic dashboard. |
-| Admin frontend — decision-support layer | Fairness view, at-risk review, student and room detail panels, manual checker. These form a coherent operational layer, not just more UI. |
-| Student form | A single simple React page for students to submit preferences. |
-| Export layer | CSV export of assignments. PDF is post-v1. |
+| Area                                    | Description                                                                                                                                                                                                |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Data layer                              | SQLite + SQLAlchemy models + Alembic migrations. Stores students, segments, rooms, form responses, preference profiles, pair scores (with factor breakdowns), and matching run artifacts.                  |
+| Ingestion pipeline                      | CSV parsing and validation for master students and room files. Form response ingestion, admission number + DOB validation, deduplication (latest-wins).                                                    |
+| Scoring engine                          | Pure Python functions: encoding, factor scoring, weighted pair score. Must emit a factor breakdown object alongside every final score. Fully testable in isolation.                                        |
+| Matching engine                         | NetworkX-based graph construction + matching algorithms per segment. Depends on pair scores. Lives behind a service interface. Fully testable in isolation with synthetic data.                            |
+| Explanation + fairness engine           | Factor classification using breakdown objects → label → template-based text generation. Privacy-aware wording for sensitive factors. Fairness distribution computation. Manual Checker reuses this engine. |
+| Backend API                             | FastAPI endpoints + Pydantic schemas. Orchestrates all services, persists run artifacts, serves the admin dashboard and student form.                                                                      |
+| Admin frontend — core                   | Upload flows, matching run trigger and status, basic dashboard.                                                                                                                                            |
+| Admin frontend — decision-support layer | Fairness view, at-risk review, student and room detail panels, manual checker. These form a coherent operational layer, not just more UI.                                                                  |
+| Student form                            | A single simple React page for students to submit preferences.                                                                                                                                             |
+| Export layer                            | CSV export of assignments. PDF is post-v1.                                                                                                                                                                 |
 
 ### Highest-Risk Technical Areas
 
@@ -56,6 +56,7 @@ If the database schema shifts significantly mid-project, Alembic migrations, SQL
 The chosen order is: **architecture decisions → data pipeline → scoring engine (isolated) → matching engine (isolated) → explanation + fairness engine (isolated) → API integration → admin core UI → decision-support UI → student form → integration testing → showcase prep.**
 
 This order is correct because:
+
 - The scoring engine must be validated before the matching engine consumes its output, or you debug two systems simultaneously.
 - The explanation engine consumes the factor breakdown object from scoring and the satisfaction data from matching — it must come after both are validated.
 - The API is glue; it should be thin and built after the services it orchestrates are stable.
@@ -66,18 +67,18 @@ This order is correct because:
 
 ## Section 2: High-Level Roadmap
 
-| Phase | Name | Core Focus | Gate to Next Phase |
-|---|---|---|---|
-| 0 | Inception & Setup | Repo structure, dev environment, schema finalization, locked decisions | Schema locked; both servers run; all Phase 0 decisions documented |
-| 1 | Data Foundation | Models, ingestion pipeline, form intake, segment status, student form | Sample data ingested, segment statuses correct, form submits |
-| 2 | Scoring Engine | All factor encodings, pair score formula, factor breakdown object, unit tests | Scoring validated against manually computed cases |
-| 3 | Matching Engine | 2-bed matching, 3/4-bed heuristic, swap pass, satisfaction labels | All room sizes matched correctly; invariants hold on synthetic segments |
-| 4 | Explanation + Fairness Engine | Factor classification, NL generation, fairness distribution, backend harness | Explanations correct; privacy tested; harness validates full output |
-| 5 | Backend API | All FastAPI endpoints, Pydantic schemas, orchestration, integration | Full workflow runnable via HTTP |
-| 6 | Admin Frontend — Core | Navigation shell, upload flows, matching run trigger and status | Admin can complete the primary workflow in the browser |
-| 7 | Admin Frontend — Decision Support | Fairness view, detail panels, at-risk review, manual checker | All spec-defined UI sections complete and trustworthy |
-| 8 | Integration, Testing & Demo Data | Playwright E2E, realistic demo data, end-to-end validation | Full run works with demo data; all tests pass |
-| 9 | Polish & Showcase Prep | README, docs, showcase mode (Option 2), repo cleanup | One-command run; GitHub-ready |
+| Phase | Name                              | Core Focus                                                                    | Gate to Next Phase                                                      |
+| ----- | --------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| 0     | Inception & Setup                 | Repo structure, dev environment, schema finalization, locked decisions        | Schema locked; both servers run; all Phase 0 decisions documented       |
+| 1     | Data Foundation                   | Models, ingestion pipeline, form intake, segment status, student form         | Sample data ingested, segment statuses correct, form submits            |
+| 2     | Scoring Engine                    | All factor encodings, pair score formula, factor breakdown object, unit tests | Scoring validated against manually computed cases                       |
+| 3     | Matching Engine                   | 2-bed matching, 3/4-bed heuristic, swap pass, satisfaction labels             | All room sizes matched correctly; invariants hold on synthetic segments |
+| 4     | Explanation + Fairness Engine     | Factor classification, NL generation, fairness distribution, backend harness  | Explanations correct; privacy tested; harness validates full output     |
+| 5     | Backend API                       | All FastAPI endpoints, Pydantic schemas, orchestration, integration           | Full workflow runnable via HTTP                                         |
+| 6     | Admin Frontend — Core             | Navigation shell, upload flows, matching run trigger and status               | Admin can complete the primary workflow in the browser                  |
+| 7     | Admin Frontend — Decision Support | Fairness view, detail panels, at-risk review, manual checker                  | All spec-defined UI sections complete and trustworthy                   |
+| 8     | Integration, Testing & Demo Data  | Playwright E2E, realistic demo data, end-to-end validation                    | Full run works with demo data; all tests pass                           |
+| 9     | Polish & Showcase Prep            | README, docs, showcase mode (Option 2), repo cleanup                          | One-command run; GitHub-ready                                           |
 
 ---
 
@@ -92,6 +93,7 @@ This order is correct because:
 **Why it belongs here:** Every later phase depends on a clean environment, agreed-upon boundaries, locked schema, and resolved design decisions. Deferring these creates compounding rework.
 
 **Key goals:**
+
 - Lock all decisions that are preconditions for implementation (see Decision Points below)
 - Set up the repository with the finalized structure
 - Get both servers running with a health check endpoint
@@ -108,6 +110,7 @@ This order is correct because:
 6. **Column mapping in v1.** To keep v1 tractable, require the master students CSV to use exact system column names. Column mapping UI can be added in a later pass.
 
 **Major workstreams:**
+
 - Repo init: monorepo root with `frontend/`, `backend/`, `data/`, `demo-data/`, `docs/` directories
 - Backend bootstrap: FastAPI app with `/health`, SQLAlchemy engine → `data/app.db`, Alembic initialized
 - Frontend bootstrap: Vite + React + TS, Tailwind and shadcn/ui configured, React Router with placeholder routes for all 6 admin sections and `/form`
@@ -115,6 +118,7 @@ This order is correct because:
 - `docs/architecture.md`: service boundaries, folder responsibilities, where business logic is and isn't allowed, how matching results are versioned
 
 **Expected deliverables:**
+
 - Running backend at `localhost:8000/health`
 - Running frontend at `localhost:5173` with navigation shell
 - First Alembic migration creating all tables
@@ -123,6 +127,7 @@ This order is correct because:
 - All Phase 0 decisions documented and not subject to future debate
 
 **What must be validated before moving ahead:**
+
 - Fresh clone boots both servers without manual setup
 - Alembic runs migrations forward and backward cleanly
 - All Phase 0 decisions are written down and agreed upon
@@ -138,6 +143,7 @@ This order is correct because:
 **Why it belongs here:** Every subsequent phase consumes clean, validated, queryable student and preference data. Getting this layer wrong poisons everything downstream.
 
 **Key goals:**
+
 - Implement all SQLAlchemy models: `Student`, `Segment`, `Room`, `FormResponse`, `PreferenceProfile`, `MatchingRun`, `RoomAssignment`, `PairScore`
 - Write the master student CSV ingestion service: parse, validate required columns, detect duplicates, derive `segment_key`, detect invalid field values, persist
 - Write the room file ingestion service: parse, validate capacity vs room size, link rooms to segments. Auto-generate room IDs at matching time (not ingestion time) if no room file is provided
@@ -147,6 +153,7 @@ This order is correct because:
 - Write comprehensive tests for all ingestion and validation logic
 
 **Major workstreams:**
+
 - `backend/app/models/` — all SQLAlchemy model classes
 - `backend/app/services/ingestion/` — CSV parsing services for students and rooms
 - `backend/app/services/segments/` — segment key derivation, status computation
@@ -156,6 +163,7 @@ This order is correct because:
 - `demo-data/` — small, realistic sample CSVs (30–50 students, 3–4 diverse segments covering different genders, year groups, and room sizes) including intentionally bad rows for validation testing
 
 **Expected deliverables:**
+
 - All models created and migrated
 - CSV ingestion services working and tested
 - Segment status logic working
@@ -164,11 +172,13 @@ This order is correct because:
 - Sample data loadable via a seed script
 
 **Important risks and decision points:**
+
 - The `PreferenceProfile` model should store both raw and encoded values. Storing only raw means re-parsing option strings in the scoring engine; storing only encoded loses the audit trail. Store both.
 - Auto-generated room IDs must be deterministic: same input always produces the same room IDs. This matters for reproducibility — if re-running matching produces different room IDs, results can't be meaningfully compared.
 - DOB validation must be strict but demo-friendly: use ISO format (`YYYY-MM-DD`) and validate strictly, but provide a clear error message so test data failures are easy to diagnose.
 
 **What must be validated before moving ahead:**
+
 - Load sample CSV; verify all students appear with correct segment assignments
 - Deliberately introduce bad rows and verify validation catches all of them
 - Submit a form response for a known student; verify it appears in the DB as valid
@@ -187,6 +197,7 @@ This order is correct because:
 **Why it belongs here:** The matching engine is a direct consumer of pair scores and the explanation engine consumes factor breakdowns. Isolating scoring first means any bug is caught here, not after two more layers of complexity are built on top of it.
 
 **Key goals:**
+
 - Implement encoding functions for all 10 factors
 - Implement the three scoring patterns:
   - **Distance-based** (Q1, Q2, Q3, Q9): use their specific lookup tables from the spec — do not generalize into linear interpolation
@@ -205,21 +216,25 @@ This order is correct because:
   - Test at least 5 complete hand-computed student pairs from scratch
 
 **Major workstreams:**
+
 - `backend/app/services/scoring/` — factor encoders, scoring functions, pair score + breakdown computation
 - `backend/tests/scoring/` — full unit test coverage
 
 **Expected deliverables:**
+
 - `compute_pair_score(profile_a, profile_b) -> PairResult` where `PairResult` contains both `pair_score: float` and `factor_breakdown: dict`
 - A utility function to compute all pair scores and breakdowns for a segment and return a score matrix (needed by the matching engine)
 - Test file showing expected vs computed outputs for at least 5 hand-crafted pairs
 - The Excellent safety rule implemented in the label function here, not deferred to later
 
 **Important risks and decision points:**
+
 - The directional mismatch is the most error-prone part of the entire system. Get it wrong and "quiet person paired with someone very uncomfortable with noise" looks identical to the reverse. Write asymmetric test cases explicitly.
 - Do not parameterize weights or thresholds as configurable variables. Hard-code them. They are defined by the spec for a reason; making them configurable adds complexity and risks inconsistency.
 - The factor breakdown object's field names must be stable — the explanation engine will reference them by name. Lock the naming here.
 
 **What must be validated before moving ahead:**
+
 - All unit tests pass
 - Identical preference profiles produce scores at or near `1.0`
 - Deliberately mismatched pairs (strict-smoke-free vs smoker, early sleeper vs very-late sleeper) produce low scores
@@ -237,6 +252,7 @@ This order is correct because:
 **Why it belongs here:** Matching consumes pair scores from Phase 2. Isolating it means if something is wrong, the problem is in matching logic, not in scoring. The matching engine must be provably correct before the API wires it to anything.
 
 **Key goals:**
+
 - Build the graph construction utility: given a score matrix, construct a weighted NetworkX graph
 - Implement 2-bed matching using `networkx.max_weight_matching(graph, maxcardinality=True)`. Note: the output is a set of frozensets; map it carefully back to student IDs before building room assignments
 - Implement the 3-bed heuristic — **behind a clean service interface so the algorithm can be tested and swapped without touching the API**:
@@ -260,10 +276,12 @@ This order is correct because:
 - Ensure deterministic output: same input always produces the same assignment (tie-breaking must be explicit, not reliant on hash ordering)
 
 **Major workstreams:**
+
 - `backend/app/services/matching/` — graph builder, 2-bed matcher, group matcher (behind interface), swap optimizer, satisfaction computer
 - `backend/tests/matching/` — synthetic segment test suite
 
 **Expected deliverables:**
+
 - `run_matching_for_segment(segment_data) -> MatchingResult` — pure function, no DB dependency, testable with fixtures
 - All room sizes handled
 - Local swap pass implemented with iteration cap
@@ -271,12 +289,14 @@ This order is correct because:
 - Test suite covering: all room sizes, odd/leftover student counts, segments with uniformly poor preferences, determinism check (same input → same output)
 
 **Important risks and decision points:**
+
 - **Leftover students in the 3-bed heuristic.** If a segment has 7 students in 3-bed rooms, pair formation leaves one unpaired student. The heuristic must handle this gracefully as a "solo unit" rather than crashing or producing an incorrect assignment.
 - **NetworkX output mapping.** `max_weight_matching` returns `{frozenset({a, b}), frozenset({c, d}), ...}`. Write a dedicated utility to map these back to (student_id_1, student_id_2) tuples before any further processing. Do not scatter this conversion across the codebase.
 - **Swap pass correctness.** The pass must never make a previously-Good student Poor while trying to fix a Poor student. Test this explicitly with a constructed adversarial case.
 - **Reproducibility.** Sort student lists before processing. Use explicit tie-breaking rules. A matching that changes on every run is unusable.
 
 **What must be validated before moving ahead:**
+
 - All room sizes produce valid assignments: every student in exactly one room, no room over or under capacity
 - No student is duplicated or dropped across any test case
 - Satisfaction labels match spec thresholds including the Excellent safety rule
@@ -295,6 +315,7 @@ This order is correct because:
 **Why it belongs here:** Explanations and fairness both depend on correct scoring and matching. Building them together here, in isolation from the API, means the complete core output can be validated before any UI is built on top of it. The evaluation harness is the most practical debugging tool during this phase.
 
 **Key goals:**
+
 - Implement factor classification: given a factor score and factor type, classify into Strong Match / Moderate Match / Neutral / Moderate Mismatch / Strong Mismatch. Thresholds may differ by factor weight — heavier factors warrant different cutoffs than lighter ones
 - Implement reason selection logic:
   - For Excellent/Good: pick 2–3 strongest positive factors
@@ -309,12 +330,14 @@ This order is correct because:
 - Implement the **backend evaluation harness**: a standalone Python script (`backend/scripts/evaluate.py` or similar) that loads sample data directly (no HTTP, no DB), runs scoring → matching → explanation → fairness, and prints a readable summary. This is the primary debugging tool for the algorithmic core. Use it throughout this phase and Phase 3 to inspect outputs
 
 **Major workstreams:**
+
 - `backend/app/services/explainability/` — factor classifier, reason selector, text generator
 - `backend/app/services/fairness/` — satisfaction distribution, at-risk lists
 - `backend/scripts/evaluate.py` — standalone evaluation harness
 - `backend/tests/explainability/` and `backend/tests/fairness/` — test suites
 
 **Expected deliverables:**
+
 - `generate_explanation(student_id, room_assignment, factor_breakdowns) -> List[str]` — 2–3 reasons
 - `compute_fairness_distribution(satisfaction_scores) -> FairnessReport`
 - A complete, inspectable output from the evaluation harness on the sample data from Phase 1
@@ -322,11 +345,13 @@ This order is correct because:
 - Privacy tests: no explanation output contains the words "smoker," "drinker," "non-veg," or any direct preference label
 
 **Important risks and decision points:**
+
 - The Manual Checker (built in Phase 7 of the UI) **must reuse this exact explanation service** — not a fork, not an approximation. Design the interface with this reuse in mind now: the function should accept any arbitrary group of students, not just an already-assigned room.
 - For 3+ person rooms, aggregation must use the student's average relationship with the room, not just with one roommate. Make this aggregation explicit in the function signature.
 - Contradictory explanations within a room (e.g., student A says "both prefer quiet rooms," student B gets "differences in night activity") are a real risk. Add a test that loads a whole room's explanations and checks them for internal consistency.
 
 **What must be validated before moving ahead:**
+
 - Evaluation harness runs on sample data and produces readable, inspectable output
 - Explanation tests for all four satisfaction label paths pass
 - Privacy test: no sensitive preference value appears in any explanation string
@@ -347,38 +372,41 @@ This order is correct because:
 
 Build all endpoints:
 
-| Method | Path | Purpose |
-|---|---|---|
-| `POST` | `/api/students/upload` | Ingest master students CSV; return validation summary |
-| `POST` | `/api/rooms/upload` | Ingest rooms CSV; return validation summary |
-| `GET` | `/api/segments` | List all segments with status (Ready/Impossible/Risk) |
-| `GET` | `/api/segments/{segment_key}/students` | List students in a segment with preference status |
-| `POST` | `/api/form/submit` | Student submits preferences; validate and store |
-| `GET` | `/api/form/status` | Submission stats (total students, valid responses, %) |
-| `GET` | `/api/form/non-submitters` | List of students who haven't submitted |
-| `POST` | `/api/matching/run` | Trigger matching for one segment or all ready segments |
-| `GET` | `/api/matching/runs` | List matching runs with status and summary |
-| `GET` | `/api/matching/runs/{run_id}/segments/{segment_key}/rooms` | Room view for a segment's results |
-| `GET` | `/api/matching/runs/{run_id}/segments/{segment_key}/students` | Student view with satisfaction and explanations |
-| `GET` | `/api/fairness/{run_id}` | Satisfaction distribution for whole run and per segment |
-| `POST` | `/api/checker/compatibility` | Manual checker: compute group compatibility for an arbitrary set of students |
-| `GET` | `/api/exports/assignments/{run_id}` | Download CSV of room assignments |
-| `GET` | `/api/dashboard` | Aggregate stats: setup checklist, key numbers |
+| Method | Path                                                          | Purpose                                                                      |
+| ------ | ------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `POST` | `/api/students/upload`                                        | Ingest master students CSV; return validation summary                        |
+| `POST` | `/api/rooms/upload`                                           | Ingest rooms CSV; return validation summary                                  |
+| `GET`  | `/api/segments`                                               | List all segments with status (Ready/Impossible/Risk)                        |
+| `GET`  | `/api/segments/{segment_key}/students`                        | List students in a segment with preference status                            |
+| `POST` | `/api/form/submit`                                            | Student submits preferences; validate and store                              |
+| `GET`  | `/api/form/status`                                            | Submission stats (total students, valid responses, %)                        |
+| `GET`  | `/api/form/non-submitters`                                    | List of students who haven't submitted                                       |
+| `POST` | `/api/matching/run`                                           | Trigger matching for one segment or all ready segments                       |
+| `GET`  | `/api/matching/runs`                                          | List matching runs with status and summary                                   |
+| `GET`  | `/api/matching/runs/{run_id}/segments/{segment_key}/rooms`    | Room view for a segment's results                                            |
+| `GET`  | `/api/matching/runs/{run_id}/segments/{segment_key}/students` | Student view with satisfaction and explanations                              |
+| `GET`  | `/api/fairness/{run_id}`                                      | Satisfaction distribution for whole run and per segment                      |
+| `POST` | `/api/checker/compatibility`                                  | Manual checker: compute group compatibility for an arbitrary set of students |
+| `GET`  | `/api/exports/assignments/{run_id}`                           | Download CSV of room assignments                                             |
+| `GET`  | `/api/dashboard`                                              | Aggregate stats: setup checklist, key numbers                                |
 
 Define all Pydantic request/response schemas. Apply a consistent error response format. Ensure run artifacts are persisted so results are reviewable after the fact.
 
 **Major workstreams:**
+
 - `backend/app/api/` — router files organized by domain (students, segments, form, matching, fairness, checker, exports)
 - `backend/app/schemas/` — all Pydantic models
 - `backend/tests/api/` — integration tests using FastAPI's `TestClient`
 
 **Expected deliverables:**
+
 - All endpoints operational and returning correct responses
 - Integration tests for all happy-path flows
 - Integration tests for key error flows (invalid CSV, segment not ready, etc.)
 - CORS configured for `localhost:5173`
 
 **Important risks and decision points:**
+
 - **Matching run performance.** For v1 local usage with realistic data sizes, synchronous execution in `POST /api/matching/run` is acceptable. Measure actual timing with sample data in Phase 9. Do not implement async background tasks prematurely — add them only if Phase 9 testing reveals a genuine UX problem.
 - **Run persistence.** Matching run artifacts (assignments, pair scores, explanations, fairness data) must be persisted to the DB so the frontend can retrieve results without re-running matching. Do not recompute on every page load.
 - **Manual Checker endpoint.** The `POST /api/checker/compatibility` handler must call the same explanation service built in Phase 4. It computes compatibility for a hypothetical group — the service interface designed for this purpose in Phase 4 is what makes this clean.
@@ -386,22 +414,20 @@ Define all Pydantic request/response schemas. Apply a consistent error response 
 - **Export streaming.** Stream the CSV response rather than loading the full dataset into memory; use FastAPI's `StreamingResponse` with a generator.
 
 **What must be validated before moving ahead:**
+
 - Full matching workflow triggered, completed, and results retrieved via HTTP without touching the database directly
 - Invalid uploads return structured error responses with field-level detail
 - Manual checker returns results consistent with the matching engine
 - All endpoints tested with FastAPI `TestClient`
 
-**Done looks like:** A complete, tested API layer. The full workflow — upload data, submit preferences, run matching, retrieve results, download export — is runnable via HTTP alone.
-
----
-
-### Phase 6 — Admin Frontend: Core
+**Done looks like:** A complete, tested API layer. The full workflow — upload data, submit preferences, run matching, retrieve results, download export — is runnable via HTTP
 
 **Objective:** Build the navigation shell, upload flows, the Form & Collection view, and the Matching Runs trigger-and-status view. By the end of this phase, an admin can complete the primary workflow entirely in the browser.
 
 **Why it belongs here:** Frontend is built after the API is stable to avoid building UI against moving contracts. The primary workflow (upload → match → view) is built first because it validates the full integration path before the more complex decision-support views are added.
 
 **Key goals:**
+
 - Build the left-sidebar navigation shell with routing for all 6 sections
 - Build the **Dashboard** page: setup checklist, key stats, primary action buttons
 - Build the **Students & Data** section:
@@ -422,24 +448,28 @@ Define all Pydantic request/response schemas. Apply a consistent error response 
   - After run: segment table updates with results and average match quality
 
 **Major workstreams:**
+
 - `frontend/src/pages/` — page components for Dashboard, Students & Data, Form & Collection, Matching Runs
 - `frontend/src/components/` — shared components: file upload, data table, status badge, stat card
 - `frontend/src/lib/api/` — TanStack Query hooks for all API endpoints used in this phase
 - `frontend/src/routes/` — React Router route definitions
 
 **Expected deliverables:**
+
 - Navigation shell and routing working
 - Upload flows functional end-to-end
 - Form collection stats displayed and accurate
 - Matching can be triggered and segment statuses update after run
 
 **Important risks and decision points:**
+
 - Use TanStack Query for all server state. Do not maintain server-derived data in local component state.
 - Use shadcn/ui components as the base. Do not build primitive UI components from scratch.
 - The upload flow must handle the case where a second upload replaces the first. Confirm the API and UI agree on this behavior before building the UI.
 - Keep frontend TypeScript types derived from or consistent with Pydantic response schemas. Do not let types drift between layers.
 
 **What must be validated before moving ahead:**
+
 - Load sample data through the upload UI; verify it appears correctly (segment list, student counts)
 - Trigger a matching run via the UI; verify segment statuses update
 - The full primary workflow is completable without touching the command line
@@ -455,6 +485,7 @@ Define all Pydantic request/response schemas. Apply a consistent error response 
 **Why it belongs here:** These views are read-heavy and depend on matching results from Phase 6. More importantly, they form a coherent decision-support layer — fairness surfacing, at-risk review, and mid-semester exception handling all belong together conceptually, not scattered across "more UI" construction.
 
 **Key goals:**
+
 - Build **Matching Results — Room View**:
   - Table of rooms with student mini-scores and group score
   - Status badge per room (Healthy / Needs Review)
@@ -478,18 +509,21 @@ Define all Pydantic request/response schemas. Apply a consistent error response 
 - Ensure sensitive factors never appear with raw preference values in any detail panel
 
 **Major workstreams:**
+
 - `frontend/src/pages/matching/` — room view and student view sub-pages
 - `frontend/src/pages/reports/` — fairness section
 - `frontend/src/pages/checker/` — manual checker
 - `frontend/src/components/panels/` — detail side panels (shared between student view and room view)
 
 **Expected deliverables:**
+
 - All 6 navigation sections fully built and working
 - Filters, click-through navigation, and detail panels functional
 - Manual checker operational and producing results consistent with matching engine
 - Sensitive factors never display raw preference values anywhere in the UI
 
 **What must be validated before moving ahead:**
+
 - Load a full matching run with realistic data; verify room view and student view render correctly
 - At-risk filter shows exactly the correct students
 - Click a student in the fairness view → lands in Student View filtered correctly
@@ -507,6 +541,7 @@ Define all Pydantic request/response schemas. Apply a consistent error response 
 **Why it belongs here:** Integration testing is only meaningful after all components are complete. This phase finds problems that only emerge when real-sized, varied data flows through the full stack.
 
 **Key goals:**
+
 - Create the demo data set in `demo-data/`:
   - `master_students.csv`: ~80–100 students across 3–4 diverse segments (different genders, year groups, room sizes)
   - `rooms.csv`: corresponding room definitions
@@ -527,11 +562,13 @@ Define all Pydantic request/response schemas. Apply a consistent error response 
   - Export CSV is correctly formatted
 
 **Expected deliverables:**
+
 - `demo-data/` directory with CSVs and seed script
 - Playwright test suite passing on the full workflow
 - All bugs found during integration testing fixed
 
 **What must be validated before moving ahead:**
+
 - Full matching run with demo data completes without errors
 - All Playwright tests pass
 - At-risk students in the demo data are correctly flagged and visible in the UI
@@ -548,6 +585,7 @@ Define all Pydantic request/response schemas. Apply a consistent error response 
 **Why it belongs here:** This is the final delivery phase. Everything must be working before showcase prep begins.
 
 **Key goals:**
+
 - Build the React frontend: `npm run build` inside `frontend/` → static files in `frontend/dist/`
 - Configure FastAPI to serve the built frontend:
   - Mount `frontend/dist/` as a `StaticFiles` directory
@@ -571,6 +609,7 @@ Define all Pydantic request/response schemas. Apply a consistent error response 
   - Static frontend serving paths tested: confirm React Router routes load correctly when accessed directly in showcase mode
 
 **What must be validated before moving ahead:**
+
 - Clone the repo into a completely fresh directory; follow the README exactly; confirm the app works with zero additional steps
 - Seed demo data; run matching; download an export — all from the browser only
 - The repository reads like a finished product, not a work in progress
@@ -675,4 +714,4 @@ Run the complete system end-to-end with realistic demo data. Fix what breaks —
 
 ---
 
-*This plan is designed to be followed progressively, not rigidly. Each phase represents a goal and a validation gate. If a phase uncovers unexpected complexity — particularly in the matching heuristic or scoring correctness — address it before advancing. Building on an uncertain foundation produces compounding rework. The iteration loops in Section 4 are expected parts of the process.*
+_This plan is designed to be followed progressively, not rigidly. Each phase represents a goal and a validation gate. If a phase uncovers unexpected complexity — particularly in the matching heuristic or scoring correctness — address it before advancing. Building on an uncertain foundation produces compounding rework. The iteration loops in Section 4 are expected parts of the process._

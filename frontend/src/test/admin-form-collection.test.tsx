@@ -4,12 +4,11 @@ import { vi } from "vitest";
 import { AdminFormCollection } from "../pages/AdminFormCollection";
 import { renderWithProviders } from "./renderWithProviders";
 
-const { useAdminFormStatusQueryMock, useAdminNonSubmittersQueryMock } = vi.hoisted(
-  () => ({
+const { useAdminFormStatusQueryMock, useAdminNonSubmittersQueryMock } =
+  vi.hoisted(() => ({
     useAdminFormStatusQueryMock: vi.fn(),
     useAdminNonSubmittersQueryMock: vi.fn(),
-  }),
-);
+  }));
 
 vi.mock("../hooks/useAdminFormCollection", () => ({
   useAdminFormStatusQuery: useAdminFormStatusQueryMock,

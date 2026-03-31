@@ -1,7 +1,13 @@
 import { useMemo, useState } from "react";
 
 import { Button } from "./ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "./ui/card";
 import { Input } from "./ui/input";
 
 interface FileUploadPanelProps {
@@ -49,7 +55,10 @@ export function FileUploadPanel({
         <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent>
-        <form className="space-y-4" onSubmit={(event) => void handleSubmit(event)}>
+        <form
+          className="space-y-4"
+          onSubmit={(event) => void handleSubmit(event)}
+        >
           <Input
             accept={accept}
             aria-label={`${title} file input`}
@@ -63,7 +72,9 @@ export function FileUploadPanel({
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs text-muted-foreground">
-              {selectedFile ? `Selected: ${selectedFile.name}` : "Upload a CSV file."}
+              {selectedFile
+                ? `Selected: ${selectedFile.name}`
+                : "Upload a CSV file."}
             </p>
             <Button disabled={!canSubmit} type="submit" variant="accent">
               {isUploading ? "Uploading..." : buttonLabel}
