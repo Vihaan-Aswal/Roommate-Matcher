@@ -19,6 +19,7 @@ class MatchingRun(Base):
     target_segment_key: Mapped[str | None] = mapped_column(ForeignKey("segments.segment_key"), nullable=True, index=True)
     status: Mapped[str] = mapped_column(String, nullable=False, index=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    fairness_summary_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
