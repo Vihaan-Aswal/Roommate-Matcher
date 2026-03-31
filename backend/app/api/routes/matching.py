@@ -4,8 +4,19 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.schemas.matching import MatchingRunListResponse, MatchingRunRequest, MatchingRunResponse
-from app.services.matching.run_workflow import list_matching_runs, run_matching_workflow
+from app.schemas.matching import (
+    MatchingRunListResponse,
+    MatchingRunRequest,
+    MatchingRunResponse,
+    MatchingRunRoomsResponse,
+    MatchingRunStudentsResponse,
+)
+from app.services.matching.run_workflow import (
+    get_run_rooms_from_persisted_artifacts,
+    get_run_students_from_persisted_artifacts,
+    list_matching_runs,
+    run_matching_workflow,
+)
 
 
 router = APIRouter(prefix="/matching", tags=["matching"])
@@ -45,3 +56,35 @@ def get_matching_runs(db: Session = Depends(get_db)) -> MatchingRunListResponse:
             for run in runs
         ]
     )
+
+
+@router.get("/runs/{run_id}/segments/{segment_key}/rooms", response_model=MatchingRunRoomsResponse)
+def get_matching_run_rooms(
+    run_id: str,
+    segment_key: str,
+    db: Session = Depends(get_db),
+) -> MatchingRunRoomsResponse:
+    try:
+        rooms = get_run_rooms_from_persisted_artifacts(db, run_id=run_id, segment_key=segment_key)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    return MatchingRunRoomsResponse(run_id=run_id, segment_key=segment_key, rooms=rooms)
+
+
+@router.get("/runs/{run_id}/segments/{segment_key}/students", response_model=MatchingRunStudentsResponse)
+def get_matching_run_students(
+    run_id: str,
+    segment_key: str,
+    db: Session = Depends(get_db),
+) -> MatchingRunStudentsResponse:
+    try:
+        students = get_run_students_from_persisted_artifacts(db, run_id=run_id, segment_key=segment_key)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    return MatchingRunStudentsResponse(run_id=run_id, segment_key=segment_key, students=students)

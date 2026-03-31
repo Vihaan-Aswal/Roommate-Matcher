@@ -123,6 +123,10 @@ def _serialize_factor_breakdown(factor_breakdown: dict[str, FactorScore]) -> dic
     }
 
 
+def _canonical_pair(student_a: str, student_b: str) -> tuple[str, str]:
+    return (student_a, student_b) if student_a < student_b else (student_b, student_a)
+
+
 def _resolve_target_segments(db: Session, scope: RunScope, segment_key: str | None) -> list[Segment]:
     if scope == "segment":
         if not segment_key:
@@ -375,3 +379,163 @@ def list_matching_runs(db: Session) -> list[MatchingRunHistoryItem]:
             )
         )
     return results
+
+
+def get_run_rooms_from_persisted_artifacts(
+    db: Session,
+    *,
+    run_id: str,
+    segment_key: str,
+) -> list[dict[str, object]]:
+    assignments = db.scalars(
+        select(RoomAssignment)
+        .where(
+            RoomAssignment.run_id == run_id,
+            RoomAssignment.segment_key == segment_key,
+        )
+        .order_by(RoomAssignment.room_id)
+    ).all()
+    if not assignments:
+        raise KeyError("Matching artifacts not found for run and segment")
+
+    pair_score_rows = db.scalars(
+        select(PairScore).where(
+            PairScore.run_id == run_id,
+            PairScore.segment_key == segment_key,
+        )
+    ).all()
+    pair_score_map = {
+        _canonical_pair(row.student_a, row.student_b): row.pair_score
+        for row in pair_score_rows
+    }
+
+    all_student_ids: set[str] = set()
+    parsed_assignments: list[tuple[RoomAssignment, list[str], dict[str, object]]] = []
+    for assignment in assignments:
+        assigned_students = json.loads(assignment.assigned_students_json)
+        if not isinstance(assigned_students, list):
+            raise ValueError("assigned_students_json must be a JSON list")
+        summary = json.loads(assignment.satisfaction_summary_json or "{}")
+        if not isinstance(summary, dict):
+            raise ValueError("satisfaction_summary_json must be a JSON object")
+        parsed_assignments.append((assignment, [str(item) for item in assigned_students], summary))
+        all_student_ids.update(str(item) for item in assigned_students)
+
+    students = db.scalars(
+        select(Student).where(Student.admission_number.in_(sorted(all_student_ids)))
+    ).all()
+    student_name_map = {student.admission_number: student.full_name for student in students}
+
+    rooms_payload: list[dict[str, object]] = []
+    for assignment, assigned_students, _summary in parsed_assignments:
+        room_students: list[dict[str, object]] = []
+        for student_id in assigned_students:
+            roommate_scores = {
+                roommate_id: pair_score_map.get(_canonical_pair(student_id, roommate_id), 0.0)
+                for roommate_id in assigned_students
+                if roommate_id != student_id
+            }
+            room_students.append(
+                {
+                    "admission_number": student_id,
+                    "full_name": student_name_map.get(student_id, student_id),
+                    "pair_scores_with_roommates": roommate_scores,
+                }
+            )
+
+        rooms_payload.append(
+            {
+                "room_id": assignment.room_id,
+                "room_size": len(assigned_students),
+                "assigned_students": room_students,
+                "group_score": assignment.group_score,
+                "needs_review": bool(assignment.needs_review),
+            }
+        )
+
+    return rooms_payload
+
+
+def get_run_students_from_persisted_artifacts(
+    db: Session,
+    *,
+    run_id: str,
+    segment_key: str,
+) -> list[dict[str, object]]:
+    assignments = db.scalars(
+        select(RoomAssignment)
+        .where(
+            RoomAssignment.run_id == run_id,
+            RoomAssignment.segment_key == segment_key,
+        )
+        .order_by(RoomAssignment.room_id)
+    ).all()
+    if not assignments:
+        raise KeyError("Matching artifacts not found for run and segment")
+
+    all_student_ids: set[str] = set()
+    parsed_rooms: list[tuple[str, list[str], dict[str, object]]] = []
+    for assignment in assignments:
+        assigned_students = json.loads(assignment.assigned_students_json)
+        summary = json.loads(assignment.satisfaction_summary_json or "{}")
+        if not isinstance(assigned_students, list):
+            raise ValueError("assigned_students_json must be a JSON list")
+        if not isinstance(summary, dict):
+            raise ValueError("satisfaction_summary_json must be a JSON object")
+        parsed_rooms.append((assignment.room_id, [str(item) for item in assigned_students], summary))
+        all_student_ids.update(str(item) for item in assigned_students)
+
+    students = db.scalars(
+        select(Student).where(Student.admission_number.in_(sorted(all_student_ids)))
+    ).all()
+    student_name_map = {student.admission_number: student.full_name for student in students}
+
+    student_payload: list[dict[str, object]] = []
+    for room_id, assigned_students, summary in parsed_rooms:
+        summary_students = summary.get("students", [])
+        summary_map = {
+            str(item.get("student_id")): item
+            for item in summary_students
+            if isinstance(item, dict) and item.get("student_id") is not None
+        }
+
+        for student_id in assigned_students:
+            item = summary_map.get(student_id)
+            if item is None:
+                raise ValueError("Persisted room summary is missing a student record")
+
+            student_payload.append(
+                {
+                    "admission_number": student_id,
+                    "full_name": student_name_map.get(student_id, student_id),
+                    "room_id": room_id,
+                    "roommate_ids": [str(value) for value in item.get("roommate_ids", [])],
+                    "satisfaction_score": float(item.get("satisfaction_score", 0.0)),
+                    "satisfaction_label": str(item.get("satisfaction_label", "Poor")),
+                    "is_at_risk": bool(item.get("is_at_risk", False)),
+                    "reasons": [str(value) for value in item.get("reasons", [])],
+                    "factor_trace": item.get("factor_trace", []),
+                }
+            )
+
+    return sorted(student_payload, key=lambda row: str(row["admission_number"]))
+
+
+def get_run_fairness_snapshot(db: Session, run_id: str) -> dict[str, object]:
+    run_row = db.get(MatchingRun, run_id)
+    if run_row is None:
+        raise KeyError("Matching run not found")
+    if run_row.fairness_summary_json is None:
+        raise KeyError("Fairness snapshot not found for run")
+
+    fairness_payload = json.loads(run_row.fairness_summary_json)
+    if not isinstance(fairness_payload, dict):
+        raise ValueError("fairness_summary_json must be a JSON object")
+
+    by_segment = fairness_payload.get("by_segment")
+    if isinstance(by_segment, list):
+        fairness_payload["by_segment"] = sorted(
+            by_segment,
+            key=lambda row: str(row.get("segment_key", "")) if isinstance(row, dict) else "",
+        )
+    return fairness_payload

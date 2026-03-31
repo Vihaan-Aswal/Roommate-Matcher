@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.routes.checker import router as checker_router
+from app.api.routes.fairness import router as fairness_router
 from app.api.routes.form import router as form_router
 from app.api.routes.matching import router as matching_router
 from app.api.routes.segments import router as segments_router
@@ -20,6 +22,8 @@ app.include_router(upload_router, prefix="/api")
 app.include_router(form_router, prefix="/api")
 app.include_router(segments_router, prefix="/api")
 app.include_router(matching_router, prefix="/api")
+app.include_router(fairness_router, prefix="/api")
+app.include_router(checker_router, prefix="/api")
 
 
 @app.get("/health")
