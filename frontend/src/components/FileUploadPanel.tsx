@@ -11,6 +11,7 @@ interface FileUploadPanelProps {
   onUpload: (file: File) => Promise<void>;
   isUploading: boolean;
   accept?: string;
+  onFileSelected?: (file: File | null) => void;
 }
 
 export function FileUploadPanel({
@@ -20,6 +21,7 @@ export function FileUploadPanel({
   onUpload,
   isUploading,
   accept = ".csv,text/csv",
+  onFileSelected,
 }: FileUploadPanelProps): JSX.Element {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
@@ -35,6 +37,7 @@ export function FileUploadPanel({
     }
     await onUpload(selectedFile);
     setSelectedFile(null);
+    onFileSelected?.(null);
     event.currentTarget.reset();
   };
 
@@ -53,6 +56,7 @@ export function FileUploadPanel({
             onChange={(event) => {
               const nextFile = event.currentTarget.files?.[0] ?? null;
               setSelectedFile(nextFile);
+              onFileSelected?.(nextFile);
             }}
           />
 
