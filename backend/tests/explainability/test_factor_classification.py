@@ -6,8 +6,13 @@ from app.services.explainability.factor_classification import (
     EPSILON,
     THRESHOLD_TABLES,
     WEIGHT_CLASS_BY_FACTOR,
+    classify_factor,
+    classify_factor_breakdown,
+    classify_pair_result,
     classify_score_for_weight_class,
 )
+from app.services.scoring.constants import SCORING_FACTOR_KEYS
+from app.services.scoring.types import FactorScore, PairResult
 
 
 def test_weight_classes_match_expected_factor_groups() -> None:
@@ -66,3 +71,67 @@ def test_threshold_tables_have_complete_class_chain(weight_class: str) -> None:
         "Moderate Mismatch",
         "Strong Mismatch",
     ]
+
+
+@pytest.mark.parametrize(
+    ("factor_key", "score", "expected_class"),
+    [
+        ("q1_enc", 0.95, "Strong Match"),
+        ("q2_enc", 0.72, "Moderate Match"),
+        ("q3_enc", 0.50, "Neutral"),
+        ("q4a_enc", 0.30, "Moderate Mismatch"),
+        ("q5a_enc", 0.10, "Strong Mismatch"),
+        ("q6_enc", 0.92, "Strong Match"),
+        ("q7_enc", 0.65, "Moderate Match"),
+        ("q8_enc", 0.45, "Neutral"),
+        ("q9_enc", 0.30, "Moderate Mismatch"),
+        ("q10_enc", 0.10, "Strong Mismatch"),
+    ],
+)
+def test_classify_factor_for_all_keys(
+    factor_key: str,
+    score: float,
+    expected_class: str,
+) -> None:
+    classified = classify_factor(
+        factor_key=factor_key,
+        raw_score=score,
+        weight_used=0.1,
+        missing_data=False,
+    )
+    assert classified.factor_class == expected_class
+
+
+def test_missing_data_is_forced_to_neutral_and_suppressed() -> None:
+    classified = classify_factor(
+        factor_key="q6_enc",
+        raw_score=0.05,
+        weight_used=0.0,
+        missing_data=True,
+    )
+    assert classified.factor_class == "Neutral"
+    assert classified.suppressed_reason is True
+
+
+def test_classify_factor_breakdown_requires_exact_factor_keys() -> None:
+    incomplete = {
+        "q1_enc": FactorScore(raw_score=0.9, weight_used=1.0, missing_data=False),
+    }
+    with pytest.raises(ValueError):
+        classify_factor_breakdown(incomplete)
+
+
+def test_classify_pair_result_is_deterministic() -> None:
+    pair_result = PairResult(
+        pair_score=0.79,
+        factor_breakdown={
+            factor_key: FactorScore(raw_score=0.79, weight_used=0.1, missing_data=False)
+            for factor_key in SCORING_FACTOR_KEYS
+        },
+        excellent_candidate=False,
+    )
+
+    first = classify_pair_result(pair_result)
+    second = classify_pair_result(pair_result)
+
+    assert first == second
