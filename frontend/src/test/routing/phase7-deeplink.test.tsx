@@ -1,11 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import {
-  MemoryRouter,
-  Route,
-  Routes,
-  useLocation,
-} from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { vi } from "vitest";
 
 import { StudentResultsPage } from "../../pages/matching/StudentResultsPage";
@@ -34,7 +29,9 @@ vi.mock("../../hooks/useRunStudentsAcrossSegmentsQuery", () => ({
 
 function LocationProbe() {
   const location = useLocation();
-  return <p data-testid="location-probe">{`${location.pathname}${location.search}`}</p>;
+  return (
+    <p data-testid="location-probe">{`${location.pathname}${location.search}`}</p>
+  );
 }
 
 describe("phase 7 deep links", () => {

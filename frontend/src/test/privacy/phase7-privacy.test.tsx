@@ -42,10 +42,13 @@ describe("phase 7 privacy safeguards", () => {
 
     expect(container.textContent).not.toMatch(BLOCKED_TERMS);
     expect(
-      screen.getAllByText(/Lifestyle preference alignment affects compatibility/i)
-        .length,
+      screen.getAllByText(
+        /Lifestyle preference alignment affects compatibility/i,
+      ).length,
     ).toBeGreaterThan(0);
-    expect(screen.getAllByText("Lifestyle alignment").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Lifestyle alignment").length).toBeGreaterThan(
+      0,
+    );
   });
 
   it("redacts blocked wording in checker result panel", () => {

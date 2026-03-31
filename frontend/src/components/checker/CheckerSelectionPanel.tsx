@@ -1,4 +1,7 @@
-import type { SegmentOverview, SegmentStudentPreferenceRow } from "../../lib/apiClient";
+import type {
+  SegmentOverview,
+  SegmentStudentPreferenceRow,
+} from "../../lib/apiClient";
 import { Button } from "../ui/button";
 import { Select } from "../ui/select";
 import { CheckerStudentsList } from "./CheckerStudentsList";

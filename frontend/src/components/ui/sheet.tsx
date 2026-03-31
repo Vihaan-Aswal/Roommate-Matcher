@@ -23,7 +23,11 @@ interface SheetProps {
   children: React.ReactNode;
 }
 
-export function Sheet({ open, onOpenChange, children }: SheetProps): JSX.Element {
+export function Sheet({
+  open,
+  onOpenChange,
+  children,
+}: SheetProps): JSX.Element {
   return (
     <SheetContext.Provider value={{ open, onOpenChange }}>
       {children}

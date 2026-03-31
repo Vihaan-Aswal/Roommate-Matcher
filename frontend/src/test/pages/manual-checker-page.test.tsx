@@ -162,6 +162,8 @@ describe("ManualCheckerPage", () => {
 
     expect(screen.getByText(/Group compatibility score/i)).toBeInTheDocument();
     expect(screen.getByText(/71.0%/)).toBeInTheDocument();
-    expect(screen.getByText(/✅ Sleep schedule - Strong Match/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/✅ Sleep schedule - Strong Match/i),
+    ).toBeInTheDocument();
   });
 });

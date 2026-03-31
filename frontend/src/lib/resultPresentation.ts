@@ -4,7 +4,9 @@ export function formatScorePercent(score: number): string {
   return `${(score * 100).toFixed(1)}%`;
 }
 
-export function roomHealthLabel(needsReview: boolean): "Healthy" | "Needs Review" {
+export function roomHealthLabel(
+  needsReview: boolean,
+): "Healthy" | "Needs Review" {
   return needsReview ? "Needs Review" : "Healthy";
 }
 

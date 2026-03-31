@@ -29,7 +29,7 @@ describe("StudentDetailPanel", () => {
             },
           ],
         }}
-      />, 
+      />,
     );
 
     expect(

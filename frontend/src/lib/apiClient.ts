@@ -159,9 +159,7 @@ export type FactorPolarity =
   | "mismatch"
   | "neutral_context";
 
-export type FactorClaimScope =
-  | "room_shared_claim"
-  | "student_specific_claim";
+export type FactorClaimScope = "room_shared_claim" | "student_specific_claim";
 
 export interface FactorTraceEntry {
   factor_key: string;
@@ -321,7 +319,10 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   return data as T;
 }
 
-function parseCsvFileName(contentDisposition: string | null, fallback: string): string {
+function parseCsvFileName(
+  contentDisposition: string | null,
+  fallback: string,
+): string {
   if (!contentDisposition) {
     return fallback;
   }

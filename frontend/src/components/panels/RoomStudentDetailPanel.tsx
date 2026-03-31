@@ -1,4 +1,7 @@
-import { StudentDetailPanel, type StudentDetailPanelData } from "./StudentDetailPanel";
+import {
+  StudentDetailPanel,
+  type StudentDetailPanelData,
+} from "./StudentDetailPanel";
 
 interface RoomStudentDetailPanelProps {
   roomId: string | null;

@@ -1,5 +1,8 @@
 import type { FactorTraceEntry, SatisfactionLabel } from "../../lib/apiClient";
-import { getSafeFactorLabel, factorPolarityIndicator } from "../../lib/factorDisplay";
+import {
+  getSafeFactorLabel,
+  factorPolarityIndicator,
+} from "../../lib/factorDisplay";
 import { sanitizeReasonText } from "../../lib/privacySafeRender";
 import { formatScorePercent } from "../../lib/resultPresentation";
 import { StatusBadge } from "../StatusBadge";
@@ -39,9 +42,13 @@ function polaritySymbol(entry: FactorTraceEntry): string {
   return "•";
 }
 
-export function StudentDetailPanel({ student }: StudentDetailPanelProps): JSX.Element {
+export function StudentDetailPanel({
+  student,
+}: StudentDetailPanelProps): JSX.Element {
   const sanitizedReasons = student.reasons.map(sanitizeReasonText);
-  const redactionCount = sanitizedReasons.filter((item) => item.wasRedacted).length;
+  const redactionCount = sanitizedReasons.filter(
+    (item) => item.wasRedacted,
+  ).length;
 
   return (
     <div className="space-y-4">
@@ -85,7 +92,8 @@ export function StudentDetailPanel({ student }: StudentDetailPanelProps): JSX.El
         </ul>
         {redactionCount > 0 ? (
           <p className="text-xs text-amber-700">
-            {redactionCount} reason{redactionCount === 1 ? " was" : "s were"} privacy-redacted.
+            {redactionCount} reason{redactionCount === 1 ? " was" : "s were"}{" "}
+            privacy-redacted.
           </p>
         ) : null}
       </section>

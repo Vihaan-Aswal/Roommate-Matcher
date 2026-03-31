@@ -64,7 +64,11 @@ describe("StudentResultsPage", () => {
             satisfaction_score: 0.84,
             satisfaction_label: "Excellent",
             is_at_risk: false,
-            reasons: ["Compatible sleep", "Compatible budget", "Similar routine"],
+            reasons: [
+              "Compatible sleep",
+              "Compatible budget",
+              "Similar routine",
+            ],
             factor_trace: [
               {
                 factor_key: "q1_enc",
@@ -111,8 +115,7 @@ describe("StudentResultsPage", () => {
   });
 
   function renderPage(
-    initialEntry =
-      "/admin/matching-runs/run-100/students?segment=M_1st_year_AC_2&label=all&atRisk=0",
+    initialEntry = "/admin/matching-runs/run-100/students?segment=M_1st_year_AC_2&label=all&atRisk=0",
   ) {
     renderWithProviders(
       <Routes>

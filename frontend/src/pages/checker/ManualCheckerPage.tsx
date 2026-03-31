@@ -50,7 +50,9 @@ export function ManualCheckerPage(): JSX.Element {
   const checkerMutation = useManualCheckerMutation();
 
   const [existingStudentIds, setExistingStudentIds] = useState<string[]>([]);
-  const [candidateStudentId, setCandidateStudentId] = useState<string | null>(null);
+  const [candidateStudentId, setCandidateStudentId] = useState<string | null>(
+    null,
+  );
   const [searchTerm, setSearchTerm] = useState("");
 
   const segmentKey = searchParams.get("segment") ?? "";
@@ -61,7 +63,9 @@ export function ManualCheckerPage(): JSX.Element {
       return;
     }
 
-    const isValid = segments.some((segment) => segment.segment_key === segmentKey);
+    const isValid = segments.some(
+      (segment) => segment.segment_key === segmentKey,
+    );
     if (segmentKey && isValid) {
       return;
     }
@@ -90,7 +94,11 @@ export function ManualCheckerPage(): JSX.Element {
       (segment) => segment.segment_key === segmentKey,
     );
     return segmentRow?.room_size ?? null;
-  }, [segmentKey, segmentStudentsQuery.data?.room_size, segmentsQuery.data?.segments]);
+  }, [
+    segmentKey,
+    segmentStudentsQuery.data?.room_size,
+    segmentsQuery.data?.segments,
+  ]);
 
   const validationMessage = resolveValidationMessage(
     segmentKey,
@@ -105,8 +113,8 @@ export function ManualCheckerPage(): JSX.Element {
       return;
     }
 
-    const studentIds = [...existingStudentIds, candidateStudentId].sort((left, right) =>
-      left.localeCompare(right),
+    const studentIds = [...existingStudentIds, candidateStudentId].sort(
+      (left, right) => left.localeCompare(right),
     );
 
     void checkerMutation.mutateAsync({
@@ -140,7 +148,11 @@ export function ManualCheckerPage(): JSX.Element {
               : "Segments request failed."
           }
           actions={
-            <Button size="sm" variant="outline" onClick={() => void segmentsQuery.refetch()}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => void segmentsQuery.refetch()}
+            >
               Retry
             </Button>
           }
@@ -167,56 +179,56 @@ export function ManualCheckerPage(): JSX.Element {
           tone="error"
         />
       ) : null}
- 
-       <div className="grid gap-4 xl:grid-cols-2">
-         <CheckerSelectionPanel
-           canRun={canRun}
-           isRunning={checkerMutation.isPending}
-           roomSize={roomSize}
-           searchTerm={searchTerm}
-           selectedCandidateId={candidateStudentId}
-           selectedExistingIds={existingStudentIds}
-           selectedSegment={segmentKey}
-           segments={segmentsQuery.data?.segments ?? []}
-           students={sortedStudents}
-           validationMessage={validationMessage}
-           onCandidateChange={setCandidateStudentId}
-           onRun={runChecker}
-           onSearchTermChange={setSearchTerm}
-           onSegmentChange={(nextSegment) => {
-             const next = new URLSearchParams(searchParams);
-             next.set("segment", nextSegment);
-             setSearchParams(next);
-             setExistingStudentIds([]);
-             setCandidateStudentId(null);
-             setSearchTerm("");
-           }}
-           onToggleExisting={(admissionNumber) => {
-             setExistingStudentIds((previous) => {
-               if (previous.includes(admissionNumber)) {
-                 return previous.filter((id) => id !== admissionNumber);
-               }
-               return [...previous, admissionNumber].sort((left, right) =>
-                 left.localeCompare(right),
-               );
-             });
- 
-             if (candidateStudentId === admissionNumber) {
-               setCandidateStudentId(null);
-             }
-           }}
-         />
- 
-         <CheckerResultPanel
-           errorMessage={
-             checkerMutation.error instanceof Error
-               ? checkerMutation.error.message
-               : null
-           }
-           isRunning={checkerMutation.isPending}
-           result={checkerMutation.data ?? null}
-         />
-       </div>
-     </section>
-   );
- }
+
+      <div className="grid gap-4 xl:grid-cols-2">
+        <CheckerSelectionPanel
+          canRun={canRun}
+          isRunning={checkerMutation.isPending}
+          roomSize={roomSize}
+          searchTerm={searchTerm}
+          selectedCandidateId={candidateStudentId}
+          selectedExistingIds={existingStudentIds}
+          selectedSegment={segmentKey}
+          segments={segmentsQuery.data?.segments ?? []}
+          students={sortedStudents}
+          validationMessage={validationMessage}
+          onCandidateChange={setCandidateStudentId}
+          onRun={runChecker}
+          onSearchTermChange={setSearchTerm}
+          onSegmentChange={(nextSegment) => {
+            const next = new URLSearchParams(searchParams);
+            next.set("segment", nextSegment);
+            setSearchParams(next);
+            setExistingStudentIds([]);
+            setCandidateStudentId(null);
+            setSearchTerm("");
+          }}
+          onToggleExisting={(admissionNumber) => {
+            setExistingStudentIds((previous) => {
+              if (previous.includes(admissionNumber)) {
+                return previous.filter((id) => id !== admissionNumber);
+              }
+              return [...previous, admissionNumber].sort((left, right) =>
+                left.localeCompare(right),
+              );
+            });
+
+            if (candidateStudentId === admissionNumber) {
+              setCandidateStudentId(null);
+            }
+          }}
+        />
+
+        <CheckerResultPanel
+          errorMessage={
+            checkerMutation.error instanceof Error
+              ? checkerMutation.error.message
+              : null
+          }
+          isRunning={checkerMutation.isPending}
+          result={checkerMutation.data ?? null}
+        />
+      </div>
+    </section>
+  );
+}

@@ -153,7 +153,9 @@ describe("RoomResultsPage", () => {
     global.URL.revokeObjectURL = vi.fn();
   });
 
-  function renderPage(initialEntry = "/admin/matching-runs/run-100/rooms?segment=M_1st_year_AC_2&needsReview=0") {
+  function renderPage(
+    initialEntry = "/admin/matching-runs/run-100/rooms?segment=M_1st_year_AC_2&needsReview=0",
+  ) {
     renderWithProviders(
       <Routes>
         <Route

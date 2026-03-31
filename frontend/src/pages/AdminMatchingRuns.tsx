@@ -39,7 +39,8 @@ export function AdminMatchingRuns(): JSX.Element {
     [segmentsQuery.data?.segments],
   );
 
-  const defaultSegmentKey = segmentsQuery.data?.segments[0]?.segment_key ?? null;
+  const defaultSegmentKey =
+    segmentsQuery.data?.segments[0]?.segment_key ?? null;
 
   const segmentColumns: DataTableColumn<
     NonNullable<typeof segmentsQuery.data>["segments"][number]
@@ -137,13 +138,28 @@ export function AdminMatchingRuns(): JSX.Element {
 
         return (
           <div className="flex flex-wrap gap-2">
-            <Button asChild disabled={!canOpenResults || !defaultSegmentKey} size="sm" variant="outline">
+            <Button
+              asChild
+              disabled={!canOpenResults || !defaultSegmentKey}
+              size="sm"
+              variant="outline"
+            >
               <Link to={roomRoute || "/admin/matching-runs"}>Room View</Link>
             </Button>
-            <Button asChild disabled={!canOpenResults} size="sm" variant="outline">
+            <Button
+              asChild
+              disabled={!canOpenResults}
+              size="sm"
+              variant="outline"
+            >
               <Link to={studentRoute}>Student View</Link>
             </Button>
-            <Button asChild disabled={!canOpenResults} size="sm" variant="outline">
+            <Button
+              asChild
+              disabled={!canOpenResults}
+              size="sm"
+              variant="outline"
+            >
               <Link to={fairnessRoute}>Fairness</Link>
             </Button>
           </div>

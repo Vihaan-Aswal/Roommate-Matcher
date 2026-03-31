@@ -1,5 +1,8 @@
 import type { RunRoomRow } from "../../../lib/apiClient";
-import { formatScorePercent, roomHealthLabel } from "../../../lib/resultPresentation";
+import {
+  formatScorePercent,
+  roomHealthLabel,
+} from "../../../lib/resultPresentation";
 import { StatusBadge } from "../../StatusBadge";
 import {
   Table,
@@ -18,7 +21,9 @@ interface RoomResultsTableProps {
   onStudentSelect: (admissionNumber: string) => void;
 }
 
-function sortedPairEntries(pairScores: Record<string, number>): [string, number][] {
+function sortedPairEntries(
+  pairScores: Record<string, number>,
+): [string, number][] {
   return Object.entries(pairScores).sort(([left], [right]) =>
     left.localeCompare(right),
   );
@@ -52,7 +57,9 @@ export function RoomResultsTable({
           <TableRow
             key={room.room_id}
             className="cursor-pointer"
-            data-state={selectedRoomId === room.room_id ? "selected" : undefined}
+            data-state={
+              selectedRoomId === room.room_id ? "selected" : undefined
+            }
             onClick={() => onRoomSelect(room.room_id)}
           >
             <TableCell className="font-medium">{room.room_id}</TableCell>
@@ -75,16 +82,16 @@ export function RoomResultsTable({
                       {student.full_name} ({student.admission_number})
                     </button>
                     <div className="mt-2 flex flex-wrap gap-1">
-                      {sortedPairEntries(student.pair_scores_with_roommates).map(
-                        ([roommateId, score]) => (
-                          <span
-                            key={`${student.admission_number}-${roommateId}`}
-                            className="rounded-full bg-secondary px-2 py-0.5 text-xs text-secondary-foreground"
-                          >
-                            {roommateId}: {formatScorePercent(score)}
-                          </span>
-                        ),
-                      )}
+                      {sortedPairEntries(
+                        student.pair_scores_with_roommates,
+                      ).map(([roommateId, score]) => (
+                        <span
+                          key={`${student.admission_number}-${roommateId}`}
+                          className="rounded-full bg-secondary px-2 py-0.5 text-xs text-secondary-foreground"
+                        >
+                          {roommateId}: {formatScorePercent(score)}
+                        </span>
+                      ))}
                     </div>
                   </div>
                 ))}
@@ -92,7 +99,9 @@ export function RoomResultsTable({
             </TableCell>
             <TableCell>
               <div className="space-y-1">
-                <p className="font-medium">{formatScorePercent(room.group_score)}</p>
+                <p className="font-medium">
+                  {formatScorePercent(room.group_score)}
+                </p>
                 <p className="text-xs text-muted-foreground">
                   raw {room.group_score.toFixed(4)}
                 </p>

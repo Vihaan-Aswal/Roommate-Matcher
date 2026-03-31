@@ -29,7 +29,9 @@ export function StudentResultsPage(): JSX.Element {
 
   const segmentKeys = useMemo(
     () =>
-      (segmentsQuery.data?.segments ?? []).map((segment) => segment.segment_key),
+      (segmentsQuery.data?.segments ?? []).map(
+        (segment) => segment.segment_key,
+      ),
     [segmentsQuery.data?.segments],
   );
 
@@ -103,9 +105,13 @@ export function StudentResultsPage(): JSX.Element {
       ? allSegmentsQuery.isLoading
       : singleSegmentQuery.isLoading;
   const isError =
-    selectedSegment === "all" ? allSegmentsQuery.isError : singleSegmentQuery.isError;
+    selectedSegment === "all"
+      ? allSegmentsQuery.isError
+      : singleSegmentQuery.isError;
   const queryError =
-    selectedSegment === "all" ? allSegmentsQuery.error : singleSegmentQuery.error;
+    selectedSegment === "all"
+      ? allSegmentsQuery.error
+      : singleSegmentQuery.error;
 
   const retryStudents = () => {
     if (selectedSegment === "all") {
@@ -120,7 +126,10 @@ export function StudentResultsPage(): JSX.Element {
     () =>
       sourceStudents
         .filter((student) => {
-          if (selectedLabel !== "all" && student.satisfaction_label !== selectedLabel) {
+          if (
+            selectedLabel !== "all" &&
+            student.satisfaction_label !== selectedLabel
+          ) {
             return false;
           }
           if (atRiskOnly && !student.is_at_risk) {
@@ -153,7 +162,13 @@ export function StudentResultsPage(): JSX.Element {
     const next = new URLSearchParams(searchParams);
     next.delete("student");
     setSearchParams(next, { replace: true });
-  }, [filteredStudents, isLoading, searchParams, selectedStudentId, setSearchParams]);
+  }, [
+    filteredStudents,
+    isLoading,
+    searchParams,
+    selectedStudentId,
+    setSearchParams,
+  ]);
 
   if (!runId) {
     return (
@@ -239,7 +254,10 @@ export function StudentResultsPage(): JSX.Element {
         />
       ) : null}
 
-      {!isLoading && !isError && sourceStudents.length > 0 && filteredStudents.length === 0 ? (
+      {!isLoading &&
+      !isError &&
+      sourceStudents.length > 0 &&
+      filteredStudents.length === 0 ? (
         <InlineAlert
           title="No rows match current filters"
           message="Clear label and at-risk filters to view all students."

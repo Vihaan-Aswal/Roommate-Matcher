@@ -12,7 +12,13 @@ vi.mock("../../lib/apiClient", () => ({
   getRunRooms: getRunRoomsMock,
 }));
 
-function Probe({ runId, segmentKey }: { runId: string; segmentKey: string | null }) {
+function Probe({
+  runId,
+  segmentKey,
+}: {
+  runId: string;
+  segmentKey: string | null;
+}) {
   const query = useRunRoomsQuery(runId, segmentKey);
 
   if (!segmentKey) {

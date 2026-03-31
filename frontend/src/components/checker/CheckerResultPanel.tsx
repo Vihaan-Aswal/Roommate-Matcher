@@ -1,5 +1,8 @@
 import type { CheckerResponse, FactorTraceEntry } from "../../lib/apiClient";
-import { factorPolarityIndicator, getSafeFactorLabel } from "../../lib/factorDisplay";
+import {
+  factorPolarityIndicator,
+  getSafeFactorLabel,
+} from "../../lib/factorDisplay";
 import { sanitizeReasonText } from "../../lib/privacySafeRender";
 import { formatScorePercent } from "../../lib/resultPresentation";
 import { StatusBadge } from "../StatusBadge";
@@ -43,7 +46,11 @@ export function CheckerResultPanel({
       ) : null}
 
       {errorMessage ? (
-        <InlineAlert title="Checker request failed" message={errorMessage} tone="error" />
+        <InlineAlert
+          title="Checker request failed"
+          message={errorMessage}
+          tone="error"
+        />
       ) : null}
 
       {!result && !isRunning && !errorMessage ? (
@@ -55,8 +62,12 @@ export function CheckerResultPanel({
       {result ? (
         <div className="space-y-4">
           <div className="rounded-lg border border-border/70 bg-muted/30 p-3">
-            <p className="text-sm text-muted-foreground">Group compatibility score</p>
-            <p className="text-xl font-semibold">{formatScorePercent(result.group_score)}</p>
+            <p className="text-sm text-muted-foreground">
+              Group compatibility score
+            </p>
+            <p className="text-xl font-semibold">
+              {formatScorePercent(result.group_score)}
+            </p>
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <StatusBadge value={result.group_label} />
               <p className="text-sm text-muted-foreground">
@@ -75,7 +86,9 @@ export function CheckerResultPanel({
                   <p className="font-medium">{student.admission_number}</p>
                   <div className="flex items-center gap-2">
                     <StatusBadge value={student.satisfaction_label} />
-                    <StatusBadge value={student.is_at_risk ? "Risk" : "Healthy"} />
+                    <StatusBadge
+                      value={student.is_at_risk ? "Risk" : "Healthy"}
+                    />
                     <span className="text-sm text-muted-foreground">
                       {formatScorePercent(student.satisfaction_score)}
                     </span>
@@ -98,8 +111,11 @@ export function CheckerResultPanel({
 
                 <div className="space-y-2 text-sm">
                   {student.factor_trace.map((entry, index) => (
-                    <p key={`${student.admission_number}-${entry.template_id}-${index}`}>
-                      {indicator(entry)} {getSafeFactorLabel(entry.factor_key)} - {entry.factor_class}
+                    <p
+                      key={`${student.admission_number}-${entry.template_id}-${index}`}
+                    >
+                      {indicator(entry)} {getSafeFactorLabel(entry.factor_key)}{" "}
+                      - {entry.factor_class}
                     </p>
                   ))}
                 </div>

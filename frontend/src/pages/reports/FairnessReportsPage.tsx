@@ -1,12 +1,22 @@
 import { useEffect, useMemo } from "react";
-import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import {
+  Link,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from "react-router-dom";
 
 import { AdminPageHeader } from "../../components/AdminPageHeader";
 import { InlineAlert } from "../../components/InlineAlert";
 import { FairnessBarChart } from "../../components/reports/FairnessBarChart";
 import { FairnessCountsCard } from "../../components/reports/FairnessCountsCard";
 import { RunSegmentSelector } from "../../components/reports/RunSegmentSelector";
-import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../../components/ui/card";
 import { useAdminMatchingRunsQuery } from "../../hooks/useAdminMatchingRuns";
 import { useRunFairnessQuery } from "../../hooks/useRunFairnessQuery";
 import type { SatisfactionLabel } from "../../lib/apiClient";
@@ -57,9 +67,12 @@ export function FairnessReportsPage(): JSX.Element {
     if (!next.has("segment")) {
       next.set("segment", "all");
     }
-    navigate(`/admin/fairness/${encodeURIComponent(resolvedRunId)}?${next.toString()}`, {
-      replace: true,
-    });
+    navigate(
+      `/admin/fairness/${encodeURIComponent(resolvedRunId)}?${next.toString()}`,
+      {
+        replace: true,
+      },
+    );
   }, [navigate, resolvedRunId, routeRunId, searchParams]);
 
   const fairnessQuery = useRunFairnessQuery(resolvedRunId);
@@ -141,7 +154,9 @@ export function FairnessReportsPage(): JSX.Element {
       {runsQuery.data ? (
         <RunSegmentSelector
           runs={runOptions}
-          segmentOptions={fairnessQuery.data?.by_segment.map((row) => row.segment_key) ?? []}
+          segmentOptions={
+            fairnessQuery.data?.by_segment.map((row) => row.segment_key) ?? []
+          }
           selectedRunId={resolvedRunId}
           selectedSegment={selectedSegment}
           onRunChange={(nextRunId) => {
@@ -149,7 +164,9 @@ export function FairnessReportsPage(): JSX.Element {
             if (!next.has("segment")) {
               next.set("segment", "all");
             }
-            navigate(`/admin/fairness/${encodeURIComponent(nextRunId)}?${next.toString()}`);
+            navigate(
+              `/admin/fairness/${encodeURIComponent(nextRunId)}?${next.toString()}`,
+            );
           }}
           onSegmentChange={(segment) => {
             const next = new URLSearchParams(searchParams);
@@ -247,10 +264,14 @@ export function FairnessReportsPage(): JSX.Element {
                 key={segment.segment_key}
                 segment={segment}
                 onSegmentAtRiskClick={(segmentKey) => {
-                  navigate(buildStudentRoute(resolvedRunId, segmentKey, "all", "1"));
+                  navigate(
+                    buildStudentRoute(resolvedRunId, segmentKey, "all", "1"),
+                  );
                 }}
                 onSegmentLabelClick={(segmentKey, label) => {
-                  navigate(buildStudentRoute(resolvedRunId, segmentKey, label, "0"));
+                  navigate(
+                    buildStudentRoute(resolvedRunId, segmentKey, label, "0"),
+                  );
                 }}
               />
             ))}

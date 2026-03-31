@@ -69,7 +69,9 @@ export function CheckerStudentsList({
           ))}
 
           {filteredStudents.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No students match search.</p>
+            <p className="text-sm text-muted-foreground">
+              No students match search.
+            </p>
           ) : null}
         </div>
       </div>
@@ -84,7 +86,10 @@ export function CheckerStudentsList({
         >
           <option value="">Select candidate</option>
           {candidateOptions.map((student) => (
-            <option key={student.admission_number} value={student.admission_number}>
+            <option
+              key={student.admission_number}
+              value={student.admission_number}
+            >
               {student.admission_number} - {student.full_name}
             </option>
           ))}

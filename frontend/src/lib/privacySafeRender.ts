@@ -22,7 +22,9 @@ export function sanitizeReasonText(reason: string): {
   wasRedacted: boolean;
 } {
   const normalized = reason.toLowerCase();
-  const hasBlockedTerm = BLOCKED_TERMS.some((term) => normalized.includes(term));
+  const hasBlockedTerm = BLOCKED_TERMS.some((term) =>
+    normalized.includes(term),
+  );
 
   if (!hasBlockedTerm) {
     return { text: reason, wasRedacted: false };

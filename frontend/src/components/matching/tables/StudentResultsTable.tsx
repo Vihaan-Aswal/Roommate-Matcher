@@ -58,10 +58,14 @@ export function StudentResultsTable({
               }
               onClick={() => onStudentSelect(student.admission_number)}
             >
-              <TableCell className="font-medium">{student.admission_number}</TableCell>
+              <TableCell className="font-medium">
+                {student.admission_number}
+              </TableCell>
               <TableCell>{student.full_name}</TableCell>
               <TableCell>{student.room_id}</TableCell>
-              <TableCell>{formatScorePercent(student.satisfaction_score)}</TableCell>
+              <TableCell>
+                {formatScorePercent(student.satisfaction_score)}
+              </TableCell>
               <TableCell>
                 <StatusBadge value={student.satisfaction_label} />
               </TableCell>

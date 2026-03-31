@@ -1,22 +1,16 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import {
-  MemoryRouter,
-  Route,
-  Routes,
-  useLocation,
-} from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { vi } from "vitest";
 
 import { FairnessReportsPage } from "../../pages/reports/FairnessReportsPage";
 
-const {
-  useAdminMatchingRunsQueryMock,
-  useRunFairnessQueryMock,
-} = vi.hoisted(() => ({
-  useAdminMatchingRunsQueryMock: vi.fn(),
-  useRunFairnessQueryMock: vi.fn(),
-}));
+const { useAdminMatchingRunsQueryMock, useRunFairnessQueryMock } = vi.hoisted(
+  () => ({
+    useAdminMatchingRunsQueryMock: vi.fn(),
+    useRunFairnessQueryMock: vi.fn(),
+  }),
+);
 
 vi.mock("../../hooks/useAdminMatchingRuns", () => ({
   useAdminMatchingRunsQuery: useAdminMatchingRunsQueryMock,
@@ -28,7 +22,9 @@ vi.mock("../../hooks/useRunFairnessQuery", () => ({
 
 function LocationProbe() {
   const location = useLocation();
-  return <p data-testid="location">{`${location.pathname}${location.search}`}</p>;
+  return (
+    <p data-testid="location">{`${location.pathname}${location.search}`}</p>
+  );
 }
 
 describe("FairnessReportsPage", () => {

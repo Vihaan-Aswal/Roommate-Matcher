@@ -26,8 +26,6 @@ describe("adminQueryKeys", () => {
   it("produces distinct keys for different segments", () => {
     expect(
       adminQueryKeys.roomsByRunSegment("run-1", "SEG_A").join("|"),
-    ).not.toEqual(
-      adminQueryKeys.roomsByRunSegment("run-1", "SEG_B").join("|"),
-    );
+    ).not.toEqual(adminQueryKeys.roomsByRunSegment("run-1", "SEG_B").join("|"));
   });
 });

@@ -1,4 +1,7 @@
-import type { SatisfactionLabel, SegmentFairnessRow } from "../../lib/apiClient";
+import type {
+  SatisfactionLabel,
+  SegmentFairnessRow,
+} from "../../lib/apiClient";
 
 interface FairnessCountsCardProps {
   segment: SegmentFairnessRow;
@@ -32,7 +35,8 @@ export function FairnessCountsCard({
           >
             <p className="font-medium">{label}</p>
             <p className="text-xs text-muted-foreground">
-              {segment.label_counts[label] ?? 0} ({((segment.label_percentages[label] ?? 0) * 100).toFixed(1)}%)
+              {segment.label_counts[label] ?? 0} (
+              {((segment.label_percentages[label] ?? 0) * 100).toFixed(1)}%)
             </p>
           </button>
         ))}
@@ -47,7 +51,8 @@ export function FairnessCountsCard({
           At risk: {segment.at_risk_count}
         </button>
         <span className="text-muted-foreground">
-          Minimum satisfaction: {(segment.minimum_satisfaction * 100).toFixed(1)}%
+          Minimum satisfaction:{" "}
+          {(segment.minimum_satisfaction * 100).toFixed(1)}%
         </span>
       </div>
     </article>

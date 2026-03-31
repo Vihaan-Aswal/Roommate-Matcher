@@ -1,4 +1,7 @@
-import type { SatisfactionLabel, SegmentOverview } from "../../../lib/apiClient";
+import type {
+  SatisfactionLabel,
+  SegmentOverview,
+} from "../../../lib/apiClient";
 
 interface StudentResultsFiltersProps {
   segments: SegmentOverview[];

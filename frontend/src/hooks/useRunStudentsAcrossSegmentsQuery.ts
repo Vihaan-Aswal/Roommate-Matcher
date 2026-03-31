@@ -40,14 +40,14 @@ export function useRunStudentsAcrossSegmentsQuery(
     );
   }, [segmentQueries]);
 
-  const firstError =
-    segmentQueries.find((query) => query.error)?.error ?? null;
+  const firstError = segmentQueries.find((query) => query.error)?.error ?? null;
 
   return {
     students,
     isLoading: segmentQueries.some((query) => query.isLoading),
     isError: segmentQueries.some((query) => query.isError),
     error: firstError instanceof Error ? firstError : null,
-    refetchAll: () => Promise.all(segmentQueries.map((query) => query.refetch())),
+    refetchAll: () =>
+      Promise.all(segmentQueries.map((query) => query.refetch())),
   };
 }

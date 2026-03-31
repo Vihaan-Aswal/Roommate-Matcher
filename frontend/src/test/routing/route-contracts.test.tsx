@@ -94,7 +94,11 @@ describe("result route contracts", () => {
     });
   });
 
-  function renderWithRoute(initialEntry: string, path: string, element: JSX.Element) {
+  function renderWithRoute(
+    initialEntry: string,
+    path: string,
+    element: JSX.Element,
+  ) {
     const queryClient = new QueryClient({
       defaultOptions: {
         queries: { retry: false },
@@ -121,7 +125,9 @@ describe("result route contracts", () => {
     );
 
     expect(screen.getByText("Room Results")).toBeInTheDocument();
-    expect(screen.getByText(/Room-level matching output for run run-101/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Room-level matching output for run run-101/i),
+    ).toBeInTheDocument();
   });
 
   it("binds runId for student results route", () => {

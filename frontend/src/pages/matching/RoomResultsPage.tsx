@@ -37,17 +37,19 @@ export function RoomResultsPage(): JSX.Element {
       next.set("needsReview", "0");
     }
     setSearchParams(next, { replace: true });
-  }, [searchParams, segmentsQuery.data?.segments, selectedSegment, setSearchParams]);
+  }, [
+    searchParams,
+    segmentsQuery.data?.segments,
+    selectedSegment,
+    setSearchParams,
+  ]);
 
   const roomsQuery = useRunRoomsQuery(runId ?? "", selectedSegment);
   const studentsQuery = useRunStudentsQuery(runId ?? "", selectedSegment);
 
   const rooms = roomsQuery.data?.rooms ?? [];
   const filteredRooms = useMemo(
-    () =>
-      needsReviewOnly
-        ? rooms.filter((room) => room.needs_review)
-        : rooms,
+    () => (needsReviewOnly ? rooms.filter((room) => room.needs_review) : rooms),
     [needsReviewOnly, rooms],
   );
 
@@ -160,7 +162,11 @@ export function RoomResultsPage(): JSX.Element {
               : "Segment filter data is unavailable."
           }
           actions={
-            <Button size="sm" variant="outline" onClick={() => void segmentsQuery.refetch()}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => void segmentsQuery.refetch()}
+            >
               Retry
             </Button>
           }
@@ -205,7 +211,11 @@ export function RoomResultsPage(): JSX.Element {
               : "Room results request failed."
           }
           actions={
-            <Button size="sm" variant="outline" onClick={() => void roomsQuery.refetch()}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => void roomsQuery.refetch()}
+            >
               Retry
             </Button>
           }
@@ -242,7 +252,11 @@ export function RoomResultsPage(): JSX.Element {
               : "Student details request failed."
           }
           actions={
-            <Button size="sm" variant="outline" onClick={() => void studentsQuery.refetch()}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => void studentsQuery.refetch()}
+            >
               Retry
             </Button>
           }

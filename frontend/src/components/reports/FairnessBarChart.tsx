@@ -20,7 +20,10 @@ export function FairnessBarChart({
   percentages,
   onLabelClick,
 }: FairnessBarChartProps): JSX.Element {
-  const maxCount = Math.max(1, ...LABEL_ORDER.map((label) => counts[label] ?? 0));
+  const maxCount = Math.max(
+    1,
+    ...LABEL_ORDER.map((label) => counts[label] ?? 0),
+  );
 
   return (
     <div className="space-y-3">
