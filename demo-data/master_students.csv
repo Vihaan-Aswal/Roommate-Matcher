@@ -1,4 +1,4 @@
-﻿"admission_number","full_name","gender","year_group","ac_type","room_size","dob","segment_override"
+"admission_number","full_name","gender","year_group","ac_type","room_size","dob","segment_override"
 "ADM0001","Demo A Student 001","M","1st_year","AC","2","2005-01-02",""
 "ADM0002","Demo A Student 002","M","1st_year","AC","2","2005-01-03",""
 "ADM0003","Demo A Student 003","M","1st_year","AC","2","2005-01-04",""
