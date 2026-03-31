@@ -34,7 +34,7 @@ describe("result route contracts", () => {
 
     expect(screen.getByText("Room Results")).toBeInTheDocument();
     expect(
-      screen.getByText(/Room-level matching results for run run-101/i),
+      screen.getByText(/Room-level matching output for run run-101/i),
     ).toBeInTheDocument();
   });
 

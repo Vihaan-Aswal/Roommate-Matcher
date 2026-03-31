@@ -12,7 +12,8 @@ function resolveTone(value: string): Pick<BadgeProps, "variant" | "className"> {
     normalized === "ready" ||
     normalized === "completed" ||
     normalized === "excellent" ||
-    normalized === "valid"
+    normalized === "valid" ||
+    normalized === "healthy"
   ) {
     return {
       variant: "secondary",
@@ -24,7 +25,8 @@ function resolveTone(value: string): Pick<BadgeProps, "variant" | "className"> {
     normalized === "risk" ||
     normalized === "running" ||
     normalized === "pending" ||
-    normalized === "okay"
+    normalized === "okay" ||
+    normalized === "needs review"
   ) {
     return {
       variant: "secondary",
