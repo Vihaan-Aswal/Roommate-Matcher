@@ -28,3 +28,29 @@ class FormSubmissionResponse(BaseModel):
     message: str
     code: str | None = None
     has_preferences: bool | None = None
+
+
+class FormStatusSegmentSummary(BaseModel):
+    segment_key: str
+    total: int
+    valid: int
+    percentage: float
+
+
+class FormStatusResponse(BaseModel):
+    total_students: int
+    valid_responses: int
+    invalid_responses: int
+    percentage_valid: float
+    by_segment: list[FormStatusSegmentSummary]
+
+
+class NonSubmitterResponseRow(BaseModel):
+    admission_number: str
+    full_name: str
+    segment_key: str
+
+
+class NonSubmittersResponse(BaseModel):
+    non_submitters: list[NonSubmitterResponseRow]
+    total_count: int
