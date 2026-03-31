@@ -15,7 +15,7 @@ from app.services.ingestion.room_csv import ingest_rooms_csv
 from app.services.ingestion.student_csv import ingest_students_csv
 
 
-router = APIRouter(prefix="/upload", tags=["upload"])
+router = APIRouter(tags=["upload"])
 
 ROOT_DIR = Path(__file__).resolve().parents[4]
 ERROR_REPORT_DIR = ROOT_DIR / "data" / "error-reports"
@@ -48,7 +48,23 @@ async def _save_upload_to_temp(file: UploadFile) -> str:
         return handle.name
 
 
-@router.post("/students", response_model=UploadSummaryResponse)
+def _build_upload_response(result: dict[str, object], prefix: str) -> UploadSummaryResponse:
+    invalid_rows = result["invalid_rows"]
+    assert isinstance(invalid_rows, list)
+
+    error_report_name = _write_error_report(prefix, invalid_rows)
+    return UploadSummaryResponse(
+        total_rows=int(result["total_rows"]),
+        accepted_rows=int(result["accepted_rows"]),
+        rejected_rows=int(result["rejected_rows"]),
+        duplicate_rows=int(result["duplicate_rows"]),
+        invalid_rows=invalid_rows,
+        error_report_name=error_report_name,
+    )
+
+
+@router.post("/students/upload", response_model=UploadSummaryResponse)
+@router.post("/upload/students", response_model=UploadSummaryResponse, include_in_schema=False)
 async def upload_students(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
@@ -61,18 +77,11 @@ async def upload_students(
     finally:
         Path(temp_path).unlink(missing_ok=True)
 
-    error_report_name = _write_error_report("students", result["invalid_rows"])
-    return UploadSummaryResponse(
-        total_rows=result["total_rows"],
-        accepted_rows=result["accepted_rows"],
-        rejected_rows=result["rejected_rows"],
-        duplicate_rows=result["duplicate_rows"],
-        invalid_rows=result["invalid_rows"],
-        error_report_name=error_report_name,
-    )
+    return _build_upload_response(result, "students")
 
 
-@router.post("/rooms", response_model=UploadSummaryResponse)
+@router.post("/rooms/upload", response_model=UploadSummaryResponse)
+@router.post("/upload/rooms", response_model=UploadSummaryResponse, include_in_schema=False)
 async def upload_rooms(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
@@ -85,18 +94,10 @@ async def upload_rooms(
     finally:
         Path(temp_path).unlink(missing_ok=True)
 
-    error_report_name = _write_error_report("rooms", result["invalid_rows"])
-    return UploadSummaryResponse(
-        total_rows=result["total_rows"],
-        accepted_rows=result["accepted_rows"],
-        rejected_rows=result["rejected_rows"],
-        duplicate_rows=result["duplicate_rows"],
-        invalid_rows=result["invalid_rows"],
-        error_report_name=error_report_name,
-    )
+    return _build_upload_response(result, "rooms")
 
 
-@router.get("/error-reports/{report_name}")
+@router.get("/upload/error-reports/{report_name}")
 def download_error_report(report_name: str) -> FileResponse:
     if Path(report_name).name != report_name:
         raise HTTPException(status_code=400, detail="Invalid report name")
