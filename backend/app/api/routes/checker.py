@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.schemas.checker import CheckerRequest, CheckerResponse, CheckerStudentResult
-from app.services.matching.checker_workflow import run_manual_checker
+from app.services.orchestration.checker_workflow import run_manual_checker
 
 
 router = APIRouter(prefix="/checker", tags=["checker"])

@@ -11,7 +11,7 @@ from app.schemas.matching import (
     MatchingRunRoomsResponse,
     MatchingRunStudentsResponse,
 )
-from app.services.matching.run_workflow import (
+from app.services.orchestration.run_workflow import (
     get_run_rooms_from_persisted_artifacts,
     get_run_students_from_persisted_artifacts,
     list_matching_runs,

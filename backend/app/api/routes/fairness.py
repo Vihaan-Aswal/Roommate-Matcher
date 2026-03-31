@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.schemas.fairness import FairnessReportResponse
-from app.services.matching.run_workflow import get_run_fairness_snapshot
+from app.services.orchestration.run_workflow import get_run_fairness_snapshot
 
 
 router = APIRouter(prefix="/fairness", tags=["fairness"])

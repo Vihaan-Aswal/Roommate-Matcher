@@ -107,3 +107,11 @@ def test_student_results_endpoint_reads_persisted_explanation_payload_directly(
     assert students_response.status_code == 200
     reasons = [row["reasons"] for row in students_response.json()["students"]]
     assert ["Persisted explanation marker"] in reasons
+
+
+def test_matching_results_endpoints_return_404_for_unknown_run(client: TestClient) -> None:
+    rooms_response = client.get("/api/matching/runs/unknown/segments/M_1st_year_AC_2/rooms")
+    assert rooms_response.status_code == 404
+
+    students_response = client.get("/api/matching/runs/unknown/segments/M_1st_year_AC_2/students")
+    assert students_response.status_code == 404

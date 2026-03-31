@@ -67,6 +67,24 @@ def test_upload_students_returns_structured_invalid_rows_and_report(
     assert "text/csv" in report_response.headers["content-type"]
 
 
+def test_upload_students_canonical_path_is_supported(client: TestClient, tmp_path: Path) -> None:
+    upload_routes.ERROR_REPORT_DIR = tmp_path / "error-reports"
+
+    content = (
+        "admission_number,full_name,gender,year_group,ac_type,room_size,dob\n"
+        "ADM399,Valid User,M,1st_year,AC,2,2005-01-01\n"
+    )
+
+    response = client.post(
+        "/api/students/upload",
+        files={"file": ("students.csv", content, "text/csv")},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["accepted_rows"] == 1
+
+
 def test_upload_rooms_validates_unknown_segment_and_returns_report(
     client: TestClient,
     tmp_path: Path,
@@ -85,6 +103,21 @@ def test_upload_rooms_validates_unknown_segment_and_returns_report(
     assert payload["rejected_rows"] == 1
     assert payload["invalid_rows"][0]["reason"] == "unknown_segment"
     assert payload["error_report_name"] is not None
+
+
+def test_upload_rooms_canonical_path_is_supported(client: TestClient, tmp_path: Path, db_session: Session) -> None:
+    upload_routes.ERROR_REPORT_DIR = tmp_path / "error-reports"
+    _seed_student(db_session, admission_number="ADM391")
+
+    content = "room_id,segment_key,capacity\nA-111,M_1st_year_AC_2,2\n"
+    response = client.post(
+        "/api/rooms/upload",
+        files={"file": ("rooms.csv", content, "text/csv")},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["accepted_rows"] == 1
 
 
 def test_form_submit_success(client: TestClient, db_session: Session) -> None:
