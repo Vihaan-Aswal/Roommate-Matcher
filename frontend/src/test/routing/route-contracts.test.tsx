@@ -10,11 +10,13 @@ const {
   useAdminSegmentsQueryMock,
   useRunRoomsQueryMock,
   useRunStudentsQueryMock,
+  useRunStudentsAcrossSegmentsQueryMock,
   useAssignmentsExportMutationMock,
 } = vi.hoisted(() => ({
   useAdminSegmentsQueryMock: vi.fn(),
   useRunRoomsQueryMock: vi.fn(),
   useRunStudentsQueryMock: vi.fn(),
+  useRunStudentsAcrossSegmentsQueryMock: vi.fn(),
   useAssignmentsExportMutationMock: vi.fn(),
 }));
 
@@ -28,6 +30,10 @@ vi.mock("../../hooks/useRunRoomsQuery", () => ({
 
 vi.mock("../../hooks/useRunStudentsQuery", () => ({
   useRunStudentsQuery: useRunStudentsQueryMock,
+}));
+
+vi.mock("../../hooks/useRunStudentsAcrossSegmentsQuery", () => ({
+  useRunStudentsAcrossSegmentsQuery: useRunStudentsAcrossSegmentsQueryMock,
 }));
 
 vi.mock("../../hooks/useAssignmentsExportMutation", () => ({
@@ -70,6 +76,14 @@ describe("result route contracts", () => {
       isError: false,
       data: { students: [] },
       error: null,
+    });
+
+    useRunStudentsAcrossSegmentsQueryMock.mockReturnValue({
+      students: [],
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetchAll: vi.fn(),
     });
 
     useAssignmentsExportMutationMock.mockReturnValue({

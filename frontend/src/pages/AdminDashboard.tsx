@@ -184,6 +184,38 @@ export function AdminDashboard(): JSX.Element {
                     )}
                   </p>
                 </div>
+
+                {dashboardQuery.data.latest_matching_run.run_id ? (
+                  <div className="flex flex-wrap gap-2 pt-2">
+                    <Button asChild size="sm" variant="outline">
+                      <Link
+                        to={`/admin/matching-runs/${encodeURIComponent(
+                          dashboardQuery.data.latest_matching_run.run_id,
+                        )}/rooms`}
+                      >
+                        View Rooms
+                      </Link>
+                    </Button>
+                    <Button asChild size="sm" variant="outline">
+                      <Link
+                        to={`/admin/matching-runs/${encodeURIComponent(
+                          dashboardQuery.data.latest_matching_run.run_id,
+                        )}/students?segment=all&label=all&atRisk=0`}
+                      >
+                        View Students
+                      </Link>
+                    </Button>
+                    <Button asChild size="sm" variant="outline">
+                      <Link
+                        to={`/admin/fairness/${encodeURIComponent(
+                          dashboardQuery.data.latest_matching_run.run_id,
+                        )}?segment=all`}
+                      >
+                        View Fairness
+                      </Link>
+                    </Button>
+                  </div>
+                ) : null}
               </CardContent>
             </Card>
           </div>

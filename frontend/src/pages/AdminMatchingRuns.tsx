@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { Link } from "react-router-dom";
 
 import { AdminPageHeader } from "../components/AdminPageHeader";
 import { DataTable, type DataTableColumn } from "../components/DataTable";
@@ -37,6 +38,8 @@ export function AdminMatchingRuns(): JSX.Element {
       ),
     [segmentsQuery.data?.segments],
   );
+
+  const defaultSegmentKey = segmentsQuery.data?.segments[0]?.segment_key ?? null;
 
   const segmentColumns: DataTableColumn<
     NonNullable<typeof segmentsQuery.data>["segments"][number]
@@ -119,6 +122,33 @@ export function AdminMatchingRuns(): JSX.Element {
       key: "created_at",
       header: "Created At",
       cell: (row) => formatDateTime(row.created_at),
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      cell: (row) => {
+        const canOpenResults = row.status === "completed";
+
+        const roomRoute = defaultSegmentKey
+          ? `/admin/matching-runs/${encodeURIComponent(row.run_id)}/rooms?segment=${encodeURIComponent(defaultSegmentKey)}&needsReview=0`
+          : "";
+        const studentRoute = `/admin/matching-runs/${encodeURIComponent(row.run_id)}/students?segment=all&label=all&atRisk=0`;
+        const fairnessRoute = `/admin/fairness/${encodeURIComponent(row.run_id)}?segment=all`;
+
+        return (
+          <div className="flex flex-wrap gap-2">
+            <Button asChild disabled={!canOpenResults || !defaultSegmentKey} size="sm" variant="outline">
+              <Link to={roomRoute || "/admin/matching-runs"}>Room View</Link>
+            </Button>
+            <Button asChild disabled={!canOpenResults} size="sm" variant="outline">
+              <Link to={studentRoute}>Student View</Link>
+            </Button>
+            <Button asChild disabled={!canOpenResults} size="sm" variant="outline">
+              <Link to={fairnessRoute}>Fairness</Link>
+            </Button>
+          </div>
+        );
+      },
     },
   ];
 
