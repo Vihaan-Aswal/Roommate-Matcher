@@ -14,6 +14,8 @@ import { AdminManualChecker } from "./pages/AdminManualChecker";
 import { AdminMatchingRuns } from "./pages/AdminMatchingRuns";
 import { AdminStudentsData } from "./pages/AdminStudentsData";
 import { StudentForm } from "./pages/StudentForm";
+import { RoomResultsPage } from "./pages/matching/RoomResultsPage";
+import { StudentResultsPage } from "./pages/matching/StudentResultsPage";
 
 export default function App(): JSX.Element {
   return (
@@ -28,7 +30,16 @@ export default function App(): JSX.Element {
           <Route path="students-data" element={<AdminStudentsData />} />
           <Route path="form-collection" element={<AdminFormCollection />} />
           <Route path="matching-runs" element={<AdminMatchingRuns />} />
+          <Route
+            path="matching-runs/:runId/rooms"
+            element={<RoomResultsPage />}
+          />
+          <Route
+            path="matching-runs/:runId/students"
+            element={<StudentResultsPage />}
+          />
           <Route path="fairness" element={<AdminFairness />} />
+          <Route path="fairness/:runId" element={<AdminFairness />} />
           <Route path="at-risk-review" element={<AdminAtRiskReview />} />
           <Route path="manual-checker" element={<AdminManualChecker />} />
         </Route>

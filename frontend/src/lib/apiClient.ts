@@ -144,6 +144,133 @@ export interface MatchingRunListResponse {
   runs: MatchingRunHistoryRow[];
 }
 
+export type SatisfactionLabel = "Excellent" | "Good" | "Okay" | "Poor";
+
+export type FactorClass =
+  | "Strong Match"
+  | "Moderate Match"
+  | "Neutral"
+  | "Moderate Mismatch"
+  | "Strong Mismatch";
+
+export type FactorPolarity =
+  | "strong_positive"
+  | "moderate_positive"
+  | "mismatch"
+  | "neutral_context";
+
+export type FactorClaimScope =
+  | "room_shared_claim"
+  | "student_specific_claim";
+
+export interface FactorTraceEntry {
+  factor_key: string;
+  factor_class: FactorClass;
+  reason_bucket: string;
+  polarity: FactorPolarity;
+  template_id: string;
+  claim_scope: FactorClaimScope;
+}
+
+export interface RoomViewStudentRow {
+  admission_number: string;
+  full_name: string;
+  pair_scores_with_roommates: Record<string, number>;
+}
+
+export interface RunRoomRow {
+  room_id: string;
+  room_size: number;
+  assigned_students: RoomViewStudentRow[];
+  group_score: number;
+  needs_review: boolean;
+}
+
+export interface MatchingRunRoomsResponse {
+  run_id: string;
+  segment_key: string;
+  rooms: RunRoomRow[];
+}
+
+export interface RunStudentRow {
+  admission_number: string;
+  full_name: string;
+  room_id: string;
+  roommate_ids: string[];
+  satisfaction_score: number;
+  satisfaction_label: SatisfactionLabel;
+  is_at_risk: boolean;
+  reasons: string[];
+  factor_trace: FactorTraceEntry[];
+}
+
+export interface MatchingRunStudentsResponse {
+  run_id: string;
+  segment_key: string;
+  students: RunStudentRow[];
+}
+
+export interface SegmentFairnessRow {
+  segment_key: string;
+  total_students: number;
+  label_counts: Record<SatisfactionLabel, number>;
+  label_percentages: Record<SatisfactionLabel, number>;
+  at_risk_count: number;
+  at_risk_student_ids: string[];
+  minimum_satisfaction: number;
+}
+
+export interface FairnessReportResponse {
+  run_id: string;
+  total_students: number;
+  run_label_counts: Record<SatisfactionLabel, number>;
+  run_label_percentages: Record<SatisfactionLabel, number>;
+  run_at_risk_count: number;
+  run_at_risk_student_ids: string[];
+  by_segment: SegmentFairnessRow[];
+}
+
+export interface SegmentStudentPreferenceRow {
+  admission_number: string;
+  full_name: string;
+  has_valid_preferences: boolean;
+  preference_status: string;
+}
+
+export interface SegmentStudentsResponse {
+  segment_key: string;
+  room_size: number;
+  students: SegmentStudentPreferenceRow[];
+}
+
+export interface CheckerRequestPayload {
+  segment_key: string;
+  room_size: number;
+  student_ids: string[];
+}
+
+export interface CheckerStudentResult {
+  admission_number: string;
+  satisfaction_score: number;
+  satisfaction_label: SatisfactionLabel;
+  reasons: string[];
+  is_at_risk: boolean;
+  factor_trace: FactorTraceEntry[];
+}
+
+export interface CheckerResponse {
+  group_score: number;
+  group_label: SatisfactionLabel;
+  at_risk_students: string[];
+  students: CheckerStudentResult[];
+}
+
+export interface AssignmentsCsvExportResult {
+  blob: Blob;
+  contentType: string;
+  fileName: string;
+}
+
 function getApiBaseUrl(): string {
   const value = import.meta.env.VITE_API_BASE_URL as string | undefined;
   return value ? value.replace(/\/$/, "") : "";
@@ -192,6 +319,19 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   return data as T;
+}
+
+function parseCsvFileName(contentDisposition: string | null, fallback: string): string {
+  if (!contentDisposition) {
+    return fallback;
+  }
+
+  const match = /filename="?([^";]+)"?/i.exec(contentDisposition);
+  if (!match || !match[1]) {
+    return fallback;
+  }
+
+  return match[1];
 }
 
 async function uploadCsv(
@@ -261,6 +401,82 @@ export async function runMatching(
 
 export async function getMatchingRuns(): Promise<MatchingRunListResponse> {
   return requestJson<MatchingRunListResponse>("/api/matching/runs");
+}
+
+export async function getRunRooms(
+  runId: string,
+  segmentKey: string,
+): Promise<MatchingRunRoomsResponse> {
+  return requestJson<MatchingRunRoomsResponse>(
+    `/api/matching/runs/${encodeURIComponent(runId)}/segments/${encodeURIComponent(segmentKey)}/rooms`,
+  );
+}
+
+export async function getRunStudents(
+  runId: string,
+  segmentKey: string,
+): Promise<MatchingRunStudentsResponse> {
+  return requestJson<MatchingRunStudentsResponse>(
+    `/api/matching/runs/${encodeURIComponent(runId)}/segments/${encodeURIComponent(segmentKey)}/students`,
+  );
+}
+
+export async function getFairnessReport(
+  runId: string,
+): Promise<FairnessReportResponse> {
+  return requestJson<FairnessReportResponse>(
+    `/api/fairness/${encodeURIComponent(runId)}`,
+  );
+}
+
+export async function getSegmentStudents(
+  segmentKey: string,
+): Promise<SegmentStudentsResponse> {
+  return requestJson<SegmentStudentsResponse>(
+    `/api/segments/${encodeURIComponent(segmentKey)}/students`,
+  );
+}
+
+export async function runCheckerCompatibility(
+  payload: CheckerRequestPayload,
+): Promise<CheckerResponse> {
+  return requestJson<CheckerResponse>("/api/checker/compatibility", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function exportAssignmentsCsv(
+  runId: string,
+  segmentKey?: string,
+): Promise<AssignmentsCsvExportResult> {
+  const query = segmentKey
+    ? `?segment_key=${encodeURIComponent(segmentKey)}`
+    : "";
+  const response = await fetch(
+    buildUrl(`/api/exports/assignments/${encodeURIComponent(runId)}${query}`),
+  );
+
+  if (!response.ok) {
+    const data = (await response.json().catch(() => null)) as unknown;
+    throw new Error(extractErrorMessage(data));
+  }
+
+  const fileName = parseCsvFileName(
+    response.headers.get("content-disposition"),
+    segmentKey
+      ? `assignments_${runId}_${segmentKey}.csv`
+      : `assignments_${runId}.csv`,
+  );
+
+  return {
+    blob: await response.blob(),
+    contentType: response.headers.get("content-type") ?? "text/csv",
+    fileName,
+  };
 }
 
 export function getErrorReportDownloadUrl(reportName: string): string {
