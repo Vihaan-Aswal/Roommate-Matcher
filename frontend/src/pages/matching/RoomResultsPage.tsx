@@ -5,11 +5,14 @@ import { AdminPageHeader } from "../../components/AdminPageHeader";
 import { InlineAlert } from "../../components/InlineAlert";
 import { RoomResultsFilters } from "../../components/matching/filters/RoomResultsFilters";
 import { RoomResultsTable } from "../../components/matching/tables/RoomResultsTable";
+import { DetailSidePanelShell } from "../../components/panels/DetailSidePanelShell";
+import { RoomStudentDetailPanel } from "../../components/panels/RoomStudentDetailPanel";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
 import { useAdminSegmentsQuery } from "../../hooks/useAdminSegments";
 import { useAssignmentsExportMutation } from "../../hooks/useAssignmentsExportMutation";
 import { useRunRoomsQuery } from "../../hooks/useRunRoomsQuery";
+import { useRunStudentsQuery } from "../../hooks/useRunStudentsQuery";
 
 export function RoomResultsPage(): JSX.Element {
   const { runId } = useParams<{ runId: string }>();
@@ -20,6 +23,7 @@ export function RoomResultsPage(): JSX.Element {
 
   const selectedSegment = searchParams.get("segment");
   const needsReviewOnly = searchParams.get("needsReview") === "1";
+  const selectedStudent = searchParams.get("student");
 
   useEffect(() => {
     const segments = segmentsQuery.data?.segments ?? [];
@@ -36,6 +40,7 @@ export function RoomResultsPage(): JSX.Element {
   }, [searchParams, segmentsQuery.data?.segments, selectedSegment, setSearchParams]);
 
   const roomsQuery = useRunRoomsQuery(runId ?? "", selectedSegment);
+  const studentsQuery = useRunStudentsQuery(runId ?? "", selectedSegment);
 
   const rooms = roomsQuery.data?.rooms ?? [];
   const filteredRooms = useMemo(
@@ -45,6 +50,41 @@ export function RoomResultsPage(): JSX.Element {
         : rooms,
     [needsReviewOnly, rooms],
   );
+
+  const selectedStudentRecord = useMemo(() => {
+    if (!selectedStudent) {
+      return null;
+    }
+
+    return (
+      studentsQuery.data?.students.find(
+        (student) => student.admission_number === selectedStudent,
+      ) ?? null
+    );
+  }, [selectedStudent, studentsQuery.data?.students]);
+
+  useEffect(() => {
+    if (!selectedStudent || studentsQuery.isLoading || !studentsQuery.data) {
+      return;
+    }
+
+    const exists = studentsQuery.data.students.some(
+      (student) => student.admission_number === selectedStudent,
+    );
+    if (exists) {
+      return;
+    }
+
+    const next = new URLSearchParams(searchParams);
+    next.delete("student");
+    setSearchParams(next, { replace: true });
+  }, [
+    searchParams,
+    selectedStudent,
+    setSearchParams,
+    studentsQuery.data,
+    studentsQuery.isLoading,
+  ]);
 
   const actions = (
     <Button
@@ -175,6 +215,26 @@ export function RoomResultsPage(): JSX.Element {
         />
       ) : null}
 
+      {selectedStudent && studentsQuery.isLoading ? (
+        <InlineAlert
+          title="Loading student details"
+          message="Fetching selected student details for the side panel."
+          tone="info"
+        />
+      ) : null}
+
+      {selectedStudent && studentsQuery.isError ? (
+        <InlineAlert
+          title="Unable to load student details"
+          message={
+            studentsQuery.error instanceof Error
+              ? studentsQuery.error.message
+              : "Student details request failed."
+          }
+          tone="error"
+        />
+      ) : null}
+
       <Card className="border-border/80 bg-white/90">
         <CardContent className="space-y-3 pt-6">
           <p className="text-sm text-muted-foreground">
@@ -194,6 +254,24 @@ export function RoomResultsPage(): JSX.Element {
           />
         </CardContent>
       </Card>
+
+      <DetailSidePanelShell
+        description="Loaded from the run student results endpoint."
+        open={Boolean(selectedStudentRecord)}
+        title={selectedStudentRecord?.full_name ?? "Student details"}
+        onClose={() => {
+          const next = new URLSearchParams(searchParams);
+          next.delete("student");
+          setSearchParams(next);
+        }}
+      >
+        {selectedStudentRecord ? (
+          <RoomStudentDetailPanel
+            roomId={selectedRoomId}
+            student={selectedStudentRecord}
+          />
+        ) : null}
+      </DetailSidePanelShell>
     </section>
   );
 }

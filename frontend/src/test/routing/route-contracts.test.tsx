@@ -1,11 +1,85 @@
 import { render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { vi } from "vitest";
 
 import { RoomResultsPage } from "../../pages/matching/RoomResultsPage";
 import { StudentResultsPage } from "../../pages/matching/StudentResultsPage";
 
+const {
+  useAdminSegmentsQueryMock,
+  useRunRoomsQueryMock,
+  useRunStudentsQueryMock,
+  useAssignmentsExportMutationMock,
+} = vi.hoisted(() => ({
+  useAdminSegmentsQueryMock: vi.fn(),
+  useRunRoomsQueryMock: vi.fn(),
+  useRunStudentsQueryMock: vi.fn(),
+  useAssignmentsExportMutationMock: vi.fn(),
+}));
+
+vi.mock("../../hooks/useAdminSegments", () => ({
+  useAdminSegmentsQuery: useAdminSegmentsQueryMock,
+}));
+
+vi.mock("../../hooks/useRunRoomsQuery", () => ({
+  useRunRoomsQuery: useRunRoomsQueryMock,
+}));
+
+vi.mock("../../hooks/useRunStudentsQuery", () => ({
+  useRunStudentsQuery: useRunStudentsQueryMock,
+}));
+
+vi.mock("../../hooks/useAssignmentsExportMutation", () => ({
+  useAssignmentsExportMutation: useAssignmentsExportMutationMock,
+}));
+
 describe("result route contracts", () => {
+  beforeEach(() => {
+    useAdminSegmentsQueryMock.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: {
+        segments: [
+          {
+            segment_key: "M_1st_year_AC_2",
+            gender: "M",
+            year_group: "1st_year",
+            ac_type: "AC",
+            room_size: 2,
+            status: "Ready",
+            student_count: 10,
+            total_capacity: 10,
+            missing_preferences_count: 0,
+            missing_preferences_ratio: 0,
+          },
+        ],
+      },
+      error: null,
+    });
+
+    useRunRoomsQueryMock.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: { rooms: [] },
+      error: null,
+    });
+
+    useRunStudentsQueryMock.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: { students: [] },
+      error: null,
+    });
+
+    useAssignmentsExportMutationMock.mockReturnValue({
+      mutateAsync: vi.fn(),
+      isPending: false,
+      isError: false,
+      error: null,
+    });
+  });
+
   function renderWithRoute(initialEntry: string, path: string, element: JSX.Element) {
     const queryClient = new QueryClient({
       defaultOptions: {
@@ -33,9 +107,7 @@ describe("result route contracts", () => {
     );
 
     expect(screen.getByText("Room Results")).toBeInTheDocument();
-    expect(
-      screen.getByText(/Room-level matching output for run run-101/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Room-level matching output for run run-101/i)).toBeInTheDocument();
   });
 
   it("binds runId for student results route", () => {

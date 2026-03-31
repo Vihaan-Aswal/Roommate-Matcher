@@ -8,10 +8,12 @@ import { renderWithProviders } from "../renderWithProviders";
 const {
   useAdminSegmentsQueryMock,
   useRunRoomsQueryMock,
+  useRunStudentsQueryMock,
   useAssignmentsExportMutationMock,
 } = vi.hoisted(() => ({
   useAdminSegmentsQueryMock: vi.fn(),
   useRunRoomsQueryMock: vi.fn(),
+  useRunStudentsQueryMock: vi.fn(),
   useAssignmentsExportMutationMock: vi.fn(),
 }));
 
@@ -23,6 +25,10 @@ vi.mock("../../hooks/useAdminSegments", () => ({
 
 vi.mock("../../hooks/useRunRoomsQuery", () => ({
   useRunRoomsQuery: useRunRoomsQueryMock,
+}));
+
+vi.mock("../../hooks/useRunStudentsQuery", () => ({
+  useRunStudentsQuery: useRunStudentsQueryMock,
 }));
 
 vi.mock("../../hooks/useAssignmentsExportMutation", () => ({
@@ -110,6 +116,36 @@ describe("RoomResultsPage", () => {
       mutateAsync: mutateAsyncMock,
       isPending: false,
       isError: false,
+      error: null,
+    });
+
+    useRunStudentsQueryMock.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: {
+        students: [
+          {
+            admission_number: "MR001",
+            full_name: "Student One",
+            room_id: "A-101",
+            roommate_ids: ["MR002"],
+            satisfaction_score: 0.74,
+            satisfaction_label: "Good",
+            is_at_risk: false,
+            reasons: ["Compatible routine"],
+            factor_trace: [
+              {
+                factor_key: "q1_enc",
+                factor_class: "Strong Match",
+                reason_bucket: "sleep_sync",
+                polarity: "strong_positive",
+                template_id: "shared_sleep_sync",
+                claim_scope: "room_shared_claim",
+              },
+            ],
+          },
+        ],
+      },
       error: null,
     });
 
