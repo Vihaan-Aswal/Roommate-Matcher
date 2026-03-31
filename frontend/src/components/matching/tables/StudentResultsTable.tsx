@@ -50,6 +50,7 @@ export function StudentResultsTable({
             <TableRow
               key={student.admission_number}
               className="cursor-pointer"
+              data-testid={`student-row-${student.admission_number}`}
               data-state={
                 selectedStudentId === student.admission_number
                   ? "selected"
