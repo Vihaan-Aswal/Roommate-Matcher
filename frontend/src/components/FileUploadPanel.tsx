@@ -32,13 +32,14 @@ export function FileUploadPanel({
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const formElement = event.currentTarget;
     if (!selectedFile || isUploading) {
       return;
     }
     await onUpload(selectedFile);
     setSelectedFile(null);
     onFileSelected?.(null);
-    event.currentTarget.reset();
+    formElement.reset();
   };
 
   return (

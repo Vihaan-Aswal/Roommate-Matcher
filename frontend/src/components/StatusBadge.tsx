@@ -1,5 +1,5 @@
 import { Badge, type BadgeProps } from "./ui/badge";
-import { cn } from "@/lib/utils";
+import { cn } from "../lib/utils";
 
 interface StatusBadgeProps {
   value: string;
