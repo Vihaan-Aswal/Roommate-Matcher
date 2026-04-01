@@ -7,7 +7,7 @@ import { chromium } from "@playwright/test";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, "..", "..");
-const outputDir = path.join(repoRoot, "docs", "images");
+const outputDir = path.join(repoRoot, "images");
 const baseUrl = process.env.SHOWCASE_BASE_URL ?? "http://127.0.0.1:8000";
 
 async function fetchJson(url) {
