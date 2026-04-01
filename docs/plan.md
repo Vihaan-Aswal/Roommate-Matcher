@@ -614,6 +614,10 @@ Define all Pydantic request/response schemas. Apply a consistent error response 
 - Seed demo data; run matching; download an export — all from the browser only
 - The repository reads like a finished product, not a work in progress
 
+**Final mandatory gate (release blocker):**
+
+- Do one last fresh-clone dry run in a brand-new directory and execute only the README one-command start path. If this fails or needs hidden setup, Phase 9 is not complete.
+
 **Done looks like:** A GitHub-ready repository where a recruiter can clone it, run one command, open a browser, and see a fully working roommate matching system with realistic demo data and no cloud dependency.
 
 ---

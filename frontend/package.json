@@ -14,7 +14,8 @@
     "e2e:headed": "playwright test --headed",
     "e2e:ui": "playwright test --ui",
     "e2e:install": "playwright install chromium",
-    "e2e:reset-db": "node ./scripts/e2e-reset-db.mjs"
+    "e2e:reset-db": "node ./scripts/e2e-reset-db.mjs",
+    "screenshots:showcase": "node ./scripts/capture-showcase-screenshots.mjs"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.4",
