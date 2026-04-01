@@ -10,17 +10,23 @@ Built as a fully local, production-structured full-stack system — FastAPI back
 
 Traditional hostel allocation is purely logistical — it fills beds, not compatibility gaps. The result is avoidable roommate conflicts that escalate into welfare issues for administrators to manage.
 
-Roommate Matcher keeps all physical and policy constraints intact (gender, year group, AC type, room size) but adds a compatibility layer on top: multi-factor lifestyle scoring, graph-theoretic assignment, and explainability output that tells admins _why_ each pairing was made.
+Roommate Matcher keeps all physical and policy constraints intact (gender, year group, AC type, room size) but adds a compatibility layer on top: multi-factor lifestyle scoring, graph-theoretic assignment, and explainability output that tells admins *why* each pairing was made.
 
 ---
 
 ## What makes this interesting
 
-- **Graph matching at the core.** 2-bed segments use maximum-weight bipartite matching. 3-bed segments use blossom-seeded pair growth. 4-bed segments merge high-quality pairs by maximising internal mean score. A bounded post-pass swap phase then improves minimum satisfaction without introducing new poor cases.
-- **Weighted multi-factor scoring.** Ten lifestyle factors (sleep schedule, cleanliness, smoking, diet, etc.) with individually tuned weights. Distance, directional mismatch, and compatibility-matrix patterns are handled differently per factor type. Missing values are excluded and weights renormalized — not filled or zeroed.
-- **Deterministic and versioned.** Identical inputs always produce identical outputs. Every run appends a new `run_id`; no historical run is overwritten. Results are fully auditable and reproducible.
-- **Privacy-safe explainability.** Sensitive factor values are used for scoring but rendered in neutral language in explanation output — admins see _why_ a pairing was made without seeing raw lifestyle disclosures.
-- **Fairness reporting built in.** Every run persists at-risk flags, label distribution, and segment-level satisfaction snapshots. Admins can act on this before the semester starts.
+- **Graph matching at the core.** 2-bed segments use maximum-weight bipartite matching. 3-bed segments use blossom-seeded pair growth with a "fewest good options first" scheduling heuristic — seed units with fewer compatible candidates are processed first so the hardest placements are resolved before the pool shrinks. 4-bed segments build high-quality pairs via max-weight matching, then merge pair+pair by maximising internal mean score across all six pairwise edges in the room.
+
+- **Multi-criteria swap optimization.** After initial assignment, a bounded post-pass swap phase evaluates every cross-room student swap using a strict priority order: minimum satisfaction first, then poor-student count, then total satisfaction, then a deterministic tie-break by room and student ID. A swap is only accepted if it strictly improves minimum satisfaction without introducing any new Poor-label students. Up to three passes run; the phase short-circuits early if a pass produces no accepted swap or revisits a previously seen room state.
+
+- **Weighted multi-factor scoring.** Ten lifestyle factors with individually tuned weights, scored by three different pattern types — distance lookup, directional habit/comfort mismatch (with separate habit and comfort axes per factor), and matrix compatibility. Missing values are excluded and remaining weights are renormalized against the surviving base-weight sum, not zeroed or filled.
+
+- **Deterministic and versioned.** Identical inputs always produce identical outputs, including tie-break behavior. Every run appends a new `run_id`; no historical run is overwritten. Results are fully auditable and reproducible.
+
+- **Structured explainability with room-level consistency.** The explanation engine generates both room-shared claims (aggregated across all pairwise edges in a room) and student-specific claims. A consistency enforcement pass syncs reason selection across students in the same room so no conflicting explanations are surfaced for the same pairing. Sensitive factor values are used for scoring but rendered through a privacy-safe template catalog — admins see *why* without seeing raw lifestyle disclosures.
+
+- **Fairness reporting built in.** Every run persists at-risk flags, label distribution, and segment-level satisfaction snapshots. Admins can act on at-risk students before the semester starts.
 
 ---
 
@@ -29,7 +35,7 @@ Roommate Matcher keeps all physical and policy constraints intact (gender, year 
 1. Admin uploads student master CSV and (optionally) room inventory CSV.
 2. System derives immutable segment keys from gender, year group, AC type, and room size.
 3. Students submit the preference form; responses are validated against `admission_number + dob` and the latest valid profile is activated.
-4. Matching run computes pair scores, assigns rooms, and persists run-versioned artifacts.
+4. Matching run computes pair scores, assigns rooms, runs swap optimization, and persists run-versioned artifacts.
 5. Admin reviews room view, student view, fairness report, and CSV export.
 6. Manual Checker reuses the same scoring and explanation logic for mid-semester exception handling.
 
@@ -39,25 +45,25 @@ Roommate Matcher keeps all physical and policy constraints intact (gender, year 
 
 Ten factors, each weighted and scored by pattern type:
 
-| Factor    | Description                         | Weight |
-| --------- | ----------------------------------- | -----: |
-| `q1_enc`  | Sleep schedule                      |   0.20 |
-| `q2_enc`  | Cleanliness                         |   0.15 |
-| `q6_enc`  | Smoking preference                  |   0.15 |
-| `q3_enc`  | Late return time                    |   0.10 |
-| `q4a_enc` | Room use (habit/comfort axis)       |   0.10 |
-| `q5a_enc` | Night activity (habit/comfort axis) |   0.10 |
-| `q7_enc`  | Alcohol preference                  |   0.05 |
-| `q8_enc`  | Diet preference                     |   0.05 |
-| `q9_enc`  | Budget/lifestyle expectation        |   0.05 |
-| `q10_enc` | Lifestyle tolerance                 |   0.05 |
+| Factor | Description | Weight |
+|---|---|---:|
+| `q1_enc` | Sleep schedule | 0.20 |
+| `q2_enc` | Cleanliness | 0.15 |
+| `q6_enc` | Smoking preference | 0.15 |
+| `q3_enc` | Late return time | 0.10 |
+| `q4a_enc` | Room use (habit/comfort axis) | 0.10 |
+| `q5a_enc` | Night activity (habit/comfort axis) | 0.10 |
+| `q7_enc` | Alcohol preference | 0.05 |
+| `q8_enc` | Diet preference | 0.05 |
+| `q9_enc` | Budget/lifestyle expectation | 0.05 |
+| `q10_enc` | Lifestyle tolerance | 0.05 |
 
 Weights sum to `1.0`.
 
 Scoring patterns used per factor:
 
 - **Distance lookup** — `q1`, `q2`, `q3`, `q9`
-- **Directional habit/comfort mismatch** — `q4`, `q5`
+- **Directional habit/comfort mismatch** — `q4`, `q5` (each factor encodes both a habit axis and a comfort axis; mismatch is scored directionally, not symmetrically)
 - **Matrix compatibility** — `q6` (smoking), `q7` (alcohol), `q8` (diet)
 - **Symmetric tolerance distance** — `q10`
 
@@ -67,20 +73,22 @@ Pair score equation:
 pair_score = sum(raw_factor_score * effective_weight)
 ```
 
+`effective_weight` for each factor is its base weight divided by the sum of base weights for all non-missing factors — so missing data compresses the weight budget rather than zeroing out contribution.
+
 `pair_score` is clamped to `[0, 1]`.
 
-**Excellent safety condition** — a score only qualifies as Excellent if it clears 0.90 _and_ all heavy factors (sleep, cleanliness, room-use axis, night-activity axis, smoking) are strictly non-zero. This prevents a high average from masking a critical incompatibility on one key dimension.
+**Excellent safety condition** — a score only qualifies as Excellent if it clears 0.90 *and* all heavy factors (sleep, cleanliness, room-use axis, night-activity axis, smoking) are strictly non-zero. This prevents a high average from masking a critical incompatibility on one key dimension.
 
 ---
 
 ## Satisfaction labels and at-risk rule
 
-| Label     | Condition                                   |
-| --------- | ------------------------------------------- |
+| Label | Condition |
+|---|---|
 | Excellent | score ≥ 0.90 and all heavy factors non-zero |
-| Good      | score ≥ 0.70                                |
-| Okay      | score ≥ 0.55                                |
-| Poor      | otherwise                                   |
+| Good | score ≥ 0.70 |
+| Okay | score ≥ 0.55 |
+| Poor | otherwise |
 
 ```text
 is_at_risk = satisfaction_score < 0.55
@@ -92,10 +100,13 @@ Students flagged at-risk are surfaced in the fairness report for admin review be
 
 ## Room assignment strategy by room size
 
-- **2-bed segments** — maximum-weight matching on pair graph.
-- **3-bed segments** — blossom-based seed pairs, then best-third growth with deterministic tie-breaks.
-- **4-bed segments** — build high-quality pairs, then merge pair+pair maximising internal mean score.
-- **Post-pass optimization** — bounded swap pass improves minimum satisfaction without introducing new poor cases.
+**2-bed segments** — maximum-weight matching on the complete pair graph via NetworkX.
+
+**3-bed segments** — blossom-based maximum-weight matching produces seed pairs; leftover students (at most one) become singleton seed units. Seed units are then scheduled by a "fewest good options first" heuristic: units with fewer candidates scoring above 0.70 and a lower best-achievable score are built out first, ensuring the tightest placements happen while the pool is still full. Each unit grows by greedily appending the candidate with the highest average score against current room members, with minimum edge score as the tie-break.
+
+**4-bed segments** — max-weight 2-bed matching produces an initial set of pairs. Pairs are then merged greedily: for each base pair, all remaining pairs are ranked by the mean of the six pairwise scores across the merged quad (with minimum edge score as tie-break), and the best-ranking partner pair is selected.
+
+**Post-pass swap optimization** — up to three passes evaluate every cross-room pairwise student swap. A swap is accepted only if it strictly raises minimum satisfaction and does not introduce new Poor-label students. Each pass uses a multi-criteria comparison (minimum satisfaction → poor count → total satisfaction → deterministic tie-break) to find the single best swap per pass. The phase short-circuits if no improving swap exists or if the current room state was already visited.
 
 ---
 
@@ -103,28 +114,28 @@ Students flagged at-risk are surfaced in the fairness report for admin review be
 
 **Explainability:**
 
-- 2-bed rooms: direct pair factors
-- 3/4-bed rooms: aggregate student-roommate edges
-- Output: 2 to 3 reason statements with factor trace metadata
-- Sensitive factors rendered with privacy-safe language
+For 3 and 4-bed rooms, the engine first builds room-shared claims by aggregating factor scores across all pairwise edges in the room. It then builds student-specific claims by aggregating each student's edges to their roommates individually. A consistency enforcement pass reconciles reason selection across all students in the room before final rendering, preventing contradictory explanations for the same shared pairing.
+
+Output per student: 2 to 3 reason statements with factor trace metadata. Sensitive factor values are mapped through a privacy-safe template catalog so the rendered language is neutral regardless of the underlying value.
+
+For 2-bed rooms: direct pair factors, no aggregation needed.
 
 **Fairness metrics persisted per run:**
-
 - Run-level label distribution
-- Run-level at-risk count and IDs
+- Run-level at-risk count and student IDs
 - Segment-level minimum satisfaction and distribution snapshots
 
 ---
 
 ## Tech stack
 
-| Layer    | Tools                                                                          |
-| -------- | ------------------------------------------------------------------------------ |
+| Layer | Tools |
+|---|---|
 | Frontend | React, TypeScript, Vite, React Router, Tailwind CSS, shadcn/ui, TanStack Query |
-| Backend  | FastAPI, Python, Pydantic, SQLAlchemy, Alembic                                 |
-| Database | SQLite (`data/app.db`)                                                         |
-| Matching | pandas, NumPy, NetworkX                                                        |
-| Testing  | pytest, Vitest, Playwright                                                     |
+| Backend | FastAPI, Python, Pydantic v2, SQLAlchemy, Alembic |
+| Database | SQLite (`data/app.db`) |
+| Matching | pandas, NumPy, NetworkX |
+| Testing | pytest, Vitest, Playwright |
 
 Design constraints: fully local-first, no cloud dependencies, minimal required environment variables, single-command startup.
 
@@ -149,15 +160,15 @@ demo-data/              — deterministic demo CSVs and seed tooling
 
 - `segment_key` format is `{gender}_{year_group}_{ac_type}_{room_size}` — immutable once stored, used as the hard matching boundary. No cross-segment assignment is possible.
 - Matching results are versioned and append-only by `run_id`. No overwrite of historical runs.
-- Matching is deterministic for identical inputs, including tie-break behavior.
+- Matching is deterministic for identical inputs, including tie-break behavior at every level of the algorithm.
+- Pair scores are canonicalized for student ordering (`student_a < student_b`) so lookups are order-independent.
 - Sensitive lifestyle values are used for scoring but exposed only in privacy-safe phrasing.
 
 **Key integrity rules enforced by services:**
-
 - Room capacity must match segment room size.
 - All matching artifacts must stay inside the same segment.
 - Each rerun creates a new `run_id`.
-- Pair scores are canonicalized for student ordering (`student_a < student_b`).
+- Post-assignment invariant checks validate that every student is assigned exactly once before results are persisted.
 
 ---
 
@@ -165,16 +176,16 @@ demo-data/              — deterministic demo CSVs and seed tooling
 
 Core tables:
 
-| Table                 | Purpose                                                          |
-| --------------------- | ---------------------------------------------------------------- |
-| `segments`            | Canonical matching partitions                                    |
-| `students`            | Master student identity and static assignment attributes         |
-| `rooms`               | Room inventory by segment                                        |
-| `form_responses`      | Raw submissions and validation status                            |
+| Table | Purpose |
+|---|---|
+| `segments` | Canonical matching partitions |
+| `students` | Master student identity and static assignment attributes |
+| `rooms` | Room inventory by segment |
+| `form_responses` | Raw submissions and validation status |
 | `preference_profiles` | Raw and encoded preference features (active profile per student) |
-| `matching_runs`       | Run metadata and status (append-only)                            |
-| `pair_scores`         | Pair compatibility artifacts per run                             |
-| `room_assignments`    | Final room outputs per run                                       |
+| `matching_runs` | Run metadata and status (append-only) |
+| `pair_scores` | Pair compatibility artifacts per run |
+| `room_assignments` | Final room outputs per run |
 
 ---
 
@@ -182,16 +193,37 @@ Core tables:
 
 All routes mounted under `/api`. Full interactive docs at `http://127.0.0.1:8000/docs`.
 
-| Area      | Endpoints                                                                                                                                            |
-| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Upload    | `/students/upload`, `/rooms/upload`, `/upload/error-reports/{report_name}`                                                                           |
-| Form      | `/form/submit`, `/form/status`, `/form/non-submitters`                                                                                               |
-| Segments  | `/segments`, `/segments/{segment_key}`, `/segments/{segment_key}/students`                                                                           |
-| Matching  | `/matching/run`, `/matching/runs`, `/matching/runs/{run_id}/segments/{segment_key}/rooms`, `/matching/runs/{run_id}/segments/{segment_key}/students` |
-| Fairness  | `/fairness/{run_id}`                                                                                                                                 |
-| Checker   | `/checker/compatibility`                                                                                                                             |
-| Exports   | `/exports/assignments/{run_id}`                                                                                                                      |
-| Dashboard | `/dashboard`                                                                                                                                         |
+| Area | Endpoints |
+|---|---|
+| Upload | `/students/upload`, `/rooms/upload`, `/upload/error-reports/{report_name}` |
+| Form | `/form/submit`, `/form/status`, `/form/non-submitters` |
+| Segments | `/segments`, `/segments/{segment_key}`, `/segments/{segment_key}/students` |
+| Matching | `/matching/run`, `/matching/runs`, `/matching/runs/{run_id}/segments/{segment_key}/rooms`, `/matching/runs/{run_id}/segments/{segment_key}/students` |
+| Fairness | `/fairness/{run_id}` |
+| Checker | `/checker/compatibility` |
+| Exports | `/exports/assignments/{run_id}` |
+| Dashboard | `/dashboard` |
+
+---
+
+## Testing
+
+The project ships with three layers of tests:
+
+- **Backend** (~4,800 lines across pytest suites) — scoring pipeline, segment matrix, matching invariants, service integration
+- **Frontend unit** (16 test files via Vitest) — pages, components, hooks, routing contracts, privacy rendering
+- **Frontend E2E** (271-line Playwright spec) — full admin workflow from upload through matching run and export
+
+```bash
+# Backend
+cd backend && python -m pytest
+
+# Frontend unit
+cd frontend && npm run test
+
+# Frontend E2E (Playwright)
+cd frontend && npm run e2e:install && npm run e2e
+```
 
 ---
 
@@ -208,14 +240,12 @@ start.bat
 ```
 
 Then open:
-
 - App: `http://127.0.0.1:8000`
 - API docs: `http://127.0.0.1:8000/docs`
 
-The startup script handles everything on first run: creates the virtual environment, installs backend and frontend dependencies, builds the frontend, and seeds demo data with a matching run already executed.
+The startup script is fully self-contained. On a clean clone with no prior setup it will: detect or create a `.venv`, install the backend package, install frontend npm dependencies, build the frontend bundle, and seed the SQLite database with demo data including a completed matching run — all before handing off to uvicorn. No hidden manual steps required.
 
 **Bootstrap steps (automatic):**
-
 1. Create `.venv` if missing.
 2. Install backend package if dependencies are missing.
 3. Install frontend dependencies if `frontend/node_modules` is missing.
@@ -273,21 +303,6 @@ python demo-data/seed.py --reset --schema-only
 
 ---
 
-## Testing
-
-```bash
-# Backend
-cd backend && python -m pytest
-
-# Frontend unit
-cd frontend && npm run test
-
-# Frontend E2E (Playwright)
-cd frontend && npm run e2e:install && npm run e2e
-```
-
----
-
 ## Screenshots
 
 ### Dashboard
@@ -315,14 +330,12 @@ cd frontend && npm run e2e:install && npm run e2e
 ## Product scope (v1)
 
 **In scope:**
-
 - Segment-wise matching for 2, 3, and 4-bed rooms
 - Student preference form ingestion and validation
 - Admin upload, matching run, results, fairness, and export workflows
 - Manual compatibility checker for mid-semester decisions
 
 **Out of scope:**
-
 - Deciding who gets AC/non-AC, hostel, or block
 - Cloud deployment and managed infrastructure
 - Continuous automatic global rematching during semester
