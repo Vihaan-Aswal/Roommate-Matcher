@@ -1,21 +1,11 @@
-/**
- * WorkspaceProvider.tsx
- *
- * Tracks which workspace the user is currently operating in.
- *
- * Phase 1: Populated from the app JWT / session metadata (the first/only workspace).
- * Phase 2: Will add workspace-switcher and URL-based workspace routing.
- */
-import React, {
-  createContext,
-  useContext,
-  useMemo,
-  useState,
-} from "react";
+import React, { createContext, useContext, useMemo } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { useWorkspacesQuery } from "../hooks/useWorkspacesQuery";
 
 interface WorkspaceState {
   workspaceId: string | null;
-  setWorkspaceId: (id: string) => void;
+  workspaceName: string | null;
+  navigateToWorkspace: (id: string) => void;
 }
 
 const WorkspaceContext = createContext<WorkspaceState | null>(null);
@@ -27,11 +17,28 @@ export function useWorkspace(): WorkspaceState {
 }
 
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
-  const [workspaceId, setWorkspaceId] = useState<string | null>(null);
+  const { workspaceId } = useParams<{ workspaceId: string }>();
+  const navigate = useNavigate();
+
+  const { data } = useWorkspacesQuery();
+
+  const workspaceName = useMemo(() => {
+    if (!workspaceId || !data) return null;
+    const ws = data.workspaces.find((w) => w.id === workspaceId);
+    return ws ? ws.name : null;
+  }, [workspaceId, data]);
+
+  const navigateToWorkspace = (id: string) => {
+    navigate(`/app/${encodeURIComponent(id)}/dashboard`);
+  };
 
   const value = useMemo<WorkspaceState>(
-    () => ({ workspaceId, setWorkspaceId }),
-    [workspaceId]
+    () => ({
+      workspaceId: workspaceId || null,
+      workspaceName,
+      navigateToWorkspace,
+    }),
+    [workspaceId, workspaceName]
   );
 
   return (
