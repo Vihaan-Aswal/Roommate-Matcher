@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import CheckConstraint, Float, ForeignKey, String, UniqueConstraint
+from sqlalchemy import Boolean, CheckConstraint, Float, ForeignKey, ForeignKeyConstraint, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -18,8 +18,8 @@ class RoomAssignment(UUIDPrimaryKeyMixin, TimestampMixin, Base):
             "group_score >= 0.0 AND group_score <= 1.0",
             name="ck_room_assignments_group_score_range",
         ),
-        ForeignKey("tenants.id", name="fk_room_assignments_tenant_id", ondelete="CASCADE"),
-        ForeignKey("workspaces.id", name="fk_room_assignments_workspace_id", ondelete="CASCADE"),
+        ForeignKeyConstraint(["tenant_id"], ["tenants.id"], name="fk_room_assignments_tenant_id", ondelete="CASCADE"),
+        ForeignKeyConstraint(["workspace_id"], ["workspaces.id"], name="fk_room_assignments_workspace_id", ondelete="CASCADE"),
     )
 
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)

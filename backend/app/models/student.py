@@ -1,7 +1,7 @@
 import uuid
 from datetime import date
 
-from sqlalchemy import Boolean, CheckConstraint, Date, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import Boolean, CheckConstraint, Date, ForeignKey, ForeignKeyConstraint, Integer, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -13,8 +13,8 @@ class Student(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __table_args__ = (
         UniqueConstraint("workspace_id", "admission_number", name="uq_students_workspace_admission"),
         CheckConstraint("room_size IN (2, 3, 4)", name="ck_students_room_size"),
-        ForeignKey("tenants.id", name="fk_students_tenant_id", ondelete="CASCADE"),
-        ForeignKey("workspaces.id", name="fk_students_workspace_id", ondelete="CASCADE"),
+        ForeignKeyConstraint(["tenant_id"], ["tenants.id"], name="fk_students_tenant_id", ondelete="CASCADE"),
+        ForeignKeyConstraint(["workspace_id"], ["workspaces.id"], name="fk_students_workspace_id", ondelete="CASCADE"),
     )
 
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)

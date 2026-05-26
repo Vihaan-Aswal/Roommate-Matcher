@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import CheckConstraint, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import CheckConstraint, ForeignKey, ForeignKeyConstraint, Integer, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -13,8 +13,8 @@ class Room(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         UniqueConstraint("workspace_id", "segment_id", "room_id", name="uq_rooms_workspace_segment_room"),
         CheckConstraint("capacity IN (2, 3, 4)", name="ck_rooms_capacity"),
         CheckConstraint("source IN ('uploaded', 'generated')", name="ck_rooms_source"),
-        ForeignKey("tenants.id", name="fk_rooms_tenant_id", ondelete="CASCADE"),
-        ForeignKey("workspaces.id", name="fk_rooms_workspace_id", ondelete="CASCADE"),
+        ForeignKeyConstraint(["tenant_id"], ["tenants.id"], name="fk_rooms_tenant_id", ondelete="CASCADE"),
+        ForeignKeyConstraint(["workspace_id"], ["workspaces.id"], name="fk_rooms_workspace_id", ondelete="CASCADE"),
     )
 
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)

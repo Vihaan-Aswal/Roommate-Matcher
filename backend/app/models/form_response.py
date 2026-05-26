@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, String, Text
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, ForeignKeyConstraint, Index, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
@@ -19,8 +19,8 @@ class FormResponse(UUIDPrimaryKeyMixin, Base):
             "ix_form_responses_workspace_admission_submitted",
             "workspace_id", "submitted_admission_number", "submitted_at",
         ),
-        ForeignKey("tenants.id", name="fk_form_responses_tenant_id", ondelete="CASCADE"),
-        ForeignKey("workspaces.id", name="fk_form_responses_workspace_id", ondelete="CASCADE"),
+        ForeignKeyConstraint(["tenant_id"], ["tenants.id"], name="fk_form_responses_tenant_id", ondelete="CASCADE"),
+        ForeignKeyConstraint(["workspace_id"], ["workspaces.id"], name="fk_form_responses_workspace_id", ondelete="CASCADE"),
     )
 
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)

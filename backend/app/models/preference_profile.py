@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import Boolean, CheckConstraint, Float, ForeignKey, Index, Text
+from sqlalchemy import Boolean, CheckConstraint, Float, ForeignKey, ForeignKeyConstraint, Index, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import text
@@ -18,8 +18,8 @@ class PreferenceProfile(UUIDPrimaryKeyMixin, TimestampMixin, Base):
             unique=True,
             postgresql_where=text("is_active = true"),
         ),
-        ForeignKey("tenants.id", name="fk_preference_profiles_tenant_id", ondelete="CASCADE"),
-        ForeignKey("workspaces.id", name="fk_preference_profiles_workspace_id", ondelete="CASCADE"),
+        ForeignKeyConstraint(["tenant_id"], ["tenants.id"], name="fk_preference_profiles_tenant_id", ondelete="CASCADE"),
+        ForeignKeyConstraint(["workspace_id"], ["workspaces.id"], name="fk_preference_profiles_workspace_id", ondelete="CASCADE"),
     )
 
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)

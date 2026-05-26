@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import CheckConstraint, Float, ForeignKey, UniqueConstraint
+from sqlalchemy import CheckConstraint, Float, ForeignKey, ForeignKeyConstraint, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -16,8 +16,8 @@ class PairScore(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         ),
         CheckConstraint("pair_score >= 0.0 AND pair_score <= 1.0", name="ck_pair_scores_range"),
         CheckConstraint("student_a_id <> student_b_id", name="ck_pair_scores_distinct_students"),
-        ForeignKey("tenants.id", name="fk_pair_scores_tenant_id", ondelete="CASCADE"),
-        ForeignKey("workspaces.id", name="fk_pair_scores_workspace_id", ondelete="CASCADE"),
+        ForeignKeyConstraint(["tenant_id"], ["tenants.id"], name="fk_pair_scores_tenant_id", ondelete="CASCADE"),
+        ForeignKeyConstraint(["workspace_id"], ["workspaces.id"], name="fk_pair_scores_workspace_id", ondelete="CASCADE"),
     )
 
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
