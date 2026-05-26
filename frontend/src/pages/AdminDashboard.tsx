@@ -4,7 +4,8 @@ import { AdminPageHeader } from "../components/AdminPageHeader";
 import { InlineAlert } from "../components/InlineAlert";
 import { StatCard } from "../components/StatCard";
 import { StatusBadge } from "../components/StatusBadge";
-import { useAdminDashboardQuery } from "../hooks/useAdminDashboard";
+import { useWorkspaceDashboardQuery } from "../hooks/useWorkspacesQuery";
+import { useWorkspace } from "../providers/WorkspaceProvider";
 import {
   Card,
   CardContent,
@@ -31,18 +32,19 @@ function formatRunTime(value: string | null): string {
 }
 
 export function AdminDashboard(): JSX.Element {
-  const dashboardQuery = useAdminDashboardQuery();
+  const { workspaceId, workspaceName } = useWorkspace();
+  const dashboardQuery = useWorkspaceDashboardQuery(workspaceId || "");
 
   const actions = (
     <>
       <Button asChild size="sm" variant="outline">
-        <Link to="/admin/students-data">Upload Data</Link>
+        <Link to={`/app/${workspaceId}/students-data`}>Upload Data</Link>
       </Button>
       <Button asChild size="sm" variant="outline">
-        <Link to="/admin/form-collection">View Form Collection</Link>
+        <Link to={`/app/${workspaceId}/form-collection`}>View Form Collection</Link>
       </Button>
       <Button asChild size="sm" variant="accent">
-        <Link to="/admin/matching-runs">Run Matching</Link>
+        <Link to={`/app/${workspaceId}/matching-runs`}>Run Matching</Link>
       </Button>
     </>
   );
@@ -50,7 +52,7 @@ export function AdminDashboard(): JSX.Element {
   return (
     <section className="space-y-6">
       <AdminPageHeader
-        title="Dashboard"
+        title={`${workspaceName || "Workspace"} Dashboard`}
         description="Track setup readiness, collection progress, and the latest run summary before triggering a new matching run."
         actions={actions}
       />
@@ -189,7 +191,7 @@ export function AdminDashboard(): JSX.Element {
                   <div className="flex flex-wrap gap-2 pt-2">
                     <Button asChild size="sm" variant="outline">
                       <Link
-                        to={`/admin/matching-runs/${encodeURIComponent(
+                        to={`/app/${workspaceId}/matching-runs/${encodeURIComponent(
                           dashboardQuery.data.latest_matching_run.run_id,
                         )}/rooms`}
                       >
@@ -198,7 +200,7 @@ export function AdminDashboard(): JSX.Element {
                     </Button>
                     <Button asChild size="sm" variant="outline">
                       <Link
-                        to={`/admin/matching-runs/${encodeURIComponent(
+                        to={`/app/${workspaceId}/matching-runs/${encodeURIComponent(
                           dashboardQuery.data.latest_matching_run.run_id,
                         )}/students?segment=all&label=all&atRisk=0`}
                       >
@@ -207,7 +209,7 @@ export function AdminDashboard(): JSX.Element {
                     </Button>
                     <Button asChild size="sm" variant="outline">
                       <Link
-                        to={`/admin/fairness/${encodeURIComponent(
+                        to={`/app/${workspaceId}/fairness/${encodeURIComponent(
                           dashboardQuery.data.latest_matching_run.run_id,
                         )}?segment=all`}
                       >

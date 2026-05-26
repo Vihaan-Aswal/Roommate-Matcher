@@ -1,18 +1,20 @@
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../providers/AuthProvider";
+import { useWorkspace } from "../providers/WorkspaceProvider";
 
 const links = [
-  { to: "/admin/dashboard", label: "Dashboard" },
-  { to: "/admin/students-data", label: "Students & Data" },
-  { to: "/admin/form-collection", label: "Form & Collection" },
-  { to: "/admin/matching-runs", label: "Matching Runs" },
-  { to: "/admin/fairness", label: "Reports & Fairness" },
-  { to: "/admin/at-risk-review", label: "At-Risk Review" },
-  { to: "/admin/manual-checker", label: "Manual Checker" },
+  { to: "dashboard", label: "Dashboard" },
+  { to: "students-data", label: "Students & Data" },
+  { to: "form-collection", label: "Form & Collection" },
+  { to: "matching-runs", label: "Matching Runs" },
+  { to: "fairness", label: "Reports & Fairness" },
+  { to: "at-risk-review", label: "At-Risk Review" },
+  { to: "manual-checker", label: "Manual Checker" },
 ];
 
 export function AdminLayout(): JSX.Element {
   const { user, signOut } = useAuth();
+  const { workspaceName } = useWorkspace();
   const navigate = useNavigate();
 
   async function handleSignOut() {
@@ -27,9 +29,15 @@ export function AdminLayout(): JSX.Element {
           <h1 className="font-serif text-2xl font-bold tracking-tight">
             Roommate Matcher
           </h1>
-          <p className="mt-2 text-sm text-muted-foreground">Admin Operations</p>
+          <p className="mt-2 text-sm font-medium text-muted-foreground truncate">
+            {workspaceName || "Loading..."}
+          </p>
 
-          <nav className="mt-6 space-y-2">
+          <Link to="/app" className="mt-4 text-xs font-medium text-primary hover:underline inline-block mb-2">
+            &larr; Switch Workspace
+          </Link>
+
+          <nav className="mt-2 space-y-2">
             {links.map((link) => (
               <NavLink
                 key={link.to}

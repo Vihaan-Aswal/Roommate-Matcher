@@ -2,8 +2,10 @@ import React from "react";
 import { Navigate, Route, BrowserRouter as Router, Routes } from "react-router-dom";
 
 import { useAuth } from "./providers/AuthProvider";
+import { WorkspaceProvider } from "./providers/WorkspaceProvider";
 import { AdminLayout } from "./layouts/AdminLayout";
 import { LoginPage } from "./pages/LoginPage";
+import { WorkspaceChooserPage } from "./pages/WorkspaceChooserPage";
 import { AdminAtRiskReview } from "./pages/AdminAtRiskReview";
 import { AdminDashboard } from "./pages/AdminDashboard";
 import { AdminFairness } from "./pages/AdminFairness";
@@ -51,12 +53,24 @@ export default function App(): JSX.Element {
         {/* Public student-facing form — no auth required */}
         <Route path="/form" element={<StudentForm />} />
 
-        {/* Protected admin routes */}
+        {/* Chooser page */}
         <Route
-          path="/admin"
+          path="/app"
           element={
             <ProtectedRoute>
-              <AdminLayout />
+              <WorkspaceChooserPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Protected workspace routes */}
+        <Route
+          path="/app/:workspaceId"
+          element={
+            <ProtectedRoute>
+              <WorkspaceProvider>
+                <AdminLayout />
+              </WorkspaceProvider>
             </ProtectedRoute>
           }
         >
@@ -72,6 +86,9 @@ export default function App(): JSX.Element {
           <Route path="at-risk-review" element={<AdminAtRiskReview />} />
           <Route path="manual-checker" element={<AdminManualChecker />} />
         </Route>
+
+        {/* Legacy redirect */}
+        <Route path="/admin/*" element={<Navigate replace to="/app" />} />
 
         {/* Catch-all → login */}
         <Route path="*" element={<Navigate replace to="/login" />} />
