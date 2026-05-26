@@ -8,8 +8,30 @@ class Settings(BaseSettings):
     app_env: str = "development"
     app_host: str = "127.0.0.1"
     app_port: int = 8000
-    database_url: str = "sqlite:///../data/app.db"
+
+    # --- Database (Postgres only) ---
+    database_url: str  # REQUIRED — no default, forces explicit config
+    alembic_database_url: str = ""  # optional override for Alembic direct connection
+
+    # --- CORS ---
     cors_allowed_origins: list[str] = ["http://localhost:5173"]
+
+    # --- Supabase Auth ---
+    supabase_project_url: str = ""
+    supabase_anon_key: str = ""
+    supabase_jwt_issuer: str = ""
+    supabase_jwt_audience: str = "authenticated"
+
+    # --- App-level auth ---
+    app_jwt_secret: str = ""
+    admin_emails: str = ""  # comma-separated
+
+    # --- Frontend ---
+    frontend_url: str = "http://localhost:5173"
+
+    # --- DFY / Demo ---
+    whatsapp_dfy_number: str = ""
+    demo_ttl_hours: int = 24
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
