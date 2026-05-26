@@ -38,6 +38,25 @@ export interface UploadSummaryResponse {
   error_report_name: string | null;
 }
 
+export interface WorkspaceResponse {
+  id: string;
+  tenant_id: string;
+  name: string;
+  status: string;
+  source: string;
+  is_demo_seeded: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WorkspaceListResponse {
+  workspaces: WorkspaceResponse[];
+}
+
+export interface WorkspaceCreateRequest {
+  name: string;
+}
+
 export interface DashboardSetupStatus {
   master_students_uploaded: boolean;
   rooms_uploaded: boolean;
@@ -62,6 +81,14 @@ export interface DashboardLatestRun {
   run_id: string | null;
   status: string | null;
   created_at: string | null;
+}
+
+export interface WorkspaceDashboardResponse {
+  workspace: WorkspaceResponse;
+  setup_status: DashboardSetupStatus;
+  form_collection_stats: DashboardFormCollectionStats;
+  segments_status: DashboardSegmentsStatus;
+  latest_matching_run: DashboardLatestRun;
 }
 
 export interface DashboardResponse {
@@ -379,6 +406,38 @@ export async function submitStudentForm(
 
 export async function getDashboardSummary(): Promise<DashboardResponse> {
   return requestJson<DashboardResponse>("/api/dashboard");
+}
+
+export async function getWorkspaces(): Promise<WorkspaceListResponse> {
+  return requestJson<WorkspaceListResponse>("/api/workspaces");
+}
+
+export async function createWorkspace(
+  body: WorkspaceCreateRequest,
+): Promise<WorkspaceResponse> {
+  return requestJson<WorkspaceResponse>("/api/workspaces", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+}
+
+export async function getWorkspace(
+  workspaceId: string,
+): Promise<WorkspaceResponse> {
+  return requestJson<WorkspaceResponse>(
+    `/api/workspaces/${encodeURIComponent(workspaceId)}`,
+  );
+}
+
+export async function getWorkspaceDashboard(
+  workspaceId: string,
+): Promise<WorkspaceDashboardResponse> {
+  return requestJson<WorkspaceDashboardResponse>(
+    `/api/workspaces/${encodeURIComponent(workspaceId)}/dashboard`,
+  );
 }
 
 export async function getSegments(): Promise<SegmentListResponse> {

@@ -1,4 +1,7 @@
 export const adminQueryKeys = {
+  workspaces: ["workspaces"] as const,
+  workspaceDashboard: (workspaceId: string) => ["workspace", workspaceId, "dashboard"] as const,
+  workspaceDetail: (workspaceId: string) => ["workspace", workspaceId] as const,
   dashboard: ["admin", "dashboard"] as const,
   segments: ["admin", "segments"] as const,
   formStatus: ["admin", "form-status"] as const,
