@@ -1,9 +1,8 @@
 """
 supabase.py — Supabase admin client and Supabase-JWT verification.
 
-Supabase JWTs are standard HS256 JWTs signed with the project's JWT secret.
-We verify them locally with PyJWT (no network call) using supabase_jwt_secret
-from settings.
+Supabase JWTs are standard HS256 JWTs signed with the project's JWT secret,
+or ES256/RS256 JWTs verified using the project's JWKS endpoint.
 
 The supabase admin client (service-role equivalent) is built lazily so it is
 available for server-side Supabase operations (user lookup, etc.) without
@@ -12,6 +11,7 @@ requiring it for every request.
 from __future__ import annotations
 
 import jwt
+from jwt import PyJWKClient
 from functools import lru_cache
 from typing import Any
 
@@ -33,6 +33,17 @@ def get_supabase_admin_client() -> Client:
     """
     settings = get_settings()
     return create_client(settings.supabase_project_url, settings.supabase_anon_key)
+
+
+_jwks_client: PyJWKClient | None = None
+
+def get_jwks_client() -> PyJWKClient:
+    global _jwks_client
+    if _jwks_client is None:
+        settings = get_settings()
+        url = f"{settings.supabase_project_url.rstrip('/')}/auth/v1/.well-known/jwks.json"
+        _jwks_client = PyJWKClient(url)
+    return _jwks_client
 
 
 def verify_supabase_jwt(token: str) -> dict[str, Any]:
@@ -59,12 +70,35 @@ def verify_supabase_jwt(token: str) -> dict[str, Any]:
     """
     settings = get_settings()
 
-    payload: dict[str, Any] = jwt.decode(
-        token,
-        settings.supabase_jwt_secret,
-        algorithms=["HS256"],
-        audience=settings.supabase_jwt_audience,
-        issuer=settings.supabase_jwt_issuer,
-        options={"require": ["sub", "email", "exp", "iss", "aud"]},
-    )
-    return payload
+    try:
+        header = jwt.get_unverified_header(token)
+    except jwt.DecodeError:
+        raise jwt.InvalidTokenError("Invalid token format")
+        
+    alg = header.get("alg")
+    
+    # We require issuer, sub, email, exp, aud for safety
+    options = {"require": ["sub", "email", "exp", "iss", "aud"]}
+    
+    if alg == "HS256":
+        # Fallback to symmetric secret
+        return jwt.decode(
+            token,
+            settings.supabase_jwt_secret,
+            algorithms=["HS256"],
+            audience=settings.supabase_jwt_audience,
+            issuer=settings.supabase_jwt_issuer,
+            options=options,
+        )
+    else:
+        # Use JWKS for asymmetric algorithms (RS256, ES256)
+        jwks_client = get_jwks_client()
+        signing_key = jwks_client.get_signing_key_from_jwt(token)
+        return jwt.decode(
+            token,
+            signing_key.key,
+            algorithms=["RS256", "ES256"],
+            audience=settings.supabase_jwt_audience,
+            issuer=settings.supabase_jwt_issuer,
+            options=options,
+        )
