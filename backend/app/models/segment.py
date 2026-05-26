@@ -1,17 +1,25 @@
-from sqlalchemy import CheckConstraint, Integer, String, UniqueConstraint
+import uuid
+
+from sqlalchemy import CheckConstraint, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.models.base import Base, TimestampMixin
+from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 
 
-class Segment(TimestampMixin, Base):
+class Segment(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "segments"
     __table_args__ = (
-        UniqueConstraint("gender", "year_group", "ac_type", "room_size", name="uq_segments_dimensions"),
+        UniqueConstraint("workspace_id", "segment_key", name="uq_segments_workspace_segment_key"),
+        UniqueConstraint("workspace_id", "gender", "year_group", "ac_type", "room_size", name="uq_segments_workspace_dimensions"),
         CheckConstraint("room_size IN (2, 3, 4)", name="ck_segments_room_size"),
+        ForeignKey("tenants.id", name="fk_segments_tenant_id", ondelete="CASCADE"),
+        ForeignKey("workspaces.id", name="fk_segments_workspace_id", ondelete="CASCADE"),
     )
 
-    segment_key: Mapped[str] = mapped_column(String, primary_key=True)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
+    workspace_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
+    segment_key: Mapped[str] = mapped_column(String, nullable=False)
     gender: Mapped[str] = mapped_column(String, nullable=False)
     year_group: Mapped[str] = mapped_column(String, nullable=False)
     ac_type: Mapped[str] = mapped_column(String, nullable=False)

@@ -1,19 +1,27 @@
+import uuid
+
 from sqlalchemy import CheckConstraint, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.models.base import Base, TimestampMixin
+from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 
 
-class Room(TimestampMixin, Base):
+class Room(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "rooms"
     __table_args__ = (
-        UniqueConstraint("segment_key", "room_id", name="uq_rooms_segment_room_id"),
+        UniqueConstraint("workspace_id", "segment_id", "room_id", name="uq_rooms_workspace_segment_room"),
         CheckConstraint("capacity IN (2, 3, 4)", name="ck_rooms_capacity"),
         CheckConstraint("source IN ('uploaded', 'generated')", name="ck_rooms_source"),
+        ForeignKey("tenants.id", name="fk_rooms_tenant_id", ondelete="CASCADE"),
+        ForeignKey("workspaces.id", name="fk_rooms_workspace_id", ondelete="CASCADE"),
     )
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
+    workspace_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
+    segment_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("segments.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     room_id: Mapped[str] = mapped_column(String, nullable=False)
-    segment_key: Mapped[str] = mapped_column(ForeignKey("segments.segment_key"), nullable=False, index=True)
     capacity: Mapped[int] = mapped_column(Integer, nullable=False)
-    source: Mapped[str] = mapped_column(String, nullable=False, default="uploaded")
+    source: Mapped[str] = mapped_column(String, nullable=False, server_default="'uploaded'")

@@ -1,29 +1,41 @@
-from sqlalchemy import CheckConstraint, Float, ForeignKey, Index, Integer, Text, text
+import uuid
+
+from sqlalchemy import Boolean, CheckConstraint, Float, ForeignKey, Index, Text
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.sql import text
 
-from app.models.base import Base, TimestampMixin
+from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 
 
-class PreferenceProfile(TimestampMixin, Base):
+class PreferenceProfile(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "preference_profiles"
     __table_args__ = (
-        CheckConstraint("has_preferences IN (0, 1)", name="ck_preference_profiles_has_preferences"),
-        CheckConstraint("is_active IN (0, 1)", name="ck_preference_profiles_is_active"),
+        # Postgres partial unique index — replaces the old sqlite_where version
         Index(
             "ux_preference_profiles_one_active",
-            "admission_number",
+            "student_id",
             unique=True,
-            sqlite_where=text("is_active = 1"),
+            postgresql_where=text("is_active = true"),
         ),
+        ForeignKey("tenants.id", name="fk_preference_profiles_tenant_id", ondelete="CASCADE"),
+        ForeignKey("workspaces.id", name="fk_preference_profiles_workspace_id", ondelete="CASCADE"),
     )
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    admission_number: Mapped[str] = mapped_column(ForeignKey("students.admission_number"), nullable=False, index=True)
-    source_form_response_id: Mapped[int | None] = mapped_column(ForeignKey("form_responses.id"), nullable=True)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
+    workspace_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
+    student_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("students.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    source_form_response_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("form_responses.id", ondelete="SET NULL"), nullable=True
+    )
 
-    has_preferences: Mapped[bool] = mapped_column(Integer, nullable=False, default=1)
-    is_active: Mapped[bool] = mapped_column(Integer, nullable=False, default=1)
+    has_preferences: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="true")
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="true")
+    is_generated: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
 
+    # Raw answers
     q1_raw: Mapped[str | None] = mapped_column(Text, nullable=True)
     q2_raw: Mapped[str | None] = mapped_column(Text, nullable=True)
     q3_raw: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -37,6 +49,7 @@ class PreferenceProfile(TimestampMixin, Base):
     q9_raw: Mapped[str | None] = mapped_column(Text, nullable=True)
     q10_raw: Mapped[str | None] = mapped_column(Text, nullable=True)
 
+    # Encoded answers
     q1_enc: Mapped[float | None] = mapped_column(Float, nullable=True)
     q2_enc: Mapped[float | None] = mapped_column(Float, nullable=True)
     q3_enc: Mapped[float | None] = mapped_column(Float, nullable=True)
