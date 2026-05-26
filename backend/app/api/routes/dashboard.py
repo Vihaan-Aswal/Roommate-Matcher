@@ -13,6 +13,7 @@ router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
 @router.get("", response_model=DashboardResponse)
 def get_dashboard(db: Session = Depends(get_db)) -> DashboardResponse:
+    # DEPRECATED: Phase 2+ uses GET /api/workspaces/{workspace_id}/dashboard
     summary = get_dashboard_summary(db)
     return DashboardResponse(
         setup_status=summary.setup_status,
