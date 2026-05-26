@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from app.api.routes.auth import router as auth_router
 from app.api.routes.checker import router as checker_router
 from app.api.routes.dashboard import router as dashboard_router
 from app.api.routes.exports import router as exports_router
@@ -81,6 +82,7 @@ def create_app(*, frontend_dist_dir: Path | None = None) -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    application.include_router(auth_router)  # auth router handles its own /api/auth prefix
     application.include_router(upload_router, prefix="/api")
     application.include_router(form_router, prefix="/api")
     application.include_router(segments_router, prefix="/api")
