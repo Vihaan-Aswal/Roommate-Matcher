@@ -71,8 +71,8 @@ def _is_platform_admin(email: str) -> bool:
 # ---------------------------------------------------------------------------
 
 async def get_authenticated_user(
-    authorization: Annotated[str, Header()],
-    db: Annotated[Session, Depends(get_db)],
+    authorization: Annotated[str | None, Header()] = None,
+    db: Session = Depends(get_db),
 ) -> AuthenticatedUser:
     """
     Primary auth dependency. Accepts BOTH token types:
