@@ -26,6 +26,7 @@ import React, {
   useState,
 } from "react";
 import { supabase } from "../lib/supabase";
+import { setApiToken } from "../lib/apiClient";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -79,6 +80,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    setApiToken(token);
+  }, [token]);
 
   // --- Internal: populate state from our backend ---
   const hydrateFromBackend = useCallback(async (rawToken: string) => {

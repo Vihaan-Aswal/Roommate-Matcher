@@ -1,4 +1,5 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { useAuth } from "../providers/AuthProvider";
 
 const links = [
   { to: "/admin/dashboard", label: "Dashboard" },
@@ -11,10 +12,18 @@ const links = [
 ];
 
 export function AdminLayout(): JSX.Element {
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  async function handleSignOut() {
+    await signOut();
+    navigate("/login");
+  }
+
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_#fdf7ef_0%,_#fff_40%,_#f3f8f6_100%)]">
       <div className="mx-auto grid min-h-screen max-w-7xl grid-cols-1 md:grid-cols-[280px_1fr]">
-        <aside className="border-r border-border/70 bg-white/80 p-6 backdrop-blur">
+        <aside className="border-r border-border/70 bg-white/80 p-6 backdrop-blur flex flex-col">
           <h1 className="font-serif text-2xl font-bold tracking-tight">
             Roommate Matcher
           </h1>
@@ -38,6 +47,23 @@ export function AdminLayout(): JSX.Element {
               </NavLink>
             ))}
           </nav>
+
+          {/* User section — add at bottom of aside */}
+          <div className="mt-auto pt-6 border-t border-border/50">
+            {user?.isDemo && (
+              <span className="mb-2 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+                Demo Mode
+              </span>
+            )}
+            <p className="text-sm font-medium truncate">{user?.email}</p>
+            <p className="text-xs text-muted-foreground capitalize">{user?.role}</p>
+            <button
+              onClick={handleSignOut}
+              className="mt-3 w-full rounded-md border border-border px-3 py-1.5 text-xs text-muted-foreground hover:border-destructive hover:text-destructive transition-colors"
+            >
+              Sign out
+            </button>
+          </div>
         </aside>
 
         <main className="p-6 md:p-10">

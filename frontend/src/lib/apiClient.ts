@@ -269,6 +269,17 @@ export interface AssignmentsCsvExportResult {
   fileName: string;
 }
 
+// ---------------------------------------------------------------------------
+// Auth token injection
+// ---------------------------------------------------------------------------
+// AuthProvider calls setApiToken() whenever the token changes.
+// This avoids threading token through every hook.
+let _apiToken: string | null = null;
+
+export function setApiToken(token: string | null): void {
+  _apiToken = token;
+}
+
 function getApiBaseUrl(): string {
   const value = import.meta.env.VITE_API_BASE_URL as string | undefined;
   return value ? value.replace(/\/$/, "") : "";
@@ -309,7 +320,13 @@ function extractErrorMessage(data: unknown): string {
 }
 
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(buildUrl(path), init);
+  const headers: Record<string, string> = {
+    ...(init?.headers as Record<string, string> | undefined),
+  };
+  if (_apiToken) {
+    headers["Authorization"] = `Bearer ${_apiToken}`;
+  }
+  const response = await fetch(buildUrl(path), { ...init, headers });
   const data = (await response.json().catch(() => null)) as unknown;
 
   if (!response.ok) {
@@ -457,8 +474,13 @@ export async function exportAssignmentsCsv(
   const query = segmentKey
     ? `?segment_key=${encodeURIComponent(segmentKey)}`
     : "";
+  const headers: Record<string, string> = {};
+  if (_apiToken) {
+    headers["Authorization"] = `Bearer ${_apiToken}`;
+  }
   const response = await fetch(
     buildUrl(`/api/exports/assignments/${encodeURIComponent(runId)}${query}`),
+    { headers }
   );
 
   if (!response.ok) {
