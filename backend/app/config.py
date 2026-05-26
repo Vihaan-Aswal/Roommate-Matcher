@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     supabase_anon_key: str = ""
     supabase_jwt_issuer: str = ""
     supabase_jwt_audience: str = "authenticated"
+    supabase_jwt_secret: str = ""
 
     # --- App-level auth ---
     app_jwt_secret: str = ""
