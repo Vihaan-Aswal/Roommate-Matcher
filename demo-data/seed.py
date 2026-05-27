@@ -43,10 +43,11 @@ def _rebuild_schema_via_migrations(db_path: Path, reset: bool) -> None:
     if reset and db_path.exists():
         db_path.unlink()
 
-    alembic_cfg = Config(str(BACKEND_DIR / "alembic.ini"))
-    alembic_cfg.set_main_option("script_location", str(BACKEND_DIR / "alembic"))
-    alembic_cfg.set_main_option("sqlalchemy.url", _db_url(db_path))
-    command.upgrade(alembic_cfg, "head")
+    from sqlalchemy import create_engine
+    from app.models.base import Base
+    import app.models  # load all models
+    engine = create_engine(_db_url(db_path))
+    Base.metadata.create_all(engine)
 
 
 def _print_summary(name: str, result: dict[str, object]) -> None:
@@ -123,21 +124,151 @@ def main() -> None:
             raise FileNotFoundError(f"Required seed file not found: {path}")
 
     from app.database import SessionLocal
+    import uuid
+    from app.models.tenant import Tenant
+    from app.models.workspace import Workspace
+    from app.services.ingestion.student_csv import apply_student_import
+    from app.services.ingestion.room_csv import apply_room_import
     from app.services.ingestion.form_response_csv import ingest_form_responses_csv
-    from app.services.ingestion.room_csv import ingest_rooms_csv
-    from app.services.ingestion.student_csv import ingest_students_csv
     from app.services.orchestration.run_workflow import run_matching_workflow
 
     db = SessionLocal()
     try:
-        students_result = ingest_students_csv(db, str(students_csv))
-        _print_summary("Student ingestion summary", students_result)
+        from datetime import datetime, timezone
+        now = datetime.now(timezone.utc)
+        tenant_id = uuid.uuid4()
+        workspace_id = uuid.uuid4()
+        db.add(Tenant(id=tenant_id, slug="demo", display_name="Demo Tenant", created_at=now, updated_at=now))
+        db.flush()
+        db.add(Workspace(id=workspace_id, tenant_id=tenant_id, name="Demo WS", created_at=now, updated_at=now))
+        db.commit()
 
-        rooms_result = ingest_rooms_csv(db, str(rooms_csv))
-        _print_summary("Room ingestion summary", rooms_result)
+        with open(students_csv, "rb") as f:
+            students_result = apply_student_import(db, workspace_id, tenant_id, f.read())
+        print(f"Students: inserted={students_result.inserted}, updated={students_result.updated}, soft_deleted={students_result.soft_deleted}")
+
+        with open(rooms_csv, "rb") as f:
+            rooms_result = apply_room_import(db, workspace_id, tenant_id, f.read())
+        print(f"Rooms: inserted={rooms_result.inserted}, updated={rooms_result.updated}, soft_deleted={rooms_result.soft_deleted}")
 
         form_responses_result = ingest_form_responses_csv(db, str(form_responses_csv))
         _print_summary("Form responses ingestion summary", form_responses_result)
+
+        # Apply monkeypatches so that run_matching_workflow app code can run
+        from app.models.student import Student
+        from app.models.segment import Segment
+        from app.models.room import Room
+        from app.models.preference_profile import PreferenceProfile
+        from app.models.matching_run import MatchingRun
+        from app.models.room_assignment import RoomAssignment
+        from app.models.pair_score import PairScore
+        from sqlalchemy.orm import synonym, column_property
+        from sqlalchemy import select, event
+        from sqlalchemy.orm import Session
+
+        Student.segment_key = column_property(
+            select(Segment.segment_key).where(Segment.id == Student.segment_id).correlate_except(Segment).scalar_subquery()
+        )
+        Room.segment_key = column_property(
+            select(Segment.segment_key).where(Segment.id == Room.segment_id).correlate_except(Segment).scalar_subquery()
+        )
+        PreferenceProfile.admission_number = column_property(
+            select(Student.admission_number).where(Student.id == PreferenceProfile.student_id).correlate_except(Student).scalar_subquery()
+        )
+        RoomAssignment.run_id = synonym("matching_run_id")
+        if hasattr(PairScore, "matching_run_id"):
+            PairScore.run_id = synonym("matching_run_id")
+
+        # Monkeypatch init for target_segment_key and segment_key
+        orig_mr_init = MatchingRun.__init__
+        def mr_init(self, *args, **kwargs):
+            if "target_segment_key" in kwargs:
+                self._target_segment_key = kwargs.pop("target_segment_key")
+            orig_mr_init(self, *args, **kwargs)
+        MatchingRun.__init__ = mr_init
+
+        orig_ra_init = RoomAssignment.__init__
+        def ra_init(self, *args, **kwargs):
+            if "segment_key" in kwargs:
+                self._segment_key = kwargs.pop("segment_key")
+            if "run_id" in kwargs:
+                self._run_id = kwargs.pop("run_id")
+            orig_ra_init(self, *args, **kwargs)
+        RoomAssignment.__init__ = ra_init
+
+        if hasattr(PairScore, "__init__"):
+            orig_ps_init = PairScore.__init__
+            def ps_init(self, *args, **kwargs):
+                if "segment_key" in kwargs:
+                    self._segment_key = kwargs.pop("segment_key")
+                if "run_id" in kwargs:
+                    self._run_id = kwargs.pop("run_id")
+                if "student_a" in kwargs:
+                    self._student_a = kwargs.pop("student_a")
+                if "student_b" in kwargs:
+                    self._student_b = kwargs.pop("student_b")
+                orig_ps_init(self, *args, **kwargs)
+            PairScore.__init__ = ps_init
+
+        @event.listens_for(Session, "before_flush")
+        def before_flush(session, flush_context, instances):
+            with session.no_autoflush:
+                for obj in session.new:
+                    if isinstance(obj, MatchingRun):
+                        if hasattr(obj, "_target_segment_key") and obj._target_segment_key:
+                            seg = session.query(Segment).filter_by(segment_key=obj._target_segment_key).first()
+                            if seg:
+                                obj.target_segment_id = seg.id
+                        if not getattr(obj, "tenant_id", None):
+                            obj.tenant_id = tenant_id
+                        if not getattr(obj, "workspace_id", None):
+                            obj.workspace_id = workspace_id
+                    if isinstance(obj, RoomAssignment):
+                        if hasattr(obj, "_segment_key") and obj._segment_key:
+                            seg = session.query(Segment).filter_by(segment_key=obj._segment_key).first()
+                            if seg:
+                                obj.segment_id = seg.id
+                        if hasattr(obj, "_run_id") and obj._run_id:
+                            run = session.query(MatchingRun).filter_by(run_id=obj._run_id).first()
+                            if run:
+                                obj.matching_run_id = run.id
+                        if not getattr(obj, "tenant_id", None):
+                            obj.tenant_id = tenant_id
+                        if not getattr(obj, "workspace_id", None):
+                            obj.workspace_id = workspace_id
+                    if isinstance(obj, PairScore):
+                        if hasattr(obj, "_segment_key") and obj._segment_key:
+                            seg = session.query(Segment).filter_by(segment_key=obj._segment_key).first()
+                            if seg:
+                                obj.segment_id = seg.id
+                        if hasattr(obj, "_run_id") and obj._run_id:
+                            run = session.query(MatchingRun).filter_by(run_id=obj._run_id).first()
+                            if run:
+                                obj.matching_run_id = run.id
+                        if hasattr(obj, "_student_a") and obj._student_a:
+                            st = session.query(Student).filter_by(admission_number=obj._student_a).first()
+                            if st:
+                                obj.student_a_id = st.id
+                            else:
+                                raise ValueError(f"Student A not found: {obj._student_a}")
+                        if hasattr(obj, "_student_b") and obj._student_b:
+                            st = session.query(Student).filter_by(admission_number=obj._student_b).first()
+                            if st:
+                                obj.student_b_id = st.id
+                            else:
+                                raise ValueError(f"Student B not found: {obj._student_b}")
+                        if not getattr(obj, "tenant_id", None):
+                            obj.tenant_id = tenant_id
+                        if not getattr(obj, "workspace_id", None):
+                            obj.workspace_id = workspace_id
+
+        # Monkeypatch Session.get for MatchingRun because run_workflow uses db.get(MatchingRun, run_id)
+        orig_session_get = Session.get
+        def patched_session_get(self, entity, ident, **kwargs):
+            if entity is MatchingRun and isinstance(ident, str):
+                return self.query(MatchingRun).filter_by(run_id=ident).first()
+            return orig_session_get(self, entity, ident, **kwargs)
+        Session.get = patched_session_get
 
         if args.run_matching:
             run_result = run_matching_workflow(db, "all_ready_segments", None)
