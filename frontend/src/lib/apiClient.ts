@@ -38,6 +38,71 @@ export interface UploadSummaryResponse {
   error_report_name: string | null;
 }
 
+// -- Student Diff --
+
+export interface StudentDiffEntry {
+  admission_number: string;
+  full_name: string;
+  action: "insert" | "update" | "soft_delete";
+  changes: Record<string, { old: string | null; new: string | null }> | null;
+  warnings: string[];
+}
+
+export interface StudentImportDiffResponse {
+  workspace_id: string;
+  total_csv_rows: number;
+  valid_csv_rows: number;
+  to_insert: number;
+  to_update: number;
+  to_soft_delete: number;
+  unchanged: number;
+  validation_errors: InvalidRow[];
+  diff_entries: StudentDiffEntry[];
+  warnings: string[];
+}
+
+export interface StudentImportApplyResponse {
+  workspace_id: string;
+  inserted: number;
+  updated: number;
+  soft_deleted: number;
+  unchanged: number;
+  segments_created: number;
+  errors: InvalidRow[];
+}
+
+// -- Room Diff --
+
+export interface RoomDiffEntry {
+  room_id: string;
+  segment_key: string;
+  action: "insert" | "update" | "soft_delete";
+  changes: Record<string, { old: string | null; new: string | null }> | null;
+  warnings: string[];
+}
+
+export interface RoomImportDiffResponse {
+  workspace_id: string;
+  total_csv_rows: number;
+  valid_csv_rows: number;
+  to_insert: number;
+  to_update: number;
+  to_soft_delete: number;
+  unchanged: number;
+  validation_errors: InvalidRow[];
+  diff_entries: RoomDiffEntry[];
+  warnings: string[];
+}
+
+export interface RoomImportApplyResponse {
+  workspace_id: string;
+  inserted: number;
+  updated: number;
+  soft_deleted: number;
+  unchanged: number;
+  errors: InvalidRow[];
+}
+
 export interface WorkspaceResponse {
   id: string;
   tenant_id: string;
@@ -452,12 +517,64 @@ export async function getNonSubmitters(): Promise<NonSubmittersResponse> {
   return requestJson<NonSubmittersResponse>("/api/form/non-submitters");
 }
 
+// -- Workspace-scoped upload (Phase 3) --
+
+export async function previewStudentUpload(
+  workspaceId: string,
+  file: File,
+): Promise<StudentImportDiffResponse> {
+  const formData = new FormData();
+  formData.append("file", file);
+  return requestJson<StudentImportDiffResponse>(
+    `/api/workspaces/${encodeURIComponent(workspaceId)}/students/upload/preview`,
+    { method: "POST", body: formData },
+  );
+}
+
+export async function applyStudentUpload(
+  workspaceId: string,
+  file: File,
+): Promise<StudentImportApplyResponse> {
+  const formData = new FormData();
+  formData.append("file", file);
+  return requestJson<StudentImportApplyResponse>(
+    `/api/workspaces/${encodeURIComponent(workspaceId)}/students/upload/apply`,
+    { method: "POST", body: formData },
+  );
+}
+
+export async function previewRoomUpload(
+  workspaceId: string,
+  file: File,
+): Promise<RoomImportDiffResponse> {
+  const formData = new FormData();
+  formData.append("file", file);
+  return requestJson<RoomImportDiffResponse>(
+    `/api/workspaces/${encodeURIComponent(workspaceId)}/rooms/upload/preview`,
+    { method: "POST", body: formData },
+  );
+}
+
+export async function applyRoomUpload(
+  workspaceId: string,
+  file: File,
+): Promise<RoomImportApplyResponse> {
+  const formData = new FormData();
+  formData.append("file", file);
+  return requestJson<RoomImportApplyResponse>(
+    `/api/workspaces/${encodeURIComponent(workspaceId)}/rooms/upload/apply`,
+    { method: "POST", body: formData },
+  );
+}
+
+// DEPRECATED: Phase 3+ uses workspace-scoped endpoints
 export async function uploadStudentsCsv(
   file: File,
 ): Promise<UploadSummaryResponse> {
   return uploadCsv("/api/students/upload", file);
 }
 
+// DEPRECATED: Phase 3+ uses workspace-scoped endpoints
 export async function uploadRoomsCsv(
   file: File,
 ): Promise<UploadSummaryResponse> {
@@ -561,6 +678,8 @@ export async function exportAssignmentsCsv(
   };
 }
 
+// DEPRECATED: Error reports are no longer written to disk.
+// Validation errors are returned inline in the diff preview response.
 export function getErrorReportDownloadUrl(reportName: string): string {
   return buildUrl(
     `/api/upload/error-reports/${encodeURIComponent(reportName)}`,
