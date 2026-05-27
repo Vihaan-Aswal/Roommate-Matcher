@@ -444,6 +444,7 @@ def apply_student_import(
                     dob=payload["dob"],
                     phone_number=payload["phone_number"],
                     phone_last4=payload["phone_last4"],
+                    is_active=True,
                 ))
                 result.inserted += 1
 
