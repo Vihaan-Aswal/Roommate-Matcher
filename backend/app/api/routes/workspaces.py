@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -18,6 +18,12 @@ from app.schemas.workspace import (
     WorkspaceResponse,
 )
 from app.services.dashboard.summary import get_workspace_dashboard_summary
+from app.schemas.ingestion import (
+    StudentImportDiffResponse, StudentImportApplyResponse, StudentDiffEntry,
+    RoomImportDiffResponse, RoomImportApplyResponse, RoomDiffEntry,
+)
+from app.services.ingestion.student_csv import plan_student_import, apply_student_import
+from app.services.ingestion.room_csv import plan_room_import, apply_room_import
 
 
 router = APIRouter(prefix="/api/workspaces", tags=["workspaces"])
@@ -84,4 +90,125 @@ def get_workspace_dashboard(
         form_collection_stats=summary.form_collection_stats,
         segments_status=summary.segments_status,
         latest_matching_run=summary.latest_matching_run,
+    )
+
+
+@router.post("/{workspace_id}/students/upload/preview", response_model=StudentImportDiffResponse)
+async def preview_student_upload(
+    workspace_id: uuid.UUID,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_access),
+) -> StudentImportDiffResponse:
+    """
+    Parse the uploaded CSV in-memory and return a diff preview.
+    No database changes are made.
+    """
+    user, tenant, workspace = workspace_ctx
+    csv_bytes = await file.read()
+
+    try:
+        diff = plan_student_import(db, workspace.id, tenant.id, csv_bytes)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    return StudentImportDiffResponse(
+        workspace_id=str(workspace.id),
+        total_csv_rows=diff.total_csv_rows,
+        valid_csv_rows=diff.valid_csv_rows,
+        to_insert=len(diff.to_insert),
+        to_update=len(diff.to_update),
+        to_soft_delete=len(diff.to_soft_delete),
+        unchanged=len(diff.unchanged),
+        validation_errors=diff.validation_errors,
+        diff_entries=[
+            StudentDiffEntry(**e) for e in diff.to_insert + diff.to_update + diff.to_soft_delete
+        ],
+        warnings=diff.workspace_warnings,
+    )
+
+
+@router.post("/{workspace_id}/students/upload/apply", response_model=StudentImportApplyResponse)
+async def apply_student_upload(
+    workspace_id: uuid.UUID,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_access),
+) -> StudentImportApplyResponse:
+    """
+    Parse the uploaded CSV in-memory and apply the upsert.
+    This is the confirmation step after the user reviews the diff preview.
+    """
+    user, tenant, workspace = workspace_ctx
+    csv_bytes = await file.read()
+
+    try:
+        apply_result = apply_student_import(db, workspace.id, tenant.id, csv_bytes)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    return StudentImportApplyResponse(
+        workspace_id=str(workspace.id),
+        inserted=apply_result.inserted,
+        updated=apply_result.updated,
+        soft_deleted=apply_result.soft_deleted,
+        unchanged=apply_result.unchanged,
+        segments_created=apply_result.segments_created,
+        errors=apply_result.errors,
+    )
+
+
+@router.post("/{workspace_id}/rooms/upload/preview", response_model=RoomImportDiffResponse)
+async def preview_room_upload(
+    workspace_id: uuid.UUID,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_access),
+) -> RoomImportDiffResponse:
+    user, tenant, workspace = workspace_ctx
+    csv_bytes = await file.read()
+
+    try:
+        diff = plan_room_import(db, workspace.id, tenant.id, csv_bytes)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    return RoomImportDiffResponse(
+        workspace_id=str(workspace.id),
+        total_csv_rows=diff.total_csv_rows,
+        valid_csv_rows=diff.valid_csv_rows,
+        to_insert=len(diff.to_insert),
+        to_update=len(diff.to_update),
+        to_soft_delete=len(diff.to_soft_delete),
+        unchanged=len(diff.unchanged),
+        validation_errors=diff.validation_errors,
+        diff_entries=[
+            RoomDiffEntry(**e) for e in diff.to_insert + diff.to_update + diff.to_soft_delete
+        ],
+        warnings=diff.workspace_warnings,
+    )
+
+
+@router.post("/{workspace_id}/rooms/upload/apply", response_model=RoomImportApplyResponse)
+async def apply_room_upload(
+    workspace_id: uuid.UUID,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_access),
+) -> RoomImportApplyResponse:
+    user, tenant, workspace = workspace_ctx
+    csv_bytes = await file.read()
+
+    try:
+        apply_result = apply_room_import(db, workspace.id, tenant.id, csv_bytes)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    return RoomImportApplyResponse(
+        workspace_id=str(workspace.id),
+        inserted=apply_result.inserted,
+        updated=apply_result.updated,
+        soft_deleted=apply_result.soft_deleted,
+        unchanged=apply_result.unchanged,
+        errors=apply_result.errors,
     )

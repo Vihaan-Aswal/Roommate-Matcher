@@ -3,6 +3,7 @@ from __future__ import annotations
 from pydantic import BaseModel
 
 
+# DEPRECATED: Phase 3+ uses schemas from app.schemas.ingestion
 class InvalidRowSchema(BaseModel):
     row_number: int
     field: str

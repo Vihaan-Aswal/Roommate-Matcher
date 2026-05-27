@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import CheckConstraint, ForeignKey, ForeignKeyConstraint, Integer, String, UniqueConstraint
+from sqlalchemy import Boolean, CheckConstraint, ForeignKey, ForeignKeyConstraint, Integer, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -25,3 +25,5 @@ class Room(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     room_id: Mapped[str] = mapped_column(String, nullable=False)
     capacity: Mapped[int] = mapped_column(Integer, nullable=False)
     source: Mapped[str] = mapped_column(String, nullable=False, server_default="'uploaded'")
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="true")
+
