@@ -48,8 +48,8 @@ def test_profile_to_scoring_profile_handles_missing_preferences_flag() -> None:
 
 def test_profiles_to_scoring_profiles_preserves_order() -> None:
     profiles = [
-        PreferenceProfile(admission_number="ADM001", has_preferences=1, is_active=1),
-        PreferenceProfile(admission_number="ADM002", has_preferences=1, is_active=1),
+        PreferenceProfile(student_id=__import__("uuid").uuid4(), admission_number="ADM001", has_preferences=1, is_active=1),
+        PreferenceProfile(student_id=__import__("uuid").uuid4(), admission_number="ADM002", has_preferences=1, is_active=1),
     ]
 
     result = profiles_to_scoring_profiles(profiles)

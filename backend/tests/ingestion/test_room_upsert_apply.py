@@ -47,8 +47,8 @@ def test_apply_soft_deletes_missing_rooms(db_session: Session) -> None:
     seg1 = Segment(tenant_id=tenant_id, workspace_id=workspace_id, segment_key="F_1st_year_AC_2", gender="F", year_group="1st_year", ac_type="AC", room_size=2)
     db_session.add(seg1)
     db_session.flush()
-    r1 = Room(tenant_id=tenant_id, workspace_id=workspace_id, segment_id=seg1.id, room_id="A101", capacity=2, source="uploaded")
-    r2 = Room(tenant_id=tenant_id, workspace_id=workspace_id, segment_id=seg1.id, room_id="A102", capacity=2, source="uploaded")
+    r1 = Room(tenant_id=tenant_id, workspace_id=workspace_id, segment_id=seg1.id, room_id="A101", capacity=2, source="uploaded", is_active=True)
+    r2 = Room(tenant_id=tenant_id, workspace_id=workspace_id, segment_id=seg1.id, room_id="A102", capacity=2, source="uploaded", is_active=True)
     db_session.add_all([r1, r2])
     db_session.flush()
 

@@ -42,7 +42,7 @@ def _add_students(db_session: Session, segment_key: str, count: int) -> None:
 
 def _add_rooms(db_session: Session, segment_key: str, room_ids: list[str], capacity: int) -> None:
     for room_id in room_ids:
-        db_session.add(Room(room_id=room_id, segment_key=segment_key, capacity=capacity, source="uploaded"))
+        db_session.add(Room(tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), room_id=room_id, segment_key=segment_key, capacity=capacity, source="uploaded"))
     db_session.commit()
 
 

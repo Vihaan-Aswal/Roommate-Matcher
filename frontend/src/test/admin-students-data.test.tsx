@@ -3,23 +3,32 @@ import { vi } from "vitest";
 
 import { AdminStudentsData } from "../pages/AdminStudentsData";
 import { renderWithProviders } from "./renderWithProviders";
+import { MemoryRouter } from "react-router";
+import { WorkspaceProvider } from "../providers/WorkspaceProvider";
+import { act } from "react";
 
 const {
-  useUploadStudentsMutationMock,
-  useUploadRoomsMutationMock,
+  usePreviewStudentUploadMutationMock,
+  useApplyStudentUploadMutationMock,
+  usePreviewRoomUploadMutationMock,
+  useApplyRoomUploadMutationMock,
   useAdminFormStatusQueryMock,
 } = vi.hoisted(() => ({
-  useUploadStudentsMutationMock: vi.fn(),
-  useUploadRoomsMutationMock: vi.fn(),
+  usePreviewStudentUploadMutationMock: vi.fn(),
+  useApplyStudentUploadMutationMock: vi.fn(),
+  usePreviewRoomUploadMutationMock: vi.fn(),
+  useApplyRoomUploadMutationMock: vi.fn(),
   useAdminFormStatusQueryMock: vi.fn(),
 }));
 
-const studentsMutateAsyncMock = vi.fn();
-const roomsMutateAsyncMock = vi.fn();
+const studentPreviewMutateAsyncMock = vi.fn();
+const studentApplyMutateAsyncMock = vi.fn();
 
 vi.mock("../hooks/useAdminUploads", () => ({
-  useUploadStudentsMutation: useUploadStudentsMutationMock,
-  useUploadRoomsMutation: useUploadRoomsMutationMock,
+  usePreviewStudentUploadMutation: usePreviewStudentUploadMutationMock,
+  useApplyStudentUploadMutation: useApplyStudentUploadMutationMock,
+  usePreviewRoomUploadMutation: usePreviewRoomUploadMutationMock,
+  useApplyRoomUploadMutation: useApplyRoomUploadMutationMock,
 }));
 
 vi.mock("../hooks/useAdminFormCollection", () => ({
@@ -28,15 +37,18 @@ vi.mock("../hooks/useAdminFormCollection", () => ({
 
 describe("AdminStudentsData", () => {
   beforeEach(() => {
-    studentsMutateAsyncMock.mockReset();
-    roomsMutateAsyncMock.mockReset();
+    studentPreviewMutateAsyncMock.mockReset();
+    studentApplyMutateAsyncMock.mockReset();
 
-    studentsMutateAsyncMock.mockResolvedValue({
-      total_rows: 12,
-      accepted_rows: 10,
-      rejected_rows: 2,
-      duplicate_rows: 1,
-      invalid_rows: [
+    studentPreviewMutateAsyncMock.mockResolvedValue({
+      workspace_id: "test",
+      total_csv_rows: 2,
+      valid_csv_rows: 2,
+      to_insert: 2,
+      to_update: 0,
+      to_soft_delete: 0,
+      unchanged: 0,
+      validation_errors: [
         {
           row_number: 3,
           field: "dob",
@@ -44,23 +56,38 @@ describe("AdminStudentsData", () => {
           raw_value: "bad-date",
         },
       ],
-      error_report_name: "students_errors_1.csv",
+      diff_entries: [],
+      warnings: [],
     });
 
-    useUploadStudentsMutationMock.mockReturnValue({
-      mutateAsync: studentsMutateAsyncMock,
-      isPending: false,
-      isSuccess: false,
-      isError: false,
-      error: null,
+    studentApplyMutateAsyncMock.mockResolvedValue({
+      workspace_id: "test",
+      inserted: 2,
+      updated: 0,
+      soft_deleted: 0,
+      unchanged: 0,
+      segments_created: 0,
+      errors: [],
     });
 
-    useUploadRoomsMutationMock.mockReturnValue({
-      mutateAsync: roomsMutateAsyncMock,
+    usePreviewStudentUploadMutationMock.mockReturnValue({
+      mutateAsync: studentPreviewMutateAsyncMock,
       isPending: false,
-      isSuccess: false,
-      isError: false,
-      error: null,
+    });
+
+    useApplyStudentUploadMutationMock.mockReturnValue({
+      mutateAsync: studentApplyMutateAsyncMock,
+      isPending: false,
+    });
+
+    usePreviewRoomUploadMutationMock.mockReturnValue({
+      mutateAsync: vi.fn(),
+      isPending: false,
+    });
+
+    useApplyRoomUploadMutationMock.mockReturnValue({
+      mutateAsync: vi.fn(),
+      isPending: false,
     });
 
     useAdminFormStatusQueryMock.mockReturnValue({
@@ -77,15 +104,21 @@ describe("AdminStudentsData", () => {
     });
   });
 
-  it("uploads students csv and renders upload summary", async () => {
-    renderWithProviders(<AdminStudentsData />);
+  it("uploads students csv, reviews diff, and applies", async () => {
+    renderWithProviders(
+      <MemoryRouter initialEntries={["/app/ws-123"]}>
+        <WorkspaceProvider>
+          <AdminStudentsData />
+        </WorkspaceProvider>
+      </MemoryRouter>,
+    );
 
     const fileInput = screen.getByLabelText(/master students csv file input/i);
     const file = new File(
       [
-        "admission_number,full_name\\n" +
-          "ADM101,Test One\\n" +
-          "ADM102,Test Two\\n",
+        "admission_number,full_name,phone_number\\n" +
+          "ADM101,Test One,987\\n" +
+          "ADM102,Test Two,123\\n",
       ],
       "students.csv",
       { type: "text/csv" },
@@ -95,10 +128,21 @@ describe("AdminStudentsData", () => {
     fireEvent.click(screen.getByRole("button", { name: /upload students/i }));
 
     await waitFor(() => {
-      expect(studentsMutateAsyncMock).toHaveBeenCalledTimes(1);
+      expect(studentPreviewMutateAsyncMock).toHaveBeenCalledTimes(1);
     });
 
-    expect(screen.getByText("Students Upload Summary")).toBeInTheDocument();
+    expect(screen.getByText("Preview Student Changes")).toBeInTheDocument();
     expect(screen.getByText("invalid_date")).toBeInTheDocument();
+
+    // Apply changes
+    fireEvent.click(screen.getByRole("button", { name: /confirm & apply/i }));
+
+    await waitFor(() => {
+      expect(studentApplyMutateAsyncMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(
+      screen.getByText("Students Applied Successfully"),
+    ).toBeInTheDocument();
   });
 });

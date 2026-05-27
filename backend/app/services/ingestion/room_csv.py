@@ -280,7 +280,7 @@ def apply_room_import(
                     segment_id=segment.id,
                     room_id=room_id,
                     capacity=capacity,
-                    source="uploaded",
+                    source="uploaded", is_active=True,
                 ))
                 result.inserted += 1
 
@@ -399,7 +399,7 @@ def ingest_rooms_csv(db: Session, csv_path: str) -> dict[str, object]:
                     segment_id=segment.id,
                     room_id=room_id,
                     capacity=capacity,
-                    source="uploaded",
+                    source="uploaded", is_active=True,
                 )
             )
             accepted_rows += 1

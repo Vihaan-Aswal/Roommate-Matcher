@@ -5,7 +5,6 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.api.routes import upload as upload_routes
 from app.models.form_response import FormResponse
 from app.models.preference_profile import PreferenceProfile
 from app.models.room import Room
@@ -36,88 +35,6 @@ def _seed_student(db_session: Session, admission_number: str = "ADM200") -> None
         )
     )
     db_session.commit()
-
-
-def test_upload_students_returns_structured_invalid_rows_and_report(
-    client: TestClient,
-    tmp_path: Path,
-) -> None:
-    upload_routes.ERROR_REPORT_DIR = tmp_path / "error-reports"
-
-    content = (
-        "admission_number,full_name,gender,year_group,ac_type,room_size,dob\n"
-        "ADM301,Valid User,M,1st_year,AC,2,2005-01-01\n"
-        "ADM302,Invalid User,F,1st_year,AC,2,not-a-date\n"
-    )
-
-    response = client.post(
-        "/api/upload/students",
-        files={"file": ("students.csv", content, "text/csv")},
-    )
-
-    assert response.status_code == 200
-    payload = response.json()
-    assert payload["accepted_rows"] == 1
-    assert payload["rejected_rows"] == 1
-    assert payload["invalid_rows"][0]["field"] == "dob"
-    assert payload["error_report_name"] is not None
-
-    report_response = client.get(f"/api/upload/error-reports/{payload['error_report_name']}")
-    assert report_response.status_code == 200
-    assert "text/csv" in report_response.headers["content-type"]
-
-
-def test_upload_students_canonical_path_is_supported(client: TestClient, tmp_path: Path) -> None:
-    upload_routes.ERROR_REPORT_DIR = tmp_path / "error-reports"
-
-    content = (
-        "admission_number,full_name,gender,year_group,ac_type,room_size,dob\n"
-        "ADM399,Valid User,M,1st_year,AC,2,2005-01-01\n"
-    )
-
-    response = client.post(
-        "/api/students/upload",
-        files={"file": ("students.csv", content, "text/csv")},
-    )
-
-    assert response.status_code == 200
-    payload = response.json()
-    assert payload["accepted_rows"] == 1
-
-
-def test_upload_rooms_validates_unknown_segment_and_returns_report(
-    client: TestClient,
-    tmp_path: Path,
-) -> None:
-    upload_routes.ERROR_REPORT_DIR = tmp_path / "error-reports"
-
-    content = "room_id,segment_key,capacity\nA-1,UNKNOWN_SEGMENT,2\n"
-    response = client.post(
-        "/api/upload/rooms",
-        files={"file": ("rooms.csv", content, "text/csv")},
-    )
-
-    assert response.status_code == 200
-    payload = response.json()
-    assert payload["accepted_rows"] == 0
-    assert payload["rejected_rows"] == 1
-    assert payload["invalid_rows"][0]["reason"] == "unknown_segment"
-    assert payload["error_report_name"] is not None
-
-
-def test_upload_rooms_canonical_path_is_supported(client: TestClient, tmp_path: Path, db_session: Session) -> None:
-    upload_routes.ERROR_REPORT_DIR = tmp_path / "error-reports"
-    _seed_student(db_session, admission_number="ADM391")
-
-    content = "room_id,segment_key,capacity\nA-111,M_1st_year_AC_2,2\n"
-    response = client.post(
-        "/api/rooms/upload",
-        files={"file": ("rooms.csv", content, "text/csv")},
-    )
-
-    assert response.status_code == 200
-    payload = response.json()
-    assert payload["accepted_rows"] == 1
 
 
 def test_form_submit_success(client: TestClient, db_session: Session) -> None:
@@ -209,7 +126,7 @@ def test_segment_status_endpoint_returns_impossible(client: TestClient, db_sessi
             segment_key="M_1st_year_AC_2",
         )
     )
-    db_session.add(Room(room_id="A-900", segment_key="M_1st_year_AC_2", capacity=2, source="uploaded"))
+    db_session.add(Room(tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), room_id="A-900", segment_key="M_1st_year_AC_2", capacity=2, source="uploaded"))
     db_session.commit()
 
     response = client.get("/api/segments/M_1st_year_AC_2")

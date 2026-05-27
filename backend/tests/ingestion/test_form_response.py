@@ -25,8 +25,7 @@ def _seed_student(db_session: Session, admission_number: str = "ADM100") -> Stud
         year_group="1st_year",
         ac_type="AC",
         room_size=2,
-        dob=date(2005, 1, 1),
-        segment_key="M_1st_year_AC_2",
+        dob=date(2005, 1, 1), segment_id=existing.id if "existing" in locals() or "existing" in globals() else 1, phone_number="1234567890", phone_last4="7890",
     )
     db_session.add(segment)
     db_session.add(student)
