@@ -11,21 +11,19 @@ from app.services.ingestion.form_response import FormIntakeError, ingest_form_re
 
 
 def _seed_student(db_session: Session, admission_number: str = "ADM100") -> Student:
-    segment = Segment(
-        segment_key="M_1st_year_AC_2",
+    segment = Segment(id=__import__("uuid").uuid4(), tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), segment_key="M_1st_year_AC_2",
         gender="M",
         year_group="1st_year",
         ac_type="AC",
         room_size=2,
     )
-    student = Student(
-        admission_number=admission_number,
+    student = Student(tenant_id=segment.tenant_id, workspace_id=segment.workspace_id, admission_number=admission_number,
         full_name="Test Student",
         gender="M",
         year_group="1st_year",
         ac_type="AC",
         room_size=2,
-        dob=date(2005, 1, 1), segment_id=existing.id if "existing" in locals() or "existing" in globals() else 1, phone_number="1234567890", phone_last4="7890",
+        dob=date(2005, 1, 1), segment_id=segment.id, phone_number="1234567890", phone_last4="7890", is_active=True,
     )
     db_session.add(segment)
     db_session.add(student)
@@ -137,8 +135,9 @@ def test_ingest_form_response_applies_latest_valid_wins(db_session: Session) -> 
 
     profiles = db_session.scalars(
         select(PreferenceProfile)
-        .where(PreferenceProfile.admission_number == "ADM100")
-        .order_by(PreferenceProfile.id)
+        .join(Student, PreferenceProfile.student_id == Student.id)
+        .where(Student.admission_number == "ADM100")
+        .order_by(PreferenceProfile.created_at)
     ).all()
 
     assert len(profiles) == 2

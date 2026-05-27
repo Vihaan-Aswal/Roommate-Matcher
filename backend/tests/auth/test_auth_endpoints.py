@@ -15,10 +15,8 @@ def set_env(monkeypatch):
     monkeypatch.setenv("ADMIN_EMAILS", "")
     get_settings.cache_clear()
 
-client = TestClient(app)
 
-
-def test_demo_endpoint_creates_session():
+def test_demo_endpoint_creates_session(client: TestClient):
     """POST /api/auth/demo returns a token and workspace metadata."""
     resp = client.post("/api/auth/demo", json={"email": "test@demo.com"})
     assert resp.status_code == 200
@@ -29,7 +27,7 @@ def test_demo_endpoint_creates_session():
     assert "expires_at" in data
 
 
-def test_me_endpoint_with_demo_token():
+def test_me_endpoint_with_demo_token(client: TestClient):
     """GET /api/auth/me returns correct context when using a demo token."""
     # First create a demo session
     demo_resp = client.post("/api/auth/demo", json={"email": "me@test.com"})
@@ -45,19 +43,19 @@ def test_me_endpoint_with_demo_token():
     assert me["auth_kind"] == "app_jwt"
 
 
-def test_me_endpoint_without_token():
+def test_me_endpoint_without_token(client: TestClient):
     """GET /api/auth/me returns 401 when no token provided."""
     resp = client.get("/api/auth/me")
     assert resp.status_code == 401
 
 
-def test_me_endpoint_with_bad_token():
+def test_me_endpoint_with_bad_token(client: TestClient):
     """GET /api/auth/me returns 401 for an invalid token."""
     resp = client.get("/api/auth/me", headers={"Authorization": "Bearer garbage"})
     assert resp.status_code == 401
 
 
-def test_logout_endpoint():
+def test_logout_endpoint(client: TestClient):
     """POST /api/auth/logout returns 204 with a valid demo token."""
     demo_resp = client.post("/api/auth/demo", json={"email": "logout@test.com"})
     token = demo_resp.json()["token"]

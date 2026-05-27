@@ -11,48 +11,53 @@ from app.services.segments.status import compute_segment_status
 
 def _seed_segment(db_session: Session, segment_key: str, room_size: int) -> None:
     db_session.add(
-        Segment(
-            segment_key=segment_key,
+        Segment(tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), segment_key=segment_key,
             gender="M",
             year_group="1st_year",
             ac_type="AC",
             room_size=room_size,
         )
     )
+    db_session.flush()
     db_session.commit()
 
 
 def _add_students(db_session: Session, segment_key: str, count: int) -> None:
+    segment = db_session.query(Segment).filter_by(segment_key=segment_key).first()
     for idx in range(count):
         admission_number = f"ADM{idx + 1:03d}"
         db_session.add(
-            Student(
-                admission_number=admission_number,
+            Student(tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), admission_number=admission_number,
                 full_name=f"Student {idx + 1}",
                 gender="M",
                 year_group="1st_year",
                 ac_type="AC",
                 room_size=2,
                 dob=date(2005, 1, 1),
-                segment_key=segment_key,
+                segment_id=segment.id,
+                phone_number="9876543210",
+                phone_last4="3210",
+                is_active=True,
             )
         )
+    db_session.flush()
     db_session.commit()
 
 
 def _add_rooms(db_session: Session, segment_key: str, room_ids: list[str], capacity: int) -> None:
+    segment = db_session.query(Segment).filter_by(segment_key=segment_key).first()
     for room_id in room_ids:
-        db_session.add(Room(tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), room_id=room_id, segment_key=segment_key, capacity=capacity, source="uploaded"))
+        db_session.add(Room(tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), room_id=room_id, segment_id=segment.id, capacity=capacity, source="uploaded", is_active=True))
     db_session.commit()
 
 
 def _add_active_profiles(db_session: Session, admissions: list[str], has_preferences: int) -> None:
     for admission in admissions:
+        student = db_session.query(Student).filter_by(admission_number=admission).first()
         db_session.add(
-            PreferenceProfile(
-                admission_number=admission,
+            PreferenceProfile(tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), student_id=student.id,
                 has_preferences=has_preferences,
-                is_active=1,
+                is_active=True,
             )
         )
     db_session.commit()

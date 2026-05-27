@@ -48,7 +48,7 @@ def test_fairness_endpoint_reads_snapshot_stored_on_run_row(
     assert run_response.status_code == 200
     run_id = run_response.json()["run_id"]
 
-    run_row = db_session.get(MatchingRun, run_id)
+    run_row = db_session.scalars(select(MatchingRun).where(MatchingRun.run_id == run_id)).first()
     assert run_row is not None
     run_row.fairness_summary_json = json.dumps(
         {
@@ -92,8 +92,9 @@ def test_student_results_endpoint_reads_persisted_explanation_payload_directly(
     assert run_response.status_code == 200
     run_id = run_response.json()["run_id"]
 
+    run_row = db_session.scalars(select(MatchingRun).where(MatchingRun.run_id == run_id)).first()
     assignment = db_session.scalars(
-        select(RoomAssignment).where(RoomAssignment.run_id == run_id)
+        select(RoomAssignment).where(RoomAssignment.matching_run_id == run_row.id)
     ).first()
     assert assignment is not None
 

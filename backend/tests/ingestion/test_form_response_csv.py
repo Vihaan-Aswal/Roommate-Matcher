@@ -47,29 +47,29 @@ BASE_ANSWERS = {
 
 
 def _seed_student(db_session: Session, admission_number: str, dob: date) -> None:
-    segment = db_session.get(Segment, "M_1st_year_AC_2")
+    segment = db_session.query(Segment).filter_by(segment_key="M_1st_year_AC_2").first()
     if segment is None:
-        db_session.add(
-            Segment(
-                segment_key="M_1st_year_AC_2",
-                gender="M",
-                year_group="1st_year",
-                ac_type="AC",
-                room_size=2,
-            )
+        segment = Segment(tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), segment_key="M_1st_year_AC_2",
+            gender="M",
+            year_group="1st_year",
+            ac_type="AC",
+            room_size=2,
         )
+        db_session.add(segment)
         db_session.flush()
 
     db_session.add(
-        Student(
-            admission_number=admission_number,
+        Student(tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), admission_number=admission_number,
             full_name=f"Student {admission_number}",
             gender="M",
             year_group="1st_year",
             ac_type="AC",
             room_size=2,
             dob=dob,
-            segment_key="M_1st_year_AC_2",
+            segment_id=segment.id,
+            phone_number="9876543210",
+            phone_last4="3210",
+            is_active=True,
         )
     )
 

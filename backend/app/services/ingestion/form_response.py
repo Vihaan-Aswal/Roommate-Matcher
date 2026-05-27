@@ -313,6 +313,7 @@ def ingest_form_response(
 
     if should_activate:
         _deactivate_active_profiles(db, student.id)
+        db.flush()
 
     profile = PreferenceProfile(
         tenant_id=student.tenant_id,

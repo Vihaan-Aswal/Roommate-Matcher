@@ -6,9 +6,9 @@ from app.models.preference_profile import PreferenceProfile
 from app.services.scoring.types import ScoringProfile
 
 
-def profile_to_scoring_profile(profile: PreferenceProfile) -> ScoringProfile:
+def profile_to_scoring_profile(profile: PreferenceProfile, admission_number: str) -> ScoringProfile:
     return ScoringProfile(
-        admission_number=profile.admission_number,
+        admission_number=admission_number,
         has_preferences=bool(profile.has_preferences),
         q1_enc=profile.q1_enc,
         q2_enc=profile.q2_enc,
@@ -25,5 +25,4 @@ def profile_to_scoring_profile(profile: PreferenceProfile) -> ScoringProfile:
     )
 
 
-def profiles_to_scoring_profiles(profiles: Iterable[PreferenceProfile]) -> list[ScoringProfile]:
-    return [profile_to_scoring_profile(profile) for profile in profiles]
+# Note: profiles_to_scoring_profiles requires admission_number mapping, so it is removed if unused or should not be used without it.

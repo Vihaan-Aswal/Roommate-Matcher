@@ -17,45 +17,48 @@ from app.models.student import Student
 
 
 def _seed_ready_segment_with_profiles(db_session: Session, segment_key: str = "M_1st_year_AC_2") -> None:
-    db_session.add(
-        Segment(
-            segment_key=segment_key,
-            gender="M",
-            year_group="1st_year",
-            ac_type="AC",
-            room_size=2,
-        )
+    segment = Segment(
+        tenant_id=__import__("uuid").uuid4(), 
+        workspace_id=__import__("uuid").uuid4(), 
+        segment_key=segment_key,
+        gender="M",
+        year_group="1st_year",
+        ac_type="AC",
+        room_size=2,
     )
+    db_session.add(segment)
+    db_session.flush()
+    s1 = Student(tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), admission_number="MR001",
+        full_name="Run Student 1",
+        gender="M",
+        year_group="1st_year",
+        ac_type="AC",
+        room_size=2,
+        dob=date(2005, 1, 1),
+        segment_id=segment.id,
+        phone_number="9876543210",
+        phone_last4="3210",
+        is_active=True,
+    )
+    s2 = Student(tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), admission_number="MR002",
+        full_name="Run Student 2",
+        gender="M",
+        year_group="1st_year",
+        ac_type="AC",
+        room_size=2,
+        dob=date(2005, 1, 2),
+        segment_id=segment.id,
+        phone_number="9876543210",
+        phone_last4="3210",
+        is_active=True,
+    )
+    db_session.add_all([s1, s2])
+    db_session.flush()
     db_session.add_all(
         [
-            Student(
-                admission_number="MR001",
-                full_name="Run Student 1",
-                gender="M",
-                year_group="1st_year",
-                ac_type="AC",
-                room_size=2,
-                dob=date(2005, 1, 1),
-                segment_key=segment_key,
-            ),
-            Student(
-                admission_number="MR002",
-                full_name="Run Student 2",
-                gender="M",
-                year_group="1st_year",
-                ac_type="AC",
-                room_size=2,
-                dob=date(2005, 1, 2),
-                segment_key=segment_key,
-            ),
-        ]
-    )
-    db_session.add_all(
-        [
-            PreferenceProfile(
-                admission_number="MR001",
+            PreferenceProfile(tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), student_id=s1.id,
                 has_preferences=1,
-                is_active=1,
+                is_active=True,
                 q1_enc=1.0,
                 q2_enc=1.0,
                 q3_enc=1.0,
@@ -69,10 +72,9 @@ def _seed_ready_segment_with_profiles(db_session: Session, segment_key: str = "M
                 q9_enc=1.0,
                 q10_enc=0.0,
             ),
-            PreferenceProfile(
-                admission_number="MR002",
+            PreferenceProfile(tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), student_id=s2.id,
                 has_preferences=1,
-                is_active=1,
+                is_active=True,
                 q1_enc=1.0,
                 q2_enc=1.0,
                 q3_enc=1.0,
@@ -89,11 +91,11 @@ def _seed_ready_segment_with_profiles(db_session: Session, segment_key: str = "M
         ]
     )
     db_session.add(
-        Room(
-            room_id="A-101",
-            segment_key=segment_key,
+        Room(tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), room_id="A-101",
+            segment_id=segment.id,
             capacity=2,
             source="uploaded",
+            is_active=True,
         )
     )
     db_session.commit()
@@ -114,17 +116,17 @@ def test_matching_run_persists_artifacts_and_fairness_snapshot(
     assert payload["status"] == "completed"
     run_id = payload["run_id"]
 
-    run_row = db_session.get(MatchingRun, run_id)
+    run_row = db_session.scalars(select(MatchingRun).where(MatchingRun.run_id == run_id)).first()
     assert run_row is not None
     assert run_row.fairness_summary_json is not None
 
     pair_rows = db_session.scalars(
-        select(PairScore).where(PairScore.run_id == run_id)
+        select(PairScore).where(PairScore.matching_run_id == run_row.id)
     ).all()
     assert len(pair_rows) == 1
 
     assignment_rows = db_session.scalars(
-        select(RoomAssignment).where(RoomAssignment.run_id == run_id)
+        select(RoomAssignment).where(RoomAssignment.matching_run_id == run_row.id)
     ).all()
     assert len(assignment_rows) == 1
     assert assignment_rows[0].satisfaction_summary_json is not None
@@ -156,36 +158,39 @@ def test_matching_runs_endpoint_reads_persisted_run_rows(
 
 
 def test_matching_run_rejects_not_ready_segment(client: TestClient, db_session: Session) -> None:
-    db_session.add(
-        Segment(
-            segment_key="M_1st_year_AC_2",
-            gender="M",
-            year_group="1st_year",
-            ac_type="AC",
-            room_size=2,
-        )
+    segment = Segment(tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), segment_key="M_1st_year_AC_2",
+        gender="M",
+        year_group="1st_year",
+        ac_type="AC",
+        room_size=2,
     )
+    db_session.add(segment)
+    db_session.flush()
     db_session.add_all(
         [
-            Student(
-                admission_number="MR010",
+            Student(tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), admission_number="MR010",
                 full_name="Missing Pref 1",
                 gender="M",
                 year_group="1st_year",
                 ac_type="AC",
                 room_size=2,
                 dob=date(2005, 1, 1),
-                segment_key="M_1st_year_AC_2",
+                segment_id=segment.id,
+                phone_number="9876543210",
+                phone_last4="3210",
+                is_active=True,
             ),
-            Student(
-                admission_number="MR011",
+            Student(tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), admission_number="MR011",
                 full_name="Missing Pref 2",
                 gender="M",
                 year_group="1st_year",
                 ac_type="AC",
                 room_size=2,
                 dob=date(2005, 1, 2),
-                segment_key="M_1st_year_AC_2",
+                segment_id=segment.id,
+                phone_number="9876543210",
+                phone_last4="3210",
+                is_active=True,
             ),
         ]
     )

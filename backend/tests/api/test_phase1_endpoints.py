@@ -12,29 +12,30 @@ from app.models.segment import Segment
 from app.models.student import Student
 
 
-def _seed_student(db_session: Session, admission_number: str = "ADM200") -> None:
-    db_session.add(
-        Segment(
-            segment_key="M_1st_year_AC_2",
-            gender="M",
-            year_group="1st_year",
-            ac_type="AC",
-            room_size=2,
-        )
+def _seed_student(db_session: Session, admission_number: str = "ADM200") -> Student:
+    segment = Segment(tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), segment_key="M_1st_year_AC_2",
+        gender="M",
+        year_group="1st_year",
+        ac_type="AC",
+        room_size=2,
     )
-    db_session.add(
-        Student(
-            admission_number=admission_number,
-            full_name="API Student",
-            gender="M",
-            year_group="1st_year",
-            ac_type="AC",
-            room_size=2,
-            dob=date(2005, 1, 1),
-            segment_key="M_1st_year_AC_2",
-        )
+    db_session.add(segment)
+    db_session.flush()
+    student = Student(tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), admission_number=admission_number,
+        full_name="API Student",
+        gender="M",
+        year_group="1st_year",
+        ac_type="AC",
+        room_size=2,
+        dob=date(2005, 1, 1),
+        segment_id=segment.id,
+        phone_number="9876543210",
+        phone_last4="3210",
+        is_active=True,
     )
+    db_session.add(student)
     db_session.commit()
+    return student
 
 
 def test_form_submit_success(client: TestClient, db_session: Session) -> None:
@@ -101,32 +102,36 @@ def test_form_submit_incomplete_submission_returns_400(client: TestClient, db_se
 
 
 def test_segment_status_endpoint_returns_impossible(client: TestClient, db_session: Session) -> None:
-    _seed_student(db_session, admission_number="ADM202")
+    student = _seed_student(db_session, admission_number="ADM202")
     db_session.add(
-        Student(
-            admission_number="ADM203",
+        Student(tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), admission_number="ADM203",
             full_name="Second Student",
             gender="M",
             year_group="1st_year",
             ac_type="AC",
             room_size=2,
             dob=date(2005, 1, 2),
-            segment_key="M_1st_year_AC_2",
-        )
+            segment_id=student.segment_id,
+                phone_number="9876543210",
+                phone_last4="3210",
+                is_active=True,
+            )
     )
     db_session.add(
-        Student(
-            admission_number="ADM204",
+        Student(tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), admission_number="ADM204",
             full_name="Third Student",
             gender="M",
             year_group="1st_year",
             ac_type="AC",
             room_size=2,
             dob=date(2005, 1, 3),
-            segment_key="M_1st_year_AC_2",
-        )
+            segment_id=student.segment_id,
+                phone_number="9876543210",
+                phone_last4="3210",
+                is_active=True,
+            )
     )
-    db_session.add(Room(tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), room_id="A-900", segment_key="M_1st_year_AC_2", capacity=2, source="uploaded"))
+    db_session.add(Room(tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), room_id="A-900", segment_id=student.segment_id, capacity=2, source="uploaded", is_active=True))
     db_session.commit()
 
     response = client.get("/api/segments/M_1st_year_AC_2")
@@ -136,13 +141,9 @@ def test_segment_status_endpoint_returns_impossible(client: TestClient, db_sessi
 
 
 def test_segment_status_endpoint_ready_when_no_rooms_uploaded(client: TestClient, db_session: Session) -> None:
-    _seed_student(db_session, admission_number="ADM206")
+    student = _seed_student(db_session, admission_number="ADM206")
     db_session.add(
-        PreferenceProfile(
-            admission_number="ADM206",
-            has_preferences=1,
-            is_active=1,
-        )
+        PreferenceProfile(tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), student_id=student.id, has_preferences=1, is_active=True)
     )
     db_session.commit()
 
@@ -177,42 +178,42 @@ def test_segment_students_endpoint_returns_valid_invalid_missing_statuses(
     client: TestClient,
     db_session: Session,
 ) -> None:
-    _seed_student(db_session, admission_number="ADM230")
-    db_session.add_all(
-        [
-            Student(
-                admission_number="ADM231",
-                full_name="Invalid Form Student",
-                gender="M",
-                year_group="1st_year",
-                ac_type="AC",
-                room_size=2,
-                dob=date(2005, 1, 2),
-                segment_key="M_1st_year_AC_2",
-            ),
-            Student(
-                admission_number="ADM232",
-                full_name="Missing Form Student",
-                gender="M",
-                year_group="1st_year",
-                ac_type="AC",
-                room_size=2,
-                dob=date(2005, 1, 3),
-                segment_key="M_1st_year_AC_2",
-            ),
-        ]
+    student = _seed_student(db_session, admission_number="ADM230")
+    st231 = Student(id=__import__("uuid").uuid4(), tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), admission_number="ADM231",
+        full_name="Invalid Form Student",
+        gender="M",
+        year_group="1st_year",
+        ac_type="AC",
+        room_size=2,
+        dob=date(2005, 1, 2),
+        segment_id=student.segment_id,
+        phone_number="9876543210",
+        phone_last4="3210",
+        is_active=True,
     )
+    st232 = Student(id=__import__("uuid").uuid4(), tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), admission_number="ADM232",
+        full_name="Missing Form Student",
+        gender="M",
+        year_group="1st_year",
+        ac_type="AC",
+        room_size=2,
+        dob=date(2005, 1, 3),
+        segment_id=student.segment_id,
+        phone_number="9876543210",
+        phone_last4="3210",
+        is_active=True,
+    )
+    db_session.add_all([st231, st232])
     db_session.add(
-        PreferenceProfile(
-            admission_number="ADM230",
-            has_preferences=1,
-            is_active=1,
-        )
+        PreferenceProfile(tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), student_id=student.id, has_preferences=1, is_active=True)
     )
     db_session.add(
         FormResponse(
-            admission_number="ADM231",
-            dob=date(2005, 1, 2),
+            student_id=st231.id,
+            tenant_id=__import__("uuid").uuid4(),
+            workspace_id=__import__("uuid").uuid4(),
+            submitted_admission_number="ADM231",
+            submitted_phone_last4="3210",
             submitted_at=datetime.now(timezone.utc),
             validation_status="invalid",
             invalid_reason="dob_mismatch",
@@ -234,42 +235,42 @@ def test_segment_students_endpoint_returns_valid_invalid_missing_statuses(
 
 
 def test_form_status_endpoint_returns_aggregate_counts(client: TestClient, db_session: Session) -> None:
-    _seed_student(db_session, admission_number="ADM240")
-    db_session.add_all(
-        [
-            Student(
-                admission_number="ADM241",
-                full_name="Invalid Form Student",
-                gender="M",
-                year_group="1st_year",
-                ac_type="AC",
-                room_size=2,
-                dob=date(2005, 1, 2),
-                segment_key="M_1st_year_AC_2",
-            ),
-            Student(
-                admission_number="ADM242",
-                full_name="Missing Form Student",
-                gender="M",
-                year_group="1st_year",
-                ac_type="AC",
-                room_size=2,
-                dob=date(2005, 1, 3),
-                segment_key="M_1st_year_AC_2",
-            ),
-        ]
+    student = _seed_student(db_session, admission_number="ADM240")
+    st241 = Student(id=__import__("uuid").uuid4(), tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), admission_number="ADM241",
+        full_name="Invalid Form Student",
+        gender="M",
+        year_group="1st_year",
+        ac_type="AC",
+        room_size=2,
+        dob=date(2005, 1, 2),
+        segment_id=student.segment_id,
+        phone_number="9876543210",
+        phone_last4="3210",
+        is_active=True,
     )
+    st242 = Student(id=__import__("uuid").uuid4(), tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), admission_number="ADM242",
+        full_name="Missing Form Student",
+        gender="M",
+        year_group="1st_year",
+        ac_type="AC",
+        room_size=2,
+        dob=date(2005, 1, 3),
+        segment_id=student.segment_id,
+        phone_number="9876543210",
+        phone_last4="3210",
+        is_active=True,
+    )
+    db_session.add_all([st241, st242])
     db_session.add(
-        PreferenceProfile(
-            admission_number="ADM240",
-            has_preferences=1,
-            is_active=1,
-        )
+        PreferenceProfile(tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), student_id=student.id, has_preferences=1, is_active=True)
     )
     db_session.add(
         FormResponse(
-            admission_number="ADM241",
-            dob=date(2005, 1, 2),
+            student_id=st241.id,
+            tenant_id=__import__("uuid").uuid4(),
+            workspace_id=__import__("uuid").uuid4(),
+            submitted_admission_number="ADM241",
+            submitted_phone_last4="3210",
             submitted_at=datetime.now(timezone.utc),
             validation_status="invalid",
             invalid_reason="incomplete_form_submission",
@@ -293,42 +294,42 @@ def test_non_submitters_endpoint_returns_students_without_valid_profiles(
     client: TestClient,
     db_session: Session,
 ) -> None:
-    _seed_student(db_session, admission_number="ADM250")
-    db_session.add_all(
-        [
-            Student(
-                admission_number="ADM251",
-                full_name="Invalid Form Student",
-                gender="M",
-                year_group="1st_year",
-                ac_type="AC",
-                room_size=2,
-                dob=date(2005, 1, 2),
-                segment_key="M_1st_year_AC_2",
-            ),
-            Student(
-                admission_number="ADM252",
-                full_name="Missing Form Student",
-                gender="M",
-                year_group="1st_year",
-                ac_type="AC",
-                room_size=2,
-                dob=date(2005, 1, 3),
-                segment_key="M_1st_year_AC_2",
-            ),
-        ]
+    student = _seed_student(db_session, admission_number="ADM250")
+    st251 = Student(id=__import__("uuid").uuid4(), tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), admission_number="ADM251",
+        full_name="Invalid Form Student",
+        gender="M",
+        year_group="1st_year",
+        ac_type="AC",
+        room_size=2,
+        dob=date(2005, 1, 2),
+        segment_id=student.segment_id,
+        phone_number="9876543210",
+        phone_last4="3210",
+        is_active=True,
     )
+    st252 = Student(id=__import__("uuid").uuid4(), tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), admission_number="ADM252",
+        full_name="Missing Form Student",
+        gender="M",
+        year_group="1st_year",
+        ac_type="AC",
+        room_size=2,
+        dob=date(2005, 1, 3),
+        segment_id=student.segment_id,
+        phone_number="9876543210",
+        phone_last4="3210",
+        is_active=True,
+    )
+    db_session.add_all([st251, st252])
     db_session.add(
-        PreferenceProfile(
-            admission_number="ADM250",
-            has_preferences=1,
-            is_active=1,
-        )
+        PreferenceProfile(tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), student_id=student.id, has_preferences=1, is_active=True)
     )
     db_session.add(
         FormResponse(
-            admission_number="ADM251",
-            dob=date(2005, 1, 2),
+            student_id=st251.id,
+            tenant_id=__import__("uuid").uuid4(),
+            workspace_id=__import__("uuid").uuid4(),
+            submitted_admission_number="ADM251",
+            submitted_phone_last4="3210",
             submitted_at=datetime.now(timezone.utc),
             validation_status="invalid",
             invalid_reason="invalid_form_option",

@@ -15,6 +15,15 @@ import app.models  # noqa: F401
 from app.database import get_db
 from app.main import app
 from app.models.base import Base
+from app.models.student import Student
+from app.models.segment import Segment
+from app.models.room import Room
+from app.models.preference_profile import PreferenceProfile
+from app.models.room_assignment import RoomAssignment
+from app.models.pair_score import PairScore
+from app.models.form_response import FormResponse
+from sqlalchemy.orm import synonym, column_property
+from sqlalchemy import select
 
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.dialects.postgresql import JSONB
@@ -22,7 +31,6 @@ from sqlalchemy.dialects.postgresql import JSONB
 @compiles(JSONB, "sqlite")
 def compile_jsonb_sqlite(type_, compiler, **kw):
     return "JSON"
-
 
 @pytest.fixture
 def db_session() -> Generator[Session, None, None]:

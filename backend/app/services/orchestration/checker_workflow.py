@@ -94,7 +94,7 @@ def run_manual_checker(
     if len(student_ids) != room_size:
         raise ValueError("student_ids count must equal room_size")
 
-    segment = db.get(Segment, segment_key)
+    segment = db.scalars(select(Segment).where(Segment.segment_key == segment_key)).first()
     if segment is None:
         raise ValueError("Segment not found")
     if segment.room_size != room_size:
@@ -103,7 +103,7 @@ def run_manual_checker(
     students = db.scalars(
         select(Student)
         .where(
-            Student.segment_key == segment_key,
+            Student.segment_id == segment.id,
             Student.admission_number.in_(student_ids),
         )
         .order_by(Student.admission_number)
@@ -111,14 +111,15 @@ def run_manual_checker(
     if len(students) != len(student_ids):
         raise ValueError("One or more student_ids are not in the target segment")
 
+    student_id_map = {student.id: student.admission_number for student in students}
     active_profiles = db.scalars(
         select(PreferenceProfile)
         .where(
             PreferenceProfile.is_active == 1,
-            PreferenceProfile.admission_number.in_(student_ids),
+            PreferenceProfile.student_id.in_(list(student_id_map.keys())),
         )
     ).all()
-    profile_map = {profile.admission_number: profile for profile in active_profiles}
+    profile_map = {student_id_map[profile.student_id]: profile for profile in active_profiles}
 
     scoring_profiles: list[ScoringProfile] = []
     ordered_student_ids = sorted(student_ids)
@@ -127,7 +128,7 @@ def run_manual_checker(
         if profile is None:
             scoring_profiles.append(_neutral_profile(student_id))
             continue
-        scoring_profiles.append(_with_neutral_fallback(profile_to_scoring_profile(profile)))
+        scoring_profiles.append(_with_neutral_fallback(profile_to_scoring_profile(profile, admission_number=student_id)))
 
     pair_results = compute_segment_pair_scores(scoring_profiles)
 

@@ -35,8 +35,11 @@ def test_dashboard_endpoint_returns_setup_and_latest_run_summary(
     _seed_ready_segment_with_profiles(db_session)
     db_session.add(
         FormResponse(
-            admission_number="MR001",
-            dob=date(2005, 1, 1),
+            student_id=__import__("uuid").uuid4(),
+            tenant_id=__import__("uuid").uuid4(),
+            workspace_id=__import__("uuid").uuid4(),
+            submitted_admission_number="MR001",
+            submitted_phone_last4="1234",
             submitted_at=datetime.now(timezone.utc),
             validation_status="valid",
             invalid_reason=None,

@@ -11,6 +11,8 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.room_assignment import RoomAssignment
+from app.models.matching_run import MatchingRun
+from app.models.segment import Segment
 
 
 router = APIRouter(prefix="/exports", tags=["exports"])
@@ -36,7 +38,7 @@ def _iter_assignment_rows(run_id: str, assignments: list[RoomAssignment]):
         writer.writerow(
             [
                 assignment.room_id,
-                assignment.segment_key,
+                getattr(assignment, "segment_key", "UNKNOWN"),
                 normalized[0],
                 normalized[1],
                 normalized[2],
@@ -55,13 +57,24 @@ def export_assignments_csv(
     segment_key: str | None = Query(default=None),
     db: Session = Depends(get_db),
 ) -> StreamingResponse:
-    query = select(RoomAssignment).where(RoomAssignment.run_id == run_id)
+    query = (
+        select(RoomAssignment, Segment.segment_key)
+        .join(MatchingRun, RoomAssignment.matching_run_id == MatchingRun.id)
+        .join(Segment, RoomAssignment.segment_id == Segment.id)
+        .where(MatchingRun.run_id == run_id)
+    )
     if segment_key:
-        query = query.where(RoomAssignment.segment_key == segment_key)
+        query = query.where(Segment.segment_key == segment_key)
 
-    assignments = db.scalars(
-        query.order_by(RoomAssignment.segment_key, RoomAssignment.room_id)
+    rows = db.execute(
+        query.order_by(Segment.segment_key, RoomAssignment.room_id)
     ).all()
+    
+    assignments = []
+    for row in rows:
+        assignment = row[0]
+        assignment.segment_key = row[1]
+        assignments.append(assignment)
     if not assignments:
         raise HTTPException(status_code=404, detail="No assignment artifacts found for the given run")
 

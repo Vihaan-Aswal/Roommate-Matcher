@@ -11,12 +11,13 @@ from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 class PreferenceProfile(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "preference_profiles"
     __table_args__ = (
-        # Postgres partial unique index — replaces the old sqlite_where version
+        # Postgres partial unique index â€” replaces the old sqlite_where version
         Index(
             "ux_preference_profiles_one_active",
             "student_id",
             unique=True,
             postgresql_where=text("is_active = true"),
+            sqlite_where=text("is_active = 1"),
         ),
         ForeignKeyConstraint(["tenant_id"], ["tenants.id"], name="fk_preference_profiles_tenant_id", ondelete="CASCADE"),
         ForeignKeyConstraint(["workspace_id"], ["workspaces.id"], name="fk_preference_profiles_workspace_id", ondelete="CASCADE"),

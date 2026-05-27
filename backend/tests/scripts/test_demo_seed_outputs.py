@@ -58,12 +58,12 @@ def test_demo_seed_outputs_cover_label_spread_and_export_contract(tmp_path: Path
         ).first()
 
         assert latest_run is not None
-        assert latest_run.run_id
+        assert latest_run is not None
 
         assignments = session.scalars(
             select(RoomAssignment)
-            .where(RoomAssignment.run_id == latest_run.run_id)
-            .order_by(RoomAssignment.segment_key, RoomAssignment.room_id)
+            .where(RoomAssignment.matching_run_id == latest_run.id)
+            .order_by(RoomAssignment.segment_id, RoomAssignment.room_id)
         ).all()
 
         assert assignments
@@ -95,7 +95,7 @@ def test_demo_seed_outputs_cover_label_spread_and_export_contract(tmp_path: Path
         assert at_risk_count > 0
         assert explanation_count > 0
 
-        csv_text = "".join(_iter_assignment_rows(latest_run.run_id, assignments)).strip()
+        csv_text = "".join(_iter_assignment_rows(latest_run.id, assignments)).strip()
         csv_rows = [row for row in csv_text.splitlines() if row]
 
         assert csv_rows[0] == CSV_HEADER

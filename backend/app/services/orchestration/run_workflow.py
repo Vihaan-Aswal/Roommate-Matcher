@@ -4,6 +4,7 @@ import json
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from typing import Literal
+import uuid
 from uuid import uuid4
 
 from sqlalchemy import func, select
@@ -157,24 +158,26 @@ def _resolve_target_segments(db: Session, scope: RunScope, segment_key: str | No
 def _segment_scoring_profiles(db: Session, segment: Segment) -> tuple[list[str], list[ScoringProfile]]:
     students = db.scalars(
         select(Student)
-        .where(Student.segment_key == segment.segment_key)
+        .where(Student.segment_id == segment.id)
         .order_by(Student.admission_number)
     ).all()
     student_ids = [student.admission_number for student in students]
     if not student_ids:
         raise ValueError(f"No students found for segment {segment.segment_key}")
     student_id_set = set(student_ids)
+    student_uuid_map = {student.admission_number: student.id for student in students}
 
+    student_id_map = {student.id: student.admission_number for student in students}
     active_profiles = db.scalars(
         select(PreferenceProfile).where(
             PreferenceProfile.is_active == 1,
-            PreferenceProfile.admission_number.in_(student_ids),
+            PreferenceProfile.student_id.in_(list(student_id_map.keys())),
         )
     ).all()
     profile_map = {
-        profile.admission_number: profile
+        student_id_map[profile.student_id]: profile
         for profile in active_profiles
-        if profile.admission_number in student_id_set
+        if student_id_map[profile.student_id] in student_id_set
     }
 
     scoring_profiles: list[ScoringProfile] = []
@@ -183,15 +186,15 @@ def _segment_scoring_profiles(db: Session, segment: Segment) -> tuple[list[str],
         if profile is None:
             scoring_profiles.append(_neutral_scoring_profile(student_id))
             continue
-        scoring_profiles.append(_ensure_neutral_fallback(profile_to_scoring_profile(profile)))
+        scoring_profiles.append(_ensure_neutral_fallback(profile_to_scoring_profile(profile, admission_number=student_id)))
 
-    return student_ids, scoring_profiles
+    return student_ids, scoring_profiles, student_uuid_map
 
 
 def _resolve_room_ids(db: Session, segment: Segment, student_count: int) -> list[str] | None:
     rooms = db.scalars(
         select(Room)
-        .where(Room.segment_key == segment.segment_key)
+        .where(Room.segment_id == segment.id)
         .order_by(Room.room_id)
     ).all()
     if not rooms:
@@ -206,10 +209,10 @@ def _resolve_room_ids(db: Session, segment: Segment, student_count: int) -> list
 def _persist_segment_artifacts(
     db: Session,
     *,
-    run_id: str,
+    matching_run_id: uuid.UUID,
     segment: Segment,
 ) -> list[FairnessInputRecord]:
-    student_ids, scoring_profiles = _segment_scoring_profiles(db, segment)
+    student_ids, scoring_profiles, student_uuid_map = _segment_scoring_profiles(db, segment)
     pair_results = compute_segment_pair_scores(scoring_profiles)
     room_ids = _resolve_room_ids(db, segment, len(student_ids))
 
@@ -226,10 +229,12 @@ def _persist_segment_artifacts(
     for (student_a, student_b), pair_result in sorted(pair_results.items()):
         db.add(
             PairScore(
-                run_id=run_id,
-                segment_key=segment.segment_key,
-                student_a=student_a,
-                student_b=student_b,
+                tenant_id=segment.tenant_id,
+                workspace_id=segment.workspace_id,
+                matching_run_id=matching_run_id,
+                segment_id=segment.id,
+                student_a_id=student_uuid_map[student_a],
+                student_b_id=student_uuid_map[student_b],
                 pair_score=pair_result.pair_score,
                 factor_breakdown_json=json.dumps(
                     _serialize_factor_breakdown(pair_result.factor_breakdown),
@@ -287,8 +292,10 @@ def _persist_segment_artifacts(
 
         db.add(
             RoomAssignment(
-                run_id=run_id,
-                segment_key=segment.segment_key,
+                tenant_id=segment.tenant_id,
+                workspace_id=segment.workspace_id,
+                matching_run_id=matching_run_id,
+                segment_id=segment.id,
                 room_id=room.room_id,
                 room_label=room.room_id,
                 assigned_students_json=json.dumps(sorted(room.student_ids)),
@@ -312,9 +319,11 @@ def run_matching_workflow(db: Session, scope: RunScope, segment_key: str | None)
     started_at = _now_utc()
 
     run_row = MatchingRun(
+        tenant_id=targets[0].tenant_id,
+        workspace_id=targets[0].workspace_id,
         run_id=run_id,
         scope=scope,
-        target_segment_key=segment_key if scope == "segment" else None,
+        target_segment_id=targets[0].id if scope == "segment" else None,
         status="running",
         started_at=started_at,
     )
@@ -327,13 +336,13 @@ def run_matching_workflow(db: Session, scope: RunScope, segment_key: str | None)
             fairness_inputs.extend(
                 _persist_segment_artifacts(
                     db,
-                    run_id=run_id,
+                    matching_run_id=run_row.id,
                     segment=segment,
                 )
             )
 
         fairness_report = compute_fairness_distribution(fairness_inputs)
-        persisted_run = db.get(MatchingRun, run_id)
+        persisted_run = db.scalars(select(MatchingRun).where(MatchingRun.run_id == run_id)).first()
         if persisted_run is None:
             raise RuntimeError("Matching run row disappeared during execution")
         persisted_run.fairness_summary_json = json.dumps(asdict(fairness_report), sort_keys=True)
@@ -342,7 +351,7 @@ def run_matching_workflow(db: Session, scope: RunScope, segment_key: str | None)
         db.commit()
     except Exception as exc:  # noqa: BLE001
         db.rollback()
-        failed_run = db.get(MatchingRun, run_id)
+        failed_run = db.scalars(select(MatchingRun).where(MatchingRun.run_id == run_id)).first()
         if failed_run is not None:
             failed_run.status = "failed"
             failed_run.error_message = str(exc)
@@ -364,7 +373,9 @@ def list_matching_runs(db: Session) -> list[MatchingRunHistoryItem]:
     results: list[MatchingRunHistoryItem] = []
     for run in runs:
         segments_completed = db.scalar(
-            select(func.count(func.distinct(RoomAssignment.segment_key))).where(RoomAssignment.run_id == run.run_id)
+            select(func.count(func.distinct(RoomAssignment.segment_id)))
+            .join(MatchingRun, RoomAssignment.matching_run_id == MatchingRun.id)
+            .where(MatchingRun.run_id == run.run_id)
         )
         results.append(
             MatchingRunHistoryItem(
@@ -389,9 +400,11 @@ def get_run_rooms_from_persisted_artifacts(
 ) -> list[dict[str, object]]:
     assignments = db.scalars(
         select(RoomAssignment)
+        .join(MatchingRun, RoomAssignment.matching_run_id == MatchingRun.id)
+        .join(Segment, RoomAssignment.segment_id == Segment.id)
         .where(
-            RoomAssignment.run_id == run_id,
-            RoomAssignment.segment_key == segment_key,
+            MatchingRun.run_id == run_id,
+            Segment.segment_key == segment_key,
         )
         .order_by(RoomAssignment.room_id)
     ).all()
@@ -399,15 +412,14 @@ def get_run_rooms_from_persisted_artifacts(
         raise KeyError("Matching artifacts not found for run and segment")
 
     pair_score_rows = db.scalars(
-        select(PairScore).where(
-            PairScore.run_id == run_id,
-            PairScore.segment_key == segment_key,
+        select(PairScore)
+        .join(MatchingRun, PairScore.matching_run_id == MatchingRun.id)
+        .join(Segment, PairScore.segment_id == Segment.id)
+        .where(
+            MatchingRun.run_id == run_id,
+            Segment.segment_key == segment_key,
         )
     ).all()
-    pair_score_map = {
-        _canonical_pair(row.student_a, row.student_b): row.pair_score
-        for row in pair_score_rows
-    }
 
     all_student_ids: set[str] = set()
     parsed_assignments: list[tuple[RoomAssignment, list[str], dict[str, object]]] = []
@@ -420,11 +432,16 @@ def get_run_rooms_from_persisted_artifacts(
             raise ValueError("satisfaction_summary_json must be a JSON object")
         parsed_assignments.append((assignment, [str(item) for item in assigned_students], summary))
         all_student_ids.update(str(item) for item in assigned_students)
-
     students = db.scalars(
         select(Student).where(Student.admission_number.in_(sorted(all_student_ids)))
     ).all()
     student_name_map = {student.admission_number: student.full_name for student in students}
+    uuid_to_ad_map = {student.id: student.admission_number for student in students}
+
+    pair_score_map = {
+        _canonical_pair(uuid_to_ad_map.get(row.student_a_id, ""), uuid_to_ad_map.get(row.student_b_id, "")): row.pair_score
+        for row in pair_score_rows
+    }
 
     rooms_payload: list[dict[str, object]] = []
     for assignment, assigned_students, _summary in parsed_assignments:
@@ -464,9 +481,11 @@ def get_run_students_from_persisted_artifacts(
 ) -> list[dict[str, object]]:
     assignments = db.scalars(
         select(RoomAssignment)
+        .join(MatchingRun, RoomAssignment.matching_run_id == MatchingRun.id)
+        .join(Segment, RoomAssignment.segment_id == Segment.id)
         .where(
-            RoomAssignment.run_id == run_id,
-            RoomAssignment.segment_key == segment_key,
+            MatchingRun.run_id == run_id,
+            Segment.segment_key == segment_key,
         )
         .order_by(RoomAssignment.room_id)
     ).all()
@@ -522,7 +541,7 @@ def get_run_students_from_persisted_artifacts(
 
 
 def get_run_fairness_snapshot(db: Session, run_id: str) -> dict[str, object]:
-    run_row = db.get(MatchingRun, run_id)
+    run_row = db.scalars(select(MatchingRun).where(MatchingRun.run_id == run_id)).first()
     if run_row is None:
         raise KeyError("Matching run not found")
     if run_row.fairness_summary_json is None:

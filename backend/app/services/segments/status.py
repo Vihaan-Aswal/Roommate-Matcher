@@ -72,10 +72,10 @@ def compute_segment_status(db: Session, segment_key: str, workspace_id: uuid.UUI
     if segment is None:
         raise KeyError(f"Segment not found: {segment_key}")
 
-    student_query = select(func.count(Student.admission_number)).where(Student.segment_key == segment_key)
-    room_query = select(func.count(Room.room_id)).where(Room.segment_key == segment_key)
-    capacity_query = select(func.coalesce(func.sum(Room.capacity), 0)).where(Room.segment_key == segment_key)
-    student_rows_query = select(Student.admission_number).where(Student.segment_key == segment_key)
+    student_query = select(func.count(Student.admission_number)).where(Student.segment_id == segment.id)
+    room_query = select(func.count(Room.room_id)).where(Room.segment_id == segment.id)
+    capacity_query = select(func.coalesce(func.sum(Room.capacity), 0)).where(Room.segment_id == segment.id)
+    student_rows_query = select(Student.id).where(Student.segment_id == segment.id)
     
     if workspace_id is not None:
         student_query = student_query.where(Student.workspace_id == workspace_id)
@@ -89,9 +89,9 @@ def compute_segment_status(db: Session, segment_key: str, workspace_id: uuid.UUI
     student_rows = db.scalars(student_rows_query).all()
 
     missing_preferences_count = 0
-    for admission_number in student_rows:
+    for student_id in student_rows:
         profile_query = select(PreferenceProfile).where(
-            PreferenceProfile.admission_number == admission_number,
+            PreferenceProfile.student_id == student_id,
             PreferenceProfile.is_active == 1,
         )
         if workspace_id is not None:
@@ -191,7 +191,7 @@ def get_segment_students_preference_status(db: Session, segment_key: str, worksp
     if segment is None:
         raise KeyError(f"Segment not found: {segment_key}")
 
-    student_query = select(Student).where(Student.segment_key == segment_key).order_by(Student.admission_number)
+    student_query = select(Student).where(Student.segment_id == segment.id).order_by(Student.admission_number)
     if workspace_id is not None:
         student_query = student_query.where(Student.workspace_id == workspace_id)
     students = db.scalars(student_query).all()
@@ -199,7 +199,7 @@ def get_segment_students_preference_status(db: Session, segment_key: str, worksp
     status_rows: list[SegmentStudentPreferenceStatus] = []
     for student in students:
         profile_query = select(PreferenceProfile).where(
-            PreferenceProfile.admission_number == student.admission_number,
+            PreferenceProfile.student_id == student.id,
             PreferenceProfile.is_active == 1,
         )
         if workspace_id is not None:
@@ -213,7 +213,7 @@ def get_segment_students_preference_status(db: Session, segment_key: str, worksp
             preference_status = "missing"
             has_valid_preferences = False
         else:
-            form_query = select(FormResponse).where(FormResponse.admission_number == student.admission_number)
+            form_query = select(FormResponse).where(FormResponse.student_id == student.id)
             if workspace_id is not None:
                 form_query = form_query.where(FormResponse.workspace_id == workspace_id)
             latest_form = db.scalars(
