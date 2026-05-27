@@ -1,0 +1,5 @@
+admission_number,full_name,gender,year_group,ac_type,room_size,dob,phone_number
+ADM001,Alice Alpha-Updated,F,1st_year,AC,2,2005-01-15,9876543210
+ADM002,Bob Beta,M,1st_year,AC,2,2005-03-22,9876543211
+ADM004,Diana Delta,F,1st_year,NonAC,3,2005-06-30,9876543213
+ADM005,Eve Epsilon,F,1st_year,AC,2,2005-08-12,9876543214

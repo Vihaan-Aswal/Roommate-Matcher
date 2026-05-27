@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.models.form_response import FormResponse
 from app.models.preference_profile import PreferenceProfile
 from app.models.student import Student
+from app.models.segment import Segment
 
 
 @dataclass(frozen=True)
@@ -37,9 +38,11 @@ class NonSubmitterRecord:
 def _valid_admissions(db: Session) -> set[str]:
     return set(
         db.scalars(
-            select(PreferenceProfile.admission_number).where(
-                PreferenceProfile.is_active == 1,
-                PreferenceProfile.has_preferences == 1,
+            select(Student.admission_number)
+            .join(PreferenceProfile, PreferenceProfile.student_id == Student.id)
+            .where(
+                PreferenceProfile.is_active == True,
+                PreferenceProfile.has_preferences == True,
             )
         ).all()
     )
@@ -51,28 +54,33 @@ def _latest_form_status_by_admission(db: Session) -> dict[str, str]:
         select(FormResponse).order_by(desc(FormResponse.submitted_at), desc(FormResponse.id))
     ).all()
     for row in rows:
-        if row.admission_number not in latest_status:
-            latest_status[row.admission_number] = row.validation_status
+        if row.submitted_admission_number not in latest_status:
+            latest_status[row.submitted_admission_number] = row.validation_status
     return latest_status
 
 
 def compute_form_collection_status(db: Session) -> FormCollectionStatusResult:
-    students = db.scalars(select(Student).order_by(Student.segment_key, Student.admission_number)).all()
+    results = db.execute(
+        select(Student, Segment.segment_key)
+        .join(Segment, Student.segment_id == Segment.id)
+        .order_by(Segment.segment_key, Student.admission_number)
+    ).all()
+    
     valid_admissions = _valid_admissions(db)
     latest_status = _latest_form_status_by_admission(db)
 
-    total_students = len(students)
-    valid_responses = sum(1 for student in students if student.admission_number in valid_admissions)
+    total_students = len(results)
+    valid_responses = sum(1 for student, _ in results if student.admission_number in valid_admissions)
     invalid_responses = sum(
         1
-        for student in students
+        for student, _ in results
         if latest_status.get(student.admission_number) == "invalid" and student.admission_number not in valid_admissions
     )
     percentage_valid = round((valid_responses / total_students) * 100, 2) if total_students else 0.0
 
     segment_map: dict[str, list[Student]] = {}
-    for student in students:
-        segment_map.setdefault(student.segment_key, []).append(student)
+    for student, segment_key in results:
+        segment_map.setdefault(segment_key, []).append(student)
 
     by_segment: list[SegmentFormCollectionStat] = []
     for segment_key in sorted(segment_map):
@@ -102,16 +110,18 @@ def compute_form_collection_status(db: Session) -> FormCollectionStatusResult:
 
 def list_non_submitters(db: Session) -> list[NonSubmitterRecord]:
     valid_admissions = _valid_admissions(db)
-    students = db.scalars(
-        select(Student).order_by(Student.segment_key, Student.admission_number)
+    results = db.execute(
+        select(Student, Segment.segment_key)
+        .join(Segment, Student.segment_id == Segment.id)
+        .order_by(Segment.segment_key, Student.admission_number)
     ).all()
 
     return [
         NonSubmitterRecord(
             admission_number=student.admission_number,
             full_name=student.full_name,
-            segment_key=student.segment_key,
+            segment_key=segment_key,
         )
-        for student in students
+        for student, segment_key in results
         if student.admission_number not in valid_admissions
     ]

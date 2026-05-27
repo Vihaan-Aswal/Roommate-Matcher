@@ -1,0 +1,5 @@
+room_id,segment_key,capacity
+A-101,F_1st_year_AC_2,2
+A-102,F_1st_year_AC_2,2
+B-201,M_1st_year_AC_2,2
+C-301,M_1st_year_NonAC_3,3

@@ -181,12 +181,12 @@ def _build_encoded_answers(raw_answers: dict[str, str | None]) -> dict[str, floa
     return encoded_answers
 
 
-def _latest_valid_profile(db: Session, admission_number: str) -> PreferenceProfile | None:
+def _latest_valid_profile(db: Session, student_id: uuid.UUID) -> PreferenceProfile | None:
     query = (
         select(PreferenceProfile)
         .where(
-            PreferenceProfile.admission_number == admission_number,
-            PreferenceProfile.is_active == 1,
+            PreferenceProfile.student_id == student_id,
+            PreferenceProfile.is_active == True,
         )
         .order_by(desc(PreferenceProfile.updated_at), desc(PreferenceProfile.id))
         .limit(1)
@@ -194,15 +194,15 @@ def _latest_valid_profile(db: Session, admission_number: str) -> PreferenceProfi
     return db.scalars(query).first()
 
 
-def _deactivate_active_profiles(db: Session, admission_number: str) -> None:
+def _deactivate_active_profiles(db: Session, student_id: uuid.UUID) -> None:
     active_profiles = db.scalars(
         select(PreferenceProfile).where(
-            PreferenceProfile.admission_number == admission_number,
-            PreferenceProfile.is_active == 1,
+            PreferenceProfile.student_id == student_id,
+            PreferenceProfile.is_active == True,
         )
     ).all()
     for profile in active_profiles:
-        profile.is_active = 0
+        profile.is_active = False
 
 
 def ingest_form_response(
@@ -212,7 +212,11 @@ def ingest_form_response(
     raw_answers: dict[str, str | None],
     submitted_at: datetime | None = None,
 ) -> dict[str, Any]:
-    student = db.get(Student, admission_number)
+    student = db.scalars(
+        select(Student)
+        .where(Student.admission_number == admission_number)
+        .order_by(Student.created_at.desc())
+    ).first()
     if student is None:
         raise FormIntakeError(
             code="admission_number_not_found",
@@ -225,8 +229,11 @@ def ingest_form_response(
     if student.dob != dob:
         db.add(
             FormResponse(
-                admission_number=admission_number,
-                dob=dob,
+                tenant_id=student.tenant_id,
+                workspace_id=student.workspace_id,
+                student_id=student.id,
+                submitted_admission_number=admission_number,
+                submitted_phone_last4=student.phone_last4,
                 submitted_at=submitted_at_value,
                 validation_status="invalid",
                 invalid_reason="dob_mismatch",
@@ -244,8 +251,11 @@ def ingest_form_response(
     if missing_answer_keys:
         db.add(
             FormResponse(
-                admission_number=admission_number,
-                dob=dob,
+                tenant_id=student.tenant_id,
+                workspace_id=student.workspace_id,
+                student_id=student.id,
+                submitted_admission_number=admission_number,
+                submitted_phone_last4=student.phone_last4,
                 submitted_at=submitted_at_value,
                 validation_status="invalid",
                 invalid_reason="incomplete_form_submission",
@@ -261,8 +271,11 @@ def ingest_form_response(
     if not option_validation.is_valid:
         db.add(
             FormResponse(
-                admission_number=admission_number,
-                dob=dob,
+                tenant_id=student.tenant_id,
+                workspace_id=student.workspace_id,
+                student_id=student.id,
+                submitted_admission_number=admission_number,
+                submitted_phone_last4=student.phone_last4,
                 submitted_at=submitted_at_value,
                 validation_status="invalid",
                 invalid_reason=option_validation.invalid_reason,
@@ -276,8 +289,11 @@ def ingest_form_response(
         )
 
     form_response = FormResponse(
-        admission_number=admission_number,
-        dob=dob,
+        tenant_id=student.tenant_id,
+        workspace_id=student.workspace_id,
+        student_id=student.id,
+        submitted_admission_number=admission_number,
+        submitted_phone_last4=student.phone_last4,
         submitted_at=submitted_at_value,
         validation_status="valid",
         invalid_reason=None,
@@ -289,20 +305,23 @@ def ingest_form_response(
     encoded_answers = _build_encoded_answers(normalized_answers)
 
     should_activate = True
-    active_profile = _latest_valid_profile(db, admission_number)
+    active_profile = _latest_valid_profile(db, student.id)
     if active_profile is not None:
         previous_response = db.get(FormResponse, active_profile.source_form_response_id)
         if previous_response is not None and _to_utc_naive(previous_response.submitted_at) > submitted_at_value:
             should_activate = False
 
     if should_activate:
-        _deactivate_active_profiles(db, admission_number)
+        _deactivate_active_profiles(db, student.id)
 
     profile = PreferenceProfile(
-        admission_number=admission_number,
+        tenant_id=student.tenant_id,
+        workspace_id=student.workspace_id,
+        student_id=student.id,
         source_form_response_id=form_response.id,
-        has_preferences=1,
-        is_active=1 if should_activate else 0,
+        has_preferences=True,
+        is_active=should_activate,
+        is_generated=False,
         **normalized_answers,
         **encoded_answers,
     )

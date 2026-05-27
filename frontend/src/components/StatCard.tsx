@@ -7,8 +7,9 @@ interface StatCardProps {
 }
 
 export function StatCard({ label, value, hint }: StatCardProps): JSX.Element {
+  const testId = `stat-${label.toLowerCase().replace(/\s+/g, '-')}`;
   return (
-    <Card className="border-border/80 bg-white/90">
+    <Card className="border-border/80 bg-white/90" data-testid={testId}>
       <CardHeader className="pb-3">
         <CardTitle className="text-sm font-semibold text-muted-foreground">
           {label}

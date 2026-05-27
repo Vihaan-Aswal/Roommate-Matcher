@@ -59,10 +59,8 @@ export function AdminStudentsData(): JSX.Element {
               description="Upload the canonical students file with exact column names."
               buttonLabel="Upload Students"
               isUploading={previewStudents.isPending}
-              onFileSelected={(file) => {
-                setStudentFile(file ?? null);
-              }}
               onUpload={async (file) => {
+                setStudentFile(file);
                 const diff = await previewStudents.mutateAsync(file);
                 setStudentDiff(diff);
                 setStudentStep("preview");
@@ -140,10 +138,8 @@ export function AdminStudentsData(): JSX.Element {
               description="Upload room IDs and capacities per segment."
               buttonLabel="Upload Rooms"
               isUploading={previewRooms.isPending}
-              onFileSelected={(file) => {
-                setRoomFile(file ?? null);
-              }}
               onUpload={async (file) => {
+                setRoomFile(file);
                 const diff = await previewRooms.mutateAsync(file);
                 setRoomDiff(diff);
                 setRoomStep("preview");
