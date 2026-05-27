@@ -49,10 +49,10 @@ def get_workspace_dashboard_summary(db: Session, workspace: Workspace) -> Dashbo
 
     valid_preferences = int(
         db.scalar(
-            select(func.count(PreferenceProfile.admission_number)).where(
+            select(func.count(PreferenceProfile.student_id)).where(
                 PreferenceProfile.workspace_id == workspace.id,
-                PreferenceProfile.is_active == 1,
-                PreferenceProfile.has_preferences == 1,
+                PreferenceProfile.is_active == True,
+                PreferenceProfile.has_preferences == True,
             )
         )
         or 0
@@ -117,9 +117,9 @@ def get_dashboard_summary(db: Session) -> DashboardSummaryResult:
 
     valid_preferences = int(
         db.scalar(
-            select(func.count(PreferenceProfile.admission_number)).where(
-                PreferenceProfile.is_active == 1,
-                PreferenceProfile.has_preferences == 1,
+            select(func.count(PreferenceProfile.student_id)).where(
+                PreferenceProfile.is_active == True,
+                PreferenceProfile.has_preferences == True,
             )
         )
         or 0

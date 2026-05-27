@@ -50,7 +50,7 @@ def create_workspace(
         name=body.name,
         status="draft",
         source="manual",
-        created_by_supabase_user_id=uuid.UUID(user.supabase_user_id) if user.supabase_user_id else None,
+        created_by_supabase_user_id=uuid.UUID(user.supabase_user_id) if not user.is_demo else None,
     )
     db.add(workspace)
     db.commit()

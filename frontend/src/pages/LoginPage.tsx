@@ -11,11 +11,19 @@
  * On success, both flows update the AuthProvider state and the ProtectedRoute
  * in App.tsx redirects to /app/dashboard.
  */
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../providers/AuthProvider";
 
 export function LoginPage() {
-  const { signInWithEmail, startDemoSession } = useAuth();
+  const { signInWithEmail, startDemoSession, user } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user) {
+      navigate("/app");
+    }
+  }, [user, navigate]);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -42,12 +50,16 @@ export function LoginPage() {
 
   async function handleDemo(e: React.FormEvent) {
     e.preventDefault();
+    console.log("handleDemo called!");
     setDemoError(null);
     setDemoLoading(true);
     try {
+      console.log("Starting demo session...");
       await startDemoSession(demoEmail || "demo@example.com");
-      // AuthProvider sets user → ProtectedRoute redirects
-    } catch (err: unknown) {
+      console.log("Demo session started, navigating to /app");
+      navigate("/app");
+    } catch (err) {
+      console.error("Demo failed:", err);
       setDemoError(err instanceof Error ? err.message : "Failed to start demo.");
     } finally {
       setDemoLoading(false);

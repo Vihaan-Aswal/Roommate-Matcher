@@ -8,6 +8,12 @@ from pathlib import Path
 
 from alembic import command
 from alembic.config import Config
+from sqlalchemy.ext.compiler import compiles
+from sqlalchemy.dialects.postgresql import JSONB
+
+@compiles(JSONB, "sqlite")
+def compile_jsonb_sqlite(type_, compiler, **kw):
+    return "JSON"
 
 
 ROOT_DIR = Path(__file__).resolve().parents[1]

@@ -1,4 +1,5 @@
 from collections.abc import Generator
+import os
 
 import pytest
 from fastapi.testclient import TestClient
@@ -6,10 +7,21 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
+os.environ["DATABASE_URL"] = "sqlite+pysqlite:///:memory:"
+os.environ["APP_JWT_SECRET"] = "testsecret" * 4
+os.environ["SUPABASE_JWT_SECRET"] = "testsecret" * 4
+
 import app.models  # noqa: F401
 from app.database import get_db
 from app.main import app
 from app.models.base import Base
+
+from sqlalchemy.ext.compiler import compiles
+from sqlalchemy.dialects.postgresql import JSONB
+
+@compiles(JSONB, "sqlite")
+def compile_jsonb_sqlite(type_, compiler, **kw):
+    return "JSON"
 
 
 @pytest.fixture
@@ -43,3 +55,44 @@ def client(db_session: Session) -> Generator[TestClient, None, None]:
             yield test_client
     finally:
         app.dependency_overrides.clear()
+
+
+import uuid
+import os
+from typing import Any
+from app.auth.tokens import issue_demo_token
+from app.models.tenant import Tenant
+from app.models.tenant_membership import TenantMembership
+
+@pytest.fixture(autouse=True)
+def setup_env():
+    os.environ["APP_JWT_SECRET"] = "testsecret" * 4
+    os.environ["SUPABASE_JWT_SECRET"] = "testsecret" * 4
+
+@pytest.fixture
+def seed_tenant_and_user(db_session: Session) -> dict[str, Any]:
+    tenant_id = uuid.uuid4()
+    user_id = uuid.uuid4()
+    workspace_id = uuid.uuid4()
+    
+    tenant = Tenant(id=tenant_id, slug="test-tenant", display_name="Test Tenant")
+    db_session.add(tenant)
+    db_session.flush()
+    
+    membership = TenantMembership(
+        tenant_id=tenant_id,
+        supabase_user_id=user_id,
+        email="test@example.com",
+        role="owner"
+    )
+    db_session.add(membership)
+    db_session.commit()
+    
+    token = issue_demo_token(tenant_id=tenant_id, workspace_id=workspace_id, email="test@example.com")
+    
+    return {
+        "tenant_id": tenant_id,
+        "supabase_user_id": user_id,
+        "token": token,
+        "headers": {"Authorization": f"Bearer {token}"}
+    }
