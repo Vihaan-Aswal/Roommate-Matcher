@@ -1,197 +1,47 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 import { AdminPageHeader } from "../components/AdminPageHeader";
-import { DataTable, type DataTableColumn } from "../components/DataTable";
 import { FileUploadPanel } from "../components/FileUploadPanel";
 import { InlineAlert } from "../components/InlineAlert";
 import { StatCard } from "../components/StatCard";
 import {
-  getErrorReportDownloadUrl,
-  type UploadSummaryResponse,
+  type StudentImportDiffResponse,
+  type StudentImportApplyResponse,
+  type RoomImportDiffResponse,
+  type RoomImportApplyResponse,
 } from "../lib/apiClient";
 import { useAdminFormStatusQuery } from "../hooks/useAdminFormCollection";
 import {
-  useUploadRoomsMutation,
-  useUploadStudentsMutation,
+  usePreviewStudentUploadMutation,
+  useApplyStudentUploadMutation,
+  usePreviewRoomUploadMutation,
+  useApplyRoomUploadMutation,
 } from "../hooks/useAdminUploads";
+import { useWorkspace } from "../providers/WorkspaceProvider";
 import { Button } from "../components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "../components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { DiffPreviewPanel, type UnifiedDiffEntry } from "../components/DiffPreviewPanel";
 
-interface CsvPreviewRow {
-  id: string;
-  values: Record<string, string>;
-}
-
-interface CsvPreviewState {
-  headers: string[];
-  rows: CsvPreviewRow[];
-  parseError: string | null;
-}
-
-function splitCsvLine(line: string): string[] {
-  const fields: string[] = [];
-  let current = "";
-  let inQuotes = false;
-
-  for (let index = 0; index < line.length; index += 1) {
-    const char = line[index];
-
-    if (char === '"') {
-      const nextChar = line[index + 1];
-      if (inQuotes && nextChar === '"') {
-        current += '"';
-        index += 1;
-        continue;
-      }
-      inQuotes = !inQuotes;
-      continue;
-    }
-
-    if (char === "," && !inQuotes) {
-      fields.push(current.trim());
-      current = "";
-      continue;
-    }
-
-    current += char;
-  }
-
-  fields.push(current.trim());
-  return fields;
-}
-
-async function parseCsvPreview(file: File): Promise<CsvPreviewState> {
-  const text = await file.text();
-  const lines = text
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
-
-  if (lines.length === 0) {
-    return {
-      headers: [],
-      rows: [],
-      parseError: "The selected CSV appears empty.",
-    };
-  }
-
-  const rawHeaders = splitCsvLine(lines[0]);
-  const headers = rawHeaders.map((header, index) =>
-    header.length > 0 ? header : `column_${index + 1}`,
-  );
-
-  const rows = lines.slice(1, 11).map((line, rowIndex) => {
-    const fields = splitCsvLine(line);
-    const values: Record<string, string> = {};
-
-    headers.forEach((header, index) => {
-      values[header] = fields[index] ?? "";
-    });
-
-    return {
-      id: `preview-${rowIndex}`,
-      values,
-    };
-  });
-
-  return { headers, rows, parseError: null };
-}
-
-interface UploadSummaryPanelProps {
-  title: string;
-  summary: UploadSummaryResponse;
-}
-
-function UploadSummaryPanel({
-  title,
-  summary,
-}: UploadSummaryPanelProps): JSX.Element {
-  const invalidColumns: DataTableColumn<
-    UploadSummaryResponse["invalid_rows"][number]
-  >[] = [
-    {
-      key: "row_number",
-      header: "Row",
-      cell: (row) => row.row_number,
-    },
-    {
-      key: "field",
-      header: "Field",
-      cell: (row) => row.field,
-    },
-    {
-      key: "reason",
-      header: "Reason",
-      cell: (row) => row.reason,
-    },
-    {
-      key: "raw_value",
-      header: "Raw Value",
-      cell: (row) => row.raw_value ?? "-",
-    },
-  ];
-
-  return (
-    <Card className="border-border/80 bg-white/90">
-      <CardHeader className="space-y-3">
-        <CardTitle className="text-lg">{title}</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <StatCard label="Total Rows" value={summary.total_rows} />
-          <StatCard label="Accepted" value={summary.accepted_rows} />
-          <StatCard label="Rejected" value={summary.rejected_rows} />
-          <StatCard label="Duplicates" value={summary.duplicate_rows} />
-        </div>
-
-        {summary.error_report_name ? (
-          <Button asChild size="sm" variant="outline">
-            <a href={getErrorReportDownloadUrl(summary.error_report_name)}>
-              Download Error Report
-            </a>
-          </Button>
-        ) : null}
-
-        <DataTable
-          columns={invalidColumns}
-          emptyText="No invalid rows reported in this upload."
-          getRowId={(row, index) => `${row.row_number}-${row.field}-${index}`}
-          rows={summary.invalid_rows.slice(0, 10)}
-        />
-      </CardContent>
-    </Card>
-  );
-}
+type UploadStep = "select" | "preview" | "applied";
 
 export function AdminStudentsData(): JSX.Element {
-  const studentsUpload = useUploadStudentsMutation();
-  const roomsUpload = useUploadRoomsMutation();
+  const { workspaceId } = useWorkspace();
   const formStatusQuery = useAdminFormStatusQuery();
 
-  const [studentsSummary, setStudentsSummary] =
-    useState<UploadSummaryResponse | null>(null);
-  const [roomsSummary, setRoomsSummary] =
-    useState<UploadSummaryResponse | null>(null);
-  const [studentsPreview, setStudentsPreview] = useState<CsvPreviewState>({
-    headers: [],
-    rows: [],
-    parseError: null,
-  });
+  const previewStudents = usePreviewStudentUploadMutation(workspaceId!);
+  const applyStudents = useApplyStudentUploadMutation(workspaceId!);
+  const previewRooms = usePreviewRoomUploadMutation(workspaceId!);
+  const applyRooms = useApplyRoomUploadMutation(workspaceId!);
 
-  const studentsPreviewColumns = useMemo<DataTableColumn<CsvPreviewRow>[]>(
-    () =>
-      studentsPreview.headers.map((header) => ({
-        key: header,
-        header,
-        cell: (row) => row.values[header] ?? "",
-      })),
-    [studentsPreview.headers],
-  );
+  const [studentStep, setStudentStep] = useState<UploadStep>("select");
+  const [studentFile, setStudentFile] = useState<File | null>(null);
+  const [studentDiff, setStudentDiff] = useState<StudentImportDiffResponse | null>(null);
+  const [studentResult, setStudentResult] = useState<StudentImportApplyResponse | null>(null);
+
+  const [roomStep, setRoomStep] = useState<UploadStep>("select");
+  const [roomFile, setRoomFile] = useState<File | null>(null);
+  const [roomDiff, setRoomDiff] = useState<RoomImportDiffResponse | null>(null);
+  const [roomResult, setRoomResult] = useState<RoomImportApplyResponse | null>(null);
 
   return (
     <section className="space-y-6">
@@ -201,98 +51,177 @@ export function AdminStudentsData(): JSX.Element {
       />
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <FileUploadPanel
-          title="Master Students CSV"
-          description="Upload the canonical students file with exact column names."
-          buttonLabel="Upload Students"
-          isUploading={studentsUpload.isPending}
-          onFileSelected={(file) => {
-            if (!file) {
-              setStudentsPreview({ headers: [], rows: [], parseError: null });
-              return;
-            }
+        {/* -- STUDENTS UPLOAD -- */}
+        <div className="space-y-4">
+          {studentStep === "select" && (
+            <FileUploadPanel
+              title="Master Students CSV"
+              description="Upload the canonical students file with exact column names."
+              buttonLabel="Upload Students"
+              isUploading={previewStudents.isPending}
+              onFileSelected={(file) => {
+                setStudentFile(file ?? null);
+              }}
+              onUpload={async (file) => {
+                const diff = await previewStudents.mutateAsync(file);
+                setStudentDiff(diff);
+                setStudentStep("preview");
+              }}
+            />
+          )}
 
-            void parseCsvPreview(file)
-              .then(setStudentsPreview)
-              .catch(() => {
-                setStudentsPreview({
-                  headers: [],
-                  rows: [],
-                  parseError: "Could not parse the selected file for preview.",
-                });
-              });
-          }}
-          onUpload={async (file) => {
-            const summary = await studentsUpload.mutateAsync(file);
-            setStudentsSummary(summary);
-          }}
-        />
+          {studentStep === "preview" && studentDiff && studentFile && (
+            <DiffPreviewPanel
+              title="Students Upload Preview"
+              toInsert={studentDiff.to_insert}
+              toUpdate={studentDiff.to_update}
+              toSoftDelete={studentDiff.to_soft_delete}
+              unchanged={studentDiff.unchanged}
+              validationErrors={studentDiff.validation_errors}
+              workspaceWarnings={studentDiff.warnings}
+              isApplying={applyStudents.isPending}
+              onCancel={() => {
+                setStudentStep("select");
+                setStudentDiff(null);
+                setStudentFile(null);
+              }}
+              onConfirm={async () => {
+                const res = await applyStudents.mutateAsync(studentFile);
+                setStudentResult(res);
+                setStudentStep("applied");
+              }}
+              diffEntries={studentDiff.diff_entries.map((e) => ({
+                identifier: e.admission_number,
+                name: e.full_name,
+                action: e.action,
+                changes: e.changes,
+                warnings: e.warnings,
+              }))}
+            />
+          )}
 
-        <FileUploadPanel
-          title="Rooms CSV"
-          description="Upload room IDs and capacities per segment."
-          buttonLabel="Upload Rooms"
-          isUploading={roomsUpload.isPending}
-          onUpload={async (file) => {
-            const summary = await roomsUpload.mutateAsync(file);
-            setRoomsSummary(summary);
-          }}
-        />
+          {studentStep === "applied" && studentResult && (
+            <Card className="border-green-200 bg-green-50/50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg text-green-800">Students Applied Successfully</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+                  <StatCard label="Inserted" value={studentResult.inserted} />
+                  <StatCard label="Updated" value={studentResult.updated} />
+                  <StatCard label="Removed" value={studentResult.soft_deleted} />
+                  <StatCard label="Unchanged" value={studentResult.unchanged} />
+                </div>
+                <Button variant="outline" onClick={() => {
+                  setStudentStep("select");
+                  setStudentFile(null);
+                  setStudentDiff(null);
+                  setStudentResult(null);
+                }}>
+                  Upload Another File
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {previewStudents.isError && studentStep === "select" && (
+            <InlineAlert title="Preview Failed" message={previewStudents.error.message} tone="error" />
+          )}
+          {applyStudents.isError && studentStep === "preview" && (
+            <InlineAlert title="Apply Failed" message={applyStudents.error.message} tone="error" />
+          )}
+        </div>
+
+        {/* -- ROOMS UPLOAD -- */}
+        <div className="space-y-4">
+          {roomStep === "select" && (
+            <FileUploadPanel
+              title="Rooms CSV"
+              description="Upload room IDs and capacities per segment."
+              buttonLabel="Upload Rooms"
+              isUploading={previewRooms.isPending}
+              onFileSelected={(file) => {
+                setRoomFile(file ?? null);
+              }}
+              onUpload={async (file) => {
+                const diff = await previewRooms.mutateAsync(file);
+                setRoomDiff(diff);
+                setRoomStep("preview");
+              }}
+            />
+          )}
+
+          {roomStep === "preview" && roomDiff && roomFile && (
+            <DiffPreviewPanel
+              title="Rooms Upload Preview"
+              toInsert={roomDiff.to_insert}
+              toUpdate={roomDiff.to_update}
+              toSoftDelete={roomDiff.to_soft_delete}
+              unchanged={roomDiff.unchanged}
+              validationErrors={roomDiff.validation_errors}
+              workspaceWarnings={roomDiff.warnings}
+              isApplying={applyRooms.isPending}
+              onCancel={() => {
+                setRoomStep("select");
+                setRoomDiff(null);
+                setRoomFile(null);
+              }}
+              onConfirm={async () => {
+                const res = await applyRooms.mutateAsync(roomFile);
+                setRoomResult(res);
+                setRoomStep("applied");
+              }}
+              diffEntries={roomDiff.diff_entries.map((e) => ({
+                identifier: e.room_id,
+                name: e.segment_key,
+                action: e.action,
+                changes: e.changes,
+                warnings: e.warnings,
+              }))}
+            />
+          )}
+
+          {roomStep === "applied" && roomResult && (
+            <Card className="border-green-200 bg-green-50/50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg text-green-800">Rooms Applied Successfully</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+                  <StatCard label="Inserted" value={roomResult.inserted} />
+                  <StatCard label="Updated" value={roomResult.updated} />
+                  <StatCard label="Removed" value={roomResult.soft_deleted} />
+                  <StatCard label="Unchanged" value={roomResult.unchanged} />
+                </div>
+                <Button variant="outline" onClick={() => {
+                  setRoomStep("select");
+                  setRoomFile(null);
+                  setRoomDiff(null);
+                  setRoomResult(null);
+                }}>
+                  Upload Another File
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {previewRooms.isError && roomStep === "select" && (
+            <InlineAlert title="Preview Failed" message={previewRooms.error.message} tone="error" />
+          )}
+          {applyRooms.isError && roomStep === "preview" && (
+            <InlineAlert title="Apply Failed" message={applyRooms.error.message} tone="error" />
+          )}
+        </div>
       </div>
 
-      {(studentsUpload.error || roomsUpload.error) && (
-        <InlineAlert
-          title="Upload failed"
-          message={
-            studentsUpload.error?.message ??
-            roomsUpload.error?.message ??
-            "An upload request failed."
-          }
-          tone="error"
-        />
-      )}
-
-      {studentsUpload.isSuccess || roomsUpload.isSuccess ? (
-        <InlineAlert
-          title="Upload completed"
-          message="The latest upload response has been applied and dependent admin data has been refreshed."
-          tone="success"
-        />
-      ) : null}
-
-      <Card className="border-border/80 bg-white/90">
-        <CardHeader>
-          <CardTitle className="text-lg">
-            Student CSV Preview (first 10 rows)
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {studentsPreview.parseError ? (
-            <InlineAlert
-              title="Preview unavailable"
-              message={studentsPreview.parseError}
-              tone="error"
-            />
-          ) : null}
-
-          <DataTable
-            columns={studentsPreviewColumns}
-            emptyText="Select a students CSV file to preview header and row data."
-            getRowId={(row) => row.id}
-            rows={studentsPreview.rows}
-          />
-        </CardContent>
-      </Card>
-
+      {/* -- FORM VALIDATION SNAPSHOT -- */}
       <Card className="border-border/80 bg-white/90">
         <CardHeader>
           <CardTitle className="text-lg">Form Validation Snapshot</CardTitle>
         </CardHeader>
         <CardContent>
           {formStatusQuery.isLoading ? (
-            <p className="text-sm text-muted-foreground">
-              Loading form status...
-            </p>
+            <p className="text-sm text-muted-foreground">Loading form status...</p>
           ) : null}
           {formStatusQuery.isError ? (
             <InlineAlert
@@ -308,36 +237,13 @@ export function AdminStudentsData(): JSX.Element {
 
           {formStatusQuery.data ? (
             <div className="grid gap-3 sm:grid-cols-3">
-              <StatCard
-                label="Total Students"
-                value={formStatusQuery.data.total_students}
-              />
-              <StatCard
-                label="Valid Responses"
-                value={formStatusQuery.data.valid_responses}
-              />
-              <StatCard
-                label="Invalid Responses"
-                value={formStatusQuery.data.invalid_responses}
-              />
+              <StatCard label="Total Students" value={formStatusQuery.data.total_students} />
+              <StatCard label="Valid Responses" value={formStatusQuery.data.valid_responses} />
+              <StatCard label="Invalid Responses" value={formStatusQuery.data.invalid_responses} />
             </div>
           ) : null}
         </CardContent>
       </Card>
-
-      {studentsSummary ? (
-        <UploadSummaryPanel
-          title="Students Upload Summary"
-          summary={studentsSummary}
-        />
-      ) : null}
-
-      {roomsSummary ? (
-        <UploadSummaryPanel
-          title="Rooms Upload Summary"
-          summary={roomsSummary}
-        />
-      ) : null}
     </section>
   );
 }
