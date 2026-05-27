@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 from sqlalchemy import desc, func, select
 from sqlalchemy.orm import Session
+import uuid
 
 from app.models.form_response import FormResponse
 from app.models.preference_profile import PreferenceProfile
@@ -63,37 +64,40 @@ class SegmentStudentsResult:
     students: list[SegmentStudentPreferenceStatus]
 
 
-def compute_segment_status(db: Session, segment_key: str) -> SegmentStatusResult:
-    segment = db.get(Segment, segment_key)
+def compute_segment_status(db: Session, segment_key: str, workspace_id: uuid.UUID | None = None) -> SegmentStatusResult:
+    query = select(Segment).where(Segment.segment_key == segment_key)
+    if workspace_id is not None:
+        query = query.where(Segment.workspace_id == workspace_id)
+    segment = db.scalars(query).first()
     if segment is None:
         raise KeyError(f"Segment not found: {segment_key}")
 
-    student_count = db.scalar(
-        select(func.count(Student.admission_number)).where(Student.segment_key == segment_key)
-    ) or 0
+    student_query = select(func.count(Student.admission_number)).where(Student.segment_key == segment_key)
+    room_query = select(func.count(Room.room_id)).where(Room.segment_key == segment_key)
+    capacity_query = select(func.coalesce(func.sum(Room.capacity), 0)).where(Room.segment_key == segment_key)
+    student_rows_query = select(Student.admission_number).where(Student.segment_key == segment_key)
+    
+    if workspace_id is not None:
+        student_query = student_query.where(Student.workspace_id == workspace_id)
+        room_query = room_query.where(Room.workspace_id == workspace_id)
+        capacity_query = capacity_query.where(Room.workspace_id == workspace_id)
+        student_rows_query = student_rows_query.where(Student.workspace_id == workspace_id)
 
-    uploaded_room_count = db.scalar(
-        select(func.count(Room.room_id)).where(Room.segment_key == segment_key)
-    ) or 0
-
-    uploaded_capacity = db.scalar(
-        select(func.coalesce(func.sum(Room.capacity), 0)).where(Room.segment_key == segment_key)
-    ) or 0
-
-    student_rows = db.scalars(
-        select(Student.admission_number).where(Student.segment_key == segment_key)
-    ).all()
+    student_count = db.scalar(student_query) or 0
+    uploaded_room_count = db.scalar(room_query) or 0
+    uploaded_capacity = db.scalar(capacity_query) or 0
+    student_rows = db.scalars(student_rows_query).all()
 
     missing_preferences_count = 0
     for admission_number in student_rows:
-        active_profile = db.scalars(
-            select(PreferenceProfile)
-            .where(
-                PreferenceProfile.admission_number == admission_number,
-                PreferenceProfile.is_active == 1,
-            )
-            .limit(1)
-        ).first()
+        profile_query = select(PreferenceProfile).where(
+            PreferenceProfile.admission_number == admission_number,
+            PreferenceProfile.is_active == 1,
+        )
+        if workspace_id is not None:
+            profile_query = profile_query.where(PreferenceProfile.workspace_id == workspace_id)
+            
+        active_profile = db.scalars(profile_query.limit(1)).first()
 
         if active_profile is None or active_profile.has_preferences == 0:
             missing_preferences_count += 1
@@ -152,12 +156,15 @@ def compute_segment_status(db: Session, segment_key: str) -> SegmentStatusResult
     )
 
 
-def list_segment_overviews(db: Session) -> list[SegmentOverviewResult]:
-    segments = db.scalars(select(Segment).order_by(Segment.segment_key)).all()
+def list_segment_overviews(db: Session, workspace_id: uuid.UUID | None = None) -> list[SegmentOverviewResult]:
+    query = select(Segment).order_by(Segment.segment_key)
+    if workspace_id is not None:
+        query = query.where(Segment.workspace_id == workspace_id)
+    segments = db.scalars(query).all()
 
     overviews: list[SegmentOverviewResult] = []
     for segment in segments:
-        status = compute_segment_status(db, segment.segment_key)
+        status = compute_segment_status(db, segment.segment_key, workspace_id)
         overviews.append(
             SegmentOverviewResult(
                 segment_key=segment.segment_key,
@@ -176,27 +183,28 @@ def list_segment_overviews(db: Session) -> list[SegmentOverviewResult]:
     return overviews
 
 
-def get_segment_students_preference_status(db: Session, segment_key: str) -> SegmentStudentsResult:
-    segment = db.get(Segment, segment_key)
+def get_segment_students_preference_status(db: Session, segment_key: str, workspace_id: uuid.UUID | None = None) -> SegmentStudentsResult:
+    query = select(Segment).where(Segment.segment_key == segment_key)
+    if workspace_id is not None:
+        query = query.where(Segment.workspace_id == workspace_id)
+    segment = db.scalars(query).first()
     if segment is None:
         raise KeyError(f"Segment not found: {segment_key}")
 
-    students = db.scalars(
-        select(Student)
-        .where(Student.segment_key == segment_key)
-        .order_by(Student.admission_number)
-    ).all()
+    student_query = select(Student).where(Student.segment_key == segment_key).order_by(Student.admission_number)
+    if workspace_id is not None:
+        student_query = student_query.where(Student.workspace_id == workspace_id)
+    students = db.scalars(student_query).all()
 
     status_rows: list[SegmentStudentPreferenceStatus] = []
     for student in students:
-        active_profile = db.scalars(
-            select(PreferenceProfile)
-            .where(
-                PreferenceProfile.admission_number == student.admission_number,
-                PreferenceProfile.is_active == 1,
-            )
-            .limit(1)
-        ).first()
+        profile_query = select(PreferenceProfile).where(
+            PreferenceProfile.admission_number == student.admission_number,
+            PreferenceProfile.is_active == 1,
+        )
+        if workspace_id is not None:
+            profile_query = profile_query.where(PreferenceProfile.workspace_id == workspace_id)
+        active_profile = db.scalars(profile_query.limit(1)).first()
 
         if active_profile is not None and active_profile.has_preferences == 1:
             preference_status = "valid"
@@ -205,11 +213,11 @@ def get_segment_students_preference_status(db: Session, segment_key: str) -> Seg
             preference_status = "missing"
             has_valid_preferences = False
         else:
+            form_query = select(FormResponse).where(FormResponse.admission_number == student.admission_number)
+            if workspace_id is not None:
+                form_query = form_query.where(FormResponse.workspace_id == workspace_id)
             latest_form = db.scalars(
-                select(FormResponse)
-                .where(FormResponse.admission_number == student.admission_number)
-                .order_by(desc(FormResponse.submitted_at), desc(FormResponse.id))
-                .limit(1)
+                form_query.order_by(desc(FormResponse.submitted_at), desc(FormResponse.id)).limit(1)
             ).first()
             if latest_form is not None and latest_form.validation_status == "invalid":
                 preference_status = "invalid"

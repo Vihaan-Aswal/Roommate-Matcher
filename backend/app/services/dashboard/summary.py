@@ -65,7 +65,7 @@ def get_workspace_dashboard_summary(db: Session, workspace: Workspace) -> Dashbo
     impossible = 0
     risk = 0
     for segment in segments:
-        status = compute_segment_status(db, segment.segment_key).status
+        status = compute_segment_status(db, segment.segment_key, workspace.id).status
         if status == "Ready":
             ready += 1
         elif status == "Impossible":

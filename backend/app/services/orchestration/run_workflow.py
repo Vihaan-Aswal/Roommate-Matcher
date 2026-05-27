@@ -132,7 +132,7 @@ def _resolve_target_segments(db: Session, scope: RunScope, segment_key: str | No
         if not segment_key:
             raise ValueError("segment_key is required when scope is segment")
 
-        segment = db.get(Segment, segment_key)
+        segment = db.scalars(select(Segment).where(Segment.segment_key == segment_key)).first()
         if segment is None:
             raise ValueError("Segment not found")
 
