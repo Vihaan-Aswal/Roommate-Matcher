@@ -639,7 +639,7 @@ export async function runMatching(
   workspaceId: string,
   payload: MatchingRunRequest,
 ): Promise<MatchingRunResponse> {
-  return requestJson<MatchingRunResponse>(`/api/matching/${encodeURIComponent(workspaceId)}/run`, {
+  return requestJson<MatchingRunResponse>(`/api/workspaces/${encodeURIComponent(workspaceId)}/matching/runs`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -649,7 +649,7 @@ export async function runMatching(
 }
 
 export async function getMatchingRuns(workspaceId: string): Promise<MatchingRunListResponse> {
-  return requestJson<MatchingRunListResponse>(`/api/matching/${encodeURIComponent(workspaceId)}/runs`);
+  return requestJson<MatchingRunListResponse>(`/api/workspaces/${encodeURIComponent(workspaceId)}/matching/runs`);
 }
 
 export async function getRunRooms(
@@ -658,7 +658,7 @@ export async function getRunRooms(
   segmentKey: string,
 ): Promise<MatchingRunRoomsResponse> {
   return requestJson<MatchingRunRoomsResponse>(
-    `/api/matching/${encodeURIComponent(workspaceId)}/runs/${encodeURIComponent(runId)}/segments/${encodeURIComponent(segmentKey)}/rooms`,
+    `/api/workspaces/${encodeURIComponent(workspaceId)}/matching/runs/${encodeURIComponent(runId)}/rooms?segment_key=${encodeURIComponent(segmentKey)}`,
   );
 }
 
@@ -668,7 +668,23 @@ export async function getRunStudents(
   segmentKey: string,
 ): Promise<MatchingRunStudentsResponse> {
   return requestJson<MatchingRunStudentsResponse>(
-    `/api/matching/${encodeURIComponent(workspaceId)}/runs/${encodeURIComponent(runId)}/segments/${encodeURIComponent(segmentKey)}/students`,
+    `/api/workspaces/${encodeURIComponent(workspaceId)}/matching/runs/${encodeURIComponent(runId)}/students?segment_key=${encodeURIComponent(segmentKey)}`,
+  );
+}
+
+export interface MatchingRunAllSegmentsStudentsResponse {
+  segments: {
+    segment_key: string;
+    students: RunStudentRow[];
+  }[];
+}
+
+export async function getRunStudentsAllSegments(
+  workspaceId: string,
+  runId: string,
+): Promise<MatchingRunAllSegmentsStudentsResponse> {
+  return requestJson<MatchingRunAllSegmentsStudentsResponse>(
+    `/api/workspaces/${encodeURIComponent(workspaceId)}/matching/runs/${encodeURIComponent(runId)}/students/all-segments`,
   );
 }
 
@@ -677,15 +693,16 @@ export async function getFairnessReport(
   runId: string,
 ): Promise<FairnessReportResponse> {
   return requestJson<FairnessReportResponse>(
-    `/api/fairness/${encodeURIComponent(workspaceId)}/${encodeURIComponent(runId)}`,
+    `/api/workspaces/${encodeURIComponent(workspaceId)}/fairness/${encodeURIComponent(runId)}`,
   );
 }
 
 export async function getSegmentStudents(
+  workspaceId: string,
   segmentKey: string,
 ): Promise<SegmentStudentsResponse> {
   return requestJson<SegmentStudentsResponse>(
-    `/api/segments/${encodeURIComponent(segmentKey)}/students`,
+    `/api/workspaces/${encodeURIComponent(workspaceId)}/segments/${encodeURIComponent(segmentKey)}/students`,
   );
 }
 
@@ -693,7 +710,7 @@ export async function runCheckerCompatibility(
   workspaceId: string,
   payload: CheckerRequestPayload,
 ): Promise<CheckerResponse> {
-  return requestJson<CheckerResponse>(`/api/checker/${encodeURIComponent(workspaceId)}/compatibility`, {
+  return requestJson<CheckerResponse>(`/api/workspaces/${encodeURIComponent(workspaceId)}/checker/compatibility`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -715,7 +732,7 @@ export async function exportAssignmentsCsv(
     headers["Authorization"] = `Bearer ${_apiToken}`;
   }
   const response = await fetch(
-    buildUrl(`/api/exports/${encodeURIComponent(workspaceId)}/assignments/${encodeURIComponent(runId)}${query}`),
+    buildUrl(`/api/workspaces/${encodeURIComponent(workspaceId)}/exports/assignments/${encodeURIComponent(runId)}${query}`),
     { headers }
   );
 

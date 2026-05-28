@@ -34,12 +34,9 @@ function buildStudentRoute(
   return `/admin/matching-runs/${encodeURIComponent(runId)}/students?${params.toString()}`;
 }
 
-import { useWorkspace } from "../../providers/WorkspaceProvider";
-
 export function FairnessReportsPage(): JSX.Element {
-  const { workspaceId } = useWorkspace();
-
-  const { runId: routeRunId } = useParams<{ runId?: string }>();
+  const { workspaceId, runId: routeRunId } = useParams<{ workspaceId: string; runId?: string }>();
+  if (!workspaceId) throw new Error("workspaceId is required");
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 

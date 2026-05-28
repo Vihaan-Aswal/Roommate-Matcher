@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 
 import { AdminPageHeader } from "../../components/AdminPageHeader";
 import { InlineAlert } from "../../components/InlineAlert";
@@ -44,10 +44,9 @@ function resolveValidationMessage(
   return "Ready to run compatibility report.";
 }
 
-import { useWorkspace } from "../../providers/WorkspaceProvider";
-
 export function ManualCheckerPage(): JSX.Element {
-  const { workspaceId } = useWorkspace();
+  const { workspaceId } = useParams<{ workspaceId: string }>();
+  if (!workspaceId) throw new Error("workspaceId is required");
 
   const [searchParams, setSearchParams] = useSearchParams();
   const segmentsQuery = useAdminSegmentsQuery();

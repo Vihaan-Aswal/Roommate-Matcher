@@ -14,12 +14,9 @@ import { useAssignmentsExportMutation } from "../../hooks/useAssignmentsExportMu
 import { useRunRoomsQuery } from "../../hooks/useRunRoomsQuery";
 import { useRunStudentsQuery } from "../../hooks/useRunStudentsQuery";
 
-import { useWorkspace } from "../../providers/WorkspaceProvider";
-
 export function RoomResultsPage(): JSX.Element {
-  const { workspaceId } = useWorkspace();
-
-  const { runId } = useParams<{ runId: string }>();
+  const { workspaceId, runId } = useParams<{ workspaceId: string; runId: string }>();
+  if (!workspaceId) throw new Error("workspaceId is required");
   const [searchParams, setSearchParams] = useSearchParams();
   const segmentsQuery = useAdminSegmentsQuery();
   const exportMutation = useAssignmentsExportMutation(workspaceId);

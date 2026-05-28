@@ -82,19 +82,29 @@ export function AdminMatchingRuns(): JSX.Element {
       key: "actions",
       header: "Actions",
       cell: (row) => (
-        <Button
-          disabled={runMutation.isPending || row.status !== "Ready"}
-          size="sm"
-          variant="outline"
-          onClick={() => {
-            void runMutation.mutateAsync({
-              scope: "segment",
-              segment_key: row.segment_key,
-            });
-          }}
-        >
-          Run Segment
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            disabled={runMutation.isPending || row.status !== "Ready"}
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              void runMutation.mutateAsync({
+                scope: "segment",
+                segment_key: row.segment_key,
+              });
+            }}
+          >
+            Run Segment
+          </Button>
+          <Button
+            disabled={true}
+            size="sm"
+            variant="outline"
+            title="Magic Fill — coming in next update"
+          >
+            Magic Fill
+          </Button>
+        </div>
       ),
     },
   ];
@@ -172,19 +182,29 @@ export function AdminMatchingRuns(): JSX.Element {
   ];
 
   const actions = (
-    <Button
-      disabled={runMutation.isPending || readySegments.length === 0}
-      size="sm"
-      variant="accent"
-      onClick={() => {
-        void runMutation.mutateAsync({
-          scope: "all_ready_segments",
-          segment_key: null,
-        });
-      }}
-    >
-      {runMutation.isPending ? "Running..." : "Run All Ready Segments"}
-    </Button>
+    <div className="flex gap-2">
+      <Button
+        disabled={true}
+        size="sm"
+        variant="outline"
+        title="Magic Fill — coming in next update"
+      >
+        Magic Fill
+      </Button>
+      <Button
+        disabled={runMutation.isPending || readySegments.length === 0}
+        size="sm"
+        variant="accent"
+        onClick={() => {
+          void runMutation.mutateAsync({
+            scope: "all_ready_segments",
+            segment_key: null,
+          });
+        }}
+      >
+        {runMutation.isPending ? "Running..." : "Run All Ready Segments"}
+      </Button>
+    </div>
   );
 
   return (

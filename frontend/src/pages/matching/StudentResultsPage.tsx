@@ -10,18 +10,15 @@ import { StudentDetailPanel } from "../../components/panels/StudentDetailPanel";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
 import { useAdminSegmentsQuery } from "../../hooks/useAdminSegments";
-import { useRunStudentsAcrossSegmentsQuery } from "../../hooks/useRunStudentsAcrossSegmentsQuery";
+import { useRunStudentsAllSegmentsQuery } from "../../hooks/useRunStudentsAllSegmentsQuery";
 import { useRunStudentsQuery } from "../../hooks/useRunStudentsQuery";
 import { SATISFACTION_LABELS } from "../../lib/resultEnums";
 
 const VALID_AT_RISK = new Set(["0", "1"]);
 const VALID_LABELS = new Set<string>(["all", ...SATISFACTION_LABELS]);
-import { useWorkspace } from "../../providers/WorkspaceProvider";
-
 export function StudentResultsPage(): JSX.Element {
-  const { workspaceId } = useWorkspace();
-
-  const { runId } = useParams<{ runId: string }>();
+  const { workspaceId, runId } = useParams<{ workspaceId: string; runId: string }>();
+  if (!workspaceId) throw new Error("workspaceId is required");
   const [searchParams, setSearchParams] = useSearchParams();
   const segmentsQuery = useAdminSegmentsQuery();
 
@@ -44,10 +41,9 @@ export function StudentResultsPage(): JSX.Element {
     selectedSegment === "all" ? null : selectedSegment,
   );
 
-  const allSegmentsQuery = useRunStudentsAcrossSegmentsQuery(
+  const allSegmentsQuery = useRunStudentsAllSegmentsQuery(
     workspaceId,
     runId ?? "",
-    segmentKeys,
     selectedSegment === "all" && Boolean(runId),
   );
 
