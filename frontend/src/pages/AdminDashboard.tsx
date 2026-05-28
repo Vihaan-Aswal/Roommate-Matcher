@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 
 import { AdminPageHeader } from "../components/AdminPageHeader";
+import { magicFillWorkspace } from "../lib/apiClient";
 import DataWarningBanner from "../components/DataWarningBanner";
 import { InlineAlert } from "../components/InlineAlert";
 import { StatCard } from "../components/StatCard";
@@ -36,6 +38,22 @@ export function AdminDashboard(): JSX.Element {
   const { workspaceId, workspaceName } = useWorkspace();
   const dashboardQuery = useWorkspaceDashboardQuery(workspaceId || "");
 
+  const [magicFillLoading, setMagicFillLoading] = useState(false);
+
+  async function handleMagicFillAll() {
+    if (!workspaceId) return;
+    setMagicFillLoading(true);
+    try {
+      const result = await magicFillWorkspace(workspaceId, null);
+      alert(`Created ${result.profiles_created} profiles workspace-wide.`);
+      dashboardQuery.refetch();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Magic Fill failed.");
+    } finally {
+      setMagicFillLoading(false);
+    }
+  }
+
   const actions = (
     <>
       <Button asChild size="sm" variant="outline">
@@ -46,6 +64,15 @@ export function AdminDashboard(): JSX.Element {
       </Button>
       <Button asChild size="sm" variant="accent">
         <Link to={`/app/${workspaceId}/matching-runs`}>Run Matching</Link>
+      </Button>
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={() => void handleMagicFillAll()}
+        disabled={magicFillLoading}
+        className="text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+      >
+        {magicFillLoading ? "Filling..." : "⚡ Magic Fill Missing"}
       </Button>
     </>
   );
