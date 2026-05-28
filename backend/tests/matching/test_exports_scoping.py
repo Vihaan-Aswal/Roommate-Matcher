@@ -12,8 +12,9 @@ def test_exports_scoping(db_session: Session, client: TestClient, seed_tenant_an
     tenant_id = seed_tenant_and_user["tenant_id"]
     headers = seed_tenant_and_user["headers"]
 
-    ws1 = Workspace(tenant_id=tenant_id, name="WS 1", status="draft", source="manual")
-    ws2 = Workspace(tenant_id=tenant_id, name="WS 2", status="draft", source="manual")
+    import uuid
+    ws1 = Workspace(id=uuid.uuid4(), tenant_id=tenant_id, name="WS 1", status="draft", source="manual")
+    ws2 = Workspace(id=uuid.uuid4(), tenant_id=tenant_id, name="WS 2", status="draft", source="manual")
     db_session.add_all([ws1, ws2])
     db_session.commit()
 
@@ -44,9 +45,9 @@ def test_exports_scoping(db_session: Session, client: TestClient, seed_tenant_an
     db_session.commit()
 
     # Valid export in ws1
-    response = client.get(f"/api/exports/{ws1.id}/assignments/run_1", headers=headers)
+    response = client.get(f"/api/workspaces/{ws1.id}/exports/assignments/run_1", headers=headers)
     assert response.status_code == 200
 
     # Invalid export crossing workspaces (ws2 tries to get run_1)
-    response = client.get(f"/api/exports/{ws2.id}/assignments/run_1", headers=headers)
-    assert response.status_code == 404
+    response = client.get(f"/api/workspaces/{ws2.id}/exports/assignments/run_1", headers=headers)
+    assert response.status_code == 403

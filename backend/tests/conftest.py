@@ -82,6 +82,7 @@ def seed_tenant_and_user(db_session: Session) -> dict[str, Any]:
     tenant_id = uuid.uuid4()
     user_id = uuid.uuid4()
     workspace_id = uuid.uuid4()
+    print(f"DEBUG IN FIXTURE: tenant={tenant_id}, workspace={workspace_id}")
     
     tenant = Tenant(id=tenant_id, slug="test-tenant", display_name="Test Tenant")
     db_session.add(tenant)
@@ -94,12 +95,18 @@ def seed_tenant_and_user(db_session: Session) -> dict[str, Any]:
         role="owner"
     )
     db_session.add(membership)
+
+    from app.models.workspace import Workspace
+    workspace = Workspace(id=workspace_id, tenant_id=tenant_id, name="Test Workspace")
+    db_session.add(workspace)
+
     db_session.commit()
     
     token = issue_demo_token(tenant_id=tenant_id, workspace_id=workspace_id, email="test@example.com")
     
     return {
         "tenant_id": tenant_id,
+        "workspace_id": workspace_id,
         "supabase_user_id": user_id,
         "token": token,
         "headers": {"Authorization": f"Bearer {token}"}

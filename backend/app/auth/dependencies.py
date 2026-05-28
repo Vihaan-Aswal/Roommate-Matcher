@@ -238,6 +238,7 @@ async def require_workspace_access(
         .first()
     )
     if workspace is None:
+        print(f"DEBUG: workspace is None for workspace_id={workspace_id} and tenant_id={effective_tenant_id}")
         # Intentionally return 403 (not 404) to avoid leaking workspace existence.
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

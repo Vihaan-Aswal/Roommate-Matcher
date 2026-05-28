@@ -9,16 +9,21 @@ from app.models.form_response import FormResponse
 from tests.api.test_matching_endpoints import _seed_ready_segment_with_profiles
 
 
-def test_exports_assignments_endpoint_streams_csv(client: TestClient, db_session: Session) -> None:
-    _seed_ready_segment_with_profiles(db_session)
+def test_exports_assignments_endpoint_streams_csv(client: TestClient, db_session: Session, seed_tenant_and_user) -> None:
+    tenant_id = seed_tenant_and_user["tenant_id"]
+    auth_headers = seed_tenant_and_user["headers"]
+    workspace_id = seed_tenant_and_user["workspace_id"]
+    
+    _seed_ready_segment_with_profiles(db_session, tenant_id, workspace_id)
     run_response = client.post(
-        "/api/matching/run",
+        f"/api/workspaces/{workspace_id}/matching/runs",
         json={"scope": "segment", "segment_key": "M_1st_year_AC_2"},
+        headers=auth_headers
     )
     assert run_response.status_code == 200
     run_id = run_response.json()["run_id"]
 
-    response = client.get(f"/api/exports/assignments/{run_id}")
+    response = client.get(f"/api/workspaces/{workspace_id}/exports/assignments/{run_id}", headers=auth_headers)
     assert response.status_code == 200
     assert "text/csv" in response.headers["content-type"]
 
@@ -31,13 +36,18 @@ def test_exports_assignments_endpoint_streams_csv(client: TestClient, db_session
 def test_dashboard_endpoint_returns_setup_and_latest_run_summary(
     client: TestClient,
     db_session: Session,
+    seed_tenant_and_user,
 ) -> None:
-    _seed_ready_segment_with_profiles(db_session)
+    tenant_id = seed_tenant_and_user["tenant_id"]
+    auth_headers = seed_tenant_and_user["headers"]
+    workspace_id = seed_tenant_and_user["workspace_id"]
+
+    _seed_ready_segment_with_profiles(db_session, tenant_id, workspace_id)
     db_session.add(
         FormResponse(
             student_id=__import__("uuid").uuid4(),
-            tenant_id=__import__("uuid").uuid4(),
-            workspace_id=__import__("uuid").uuid4(),
+            tenant_id=tenant_id,
+            workspace_id=workspace_id,
             submitted_admission_number="MR001",
             submitted_phone_last4="1234",
             submitted_at=datetime.now(timezone.utc),
@@ -48,13 +58,14 @@ def test_dashboard_endpoint_returns_setup_and_latest_run_summary(
     db_session.commit()
 
     run_response = client.post(
-        "/api/matching/run",
+        f"/api/workspaces/{workspace_id}/matching/runs",
         json={"scope": "segment", "segment_key": "M_1st_year_AC_2"},
+        headers=auth_headers
     )
     assert run_response.status_code == 200
     run_id = run_response.json()["run_id"]
 
-    response = client.get("/api/dashboard")
+    response = client.get(f"/api/workspaces/{workspace_id}/dashboard", headers=auth_headers)
     assert response.status_code == 200
     payload = response.json()
 

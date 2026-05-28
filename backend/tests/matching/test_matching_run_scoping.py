@@ -13,8 +13,8 @@ from app.services.orchestration.run_workflow import run_matching_workflow
 def test_matching_run_scoping(db_session: Session, seed_tenant_and_user):
     tenant_id = seed_tenant_and_user["tenant_id"]
 
-    ws1 = Workspace(tenant_id=tenant_id, name="WS 1", status="draft", source="manual")
-    ws2 = Workspace(tenant_id=tenant_id, name="WS 2", status="draft", source="manual")
+    ws1 = Workspace(id=uuid.uuid4(), tenant_id=tenant_id, name="WS 1", status="draft", source="manual")
+    ws2 = Workspace(id=uuid.uuid4(), tenant_id=tenant_id, name="WS 2", status="draft", source="manual")
     db_session.add_all([ws1, ws2])
     db_session.commit()
 
@@ -77,11 +77,11 @@ def test_matching_run_scoping(db_session: Session, seed_tenant_and_user):
     db_session.add_all([pp1, pp2])
     db_session.commit()
 
-    result = run_matching_workflow(db_session, "segment", "WS1-M-1", ws1.id)
+    result = run_matching_workflow(db_session, ws1.id, tenant_id, "segment", "WS1-M-1")
     assert result.status == "completed"
 
     run_obj = db_session.query(MatchingRun).filter(MatchingRun.run_id == result.run_id).first()
     assert run_obj.workspace_id == ws1.id
 
     with pytest.raises(ValueError):
-        run_matching_workflow(db_session, "segment", "WS1-M-1", uuid.uuid4())
+        run_matching_workflow(db_session, uuid.uuid4(), tenant_id, "segment", "WS1-M-1")

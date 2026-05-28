@@ -6,16 +6,21 @@ from sqlalchemy.orm import Session
 from tests.api.test_matching_endpoints import _seed_ready_segment_with_profiles
 
 
-def test_checker_endpoint_returns_group_compatibility(client: TestClient, db_session: Session) -> None:
-    _seed_ready_segment_with_profiles(db_session)
+def test_checker_endpoint_returns_group_compatibility(client: TestClient, db_session: Session, seed_tenant_and_user) -> None:
+    tenant_id = seed_tenant_and_user["tenant_id"]
+    auth_headers = seed_tenant_and_user["headers"]
+    workspace_id = seed_tenant_and_user["workspace_id"]
+    
+    _seed_ready_segment_with_profiles(db_session, tenant_id, workspace_id)
 
     response = client.post(
-        "/api/checker/compatibility",
+        f"/api/workspaces/{workspace_id}/checker/compatibility",
         json={
             "segment_key": "M_1st_year_AC_2",
             "room_size": 2,
             "student_ids": ["MR001", "MR002"],
         },
+        headers=auth_headers
     )
     assert response.status_code == 200
 
@@ -39,16 +44,21 @@ def test_checker_endpoint_returns_group_compatibility(client: TestClient, db_ses
             }
 
 
-def test_checker_endpoint_rejects_invalid_group_size(client: TestClient, db_session: Session) -> None:
-    _seed_ready_segment_with_profiles(db_session)
+def test_checker_endpoint_rejects_invalid_group_size(client: TestClient, db_session: Session, seed_tenant_and_user) -> None:
+    tenant_id = seed_tenant_and_user["tenant_id"]
+    auth_headers = seed_tenant_and_user["headers"]
+    workspace_id = seed_tenant_and_user["workspace_id"]
+
+    _seed_ready_segment_with_profiles(db_session, tenant_id, workspace_id)
 
     response = client.post(
-        "/api/checker/compatibility",
+        f"/api/workspaces/{workspace_id}/checker/compatibility",
         json={
             "segment_key": "M_1st_year_AC_2",
             "room_size": 2,
             "student_ids": ["MR001"],
         },
+        headers=auth_headers
     )
     assert response.status_code == 400
     assert "room_size" in response.json()["detail"]

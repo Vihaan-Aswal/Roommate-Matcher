@@ -14,22 +14,28 @@ from tests.api.test_matching_endpoints import _seed_ready_segment_with_profiles
 def test_matching_result_endpoints_return_persisted_room_and_student_views(
     client: TestClient,
     db_session: Session,
+    seed_tenant_and_user
 ) -> None:
-    _seed_ready_segment_with_profiles(db_session)
+    tenant_id = seed_tenant_and_user["tenant_id"]
+    auth_headers = seed_tenant_and_user["headers"]
+    workspace_id = seed_tenant_and_user["workspace_id"]
+
+    _seed_ready_segment_with_profiles(db_session, tenant_id, workspace_id)
     run_response = client.post(
-        "/api/matching/run",
+        f"/api/workspaces/{workspace_id}/matching/runs",
         json={"scope": "segment", "segment_key": "M_1st_year_AC_2"},
+        headers=auth_headers
     )
     assert run_response.status_code == 200
     run_id = run_response.json()["run_id"]
 
-    rooms_response = client.get(f"/api/matching/runs/{run_id}/segments/M_1st_year_AC_2/rooms")
+    rooms_response = client.get(f"/api/workspaces/{workspace_id}/matching/runs/{run_id}/rooms?segment_key=M_1st_year_AC_2", headers=auth_headers)
     assert rooms_response.status_code == 200
     rooms_payload = rooms_response.json()
     assert len(rooms_payload["rooms"]) == 1
     assert len(rooms_payload["rooms"][0]["assigned_students"]) == 2
 
-    students_response = client.get(f"/api/matching/runs/{run_id}/segments/M_1st_year_AC_2/students")
+    students_response = client.get(f"/api/workspaces/{workspace_id}/matching/runs/{run_id}/students?segment_key=M_1st_year_AC_2", headers=auth_headers)
     assert students_response.status_code == 200
     students_payload = students_response.json()
     assert len(students_payload["students"]) == 2
@@ -39,11 +45,17 @@ def test_matching_result_endpoints_return_persisted_room_and_student_views(
 def test_fairness_endpoint_reads_snapshot_stored_on_run_row(
     client: TestClient,
     db_session: Session,
+    seed_tenant_and_user
 ) -> None:
-    _seed_ready_segment_with_profiles(db_session)
+    tenant_id = seed_tenant_and_user["tenant_id"]
+    auth_headers = seed_tenant_and_user["headers"]
+    workspace_id = seed_tenant_and_user["workspace_id"]
+
+    _seed_ready_segment_with_profiles(db_session, tenant_id, workspace_id)
     run_response = client.post(
-        "/api/matching/run",
+        f"/api/workspaces/{workspace_id}/matching/runs",
         json={"scope": "segment", "segment_key": "M_1st_year_AC_2"},
+        headers=auth_headers
     )
     assert run_response.status_code == 200
     run_id = run_response.json()["run_id"]
@@ -73,7 +85,7 @@ def test_fairness_endpoint_reads_snapshot_stored_on_run_row(
     )
     db_session.commit()
 
-    fairness_response = client.get(f"/api/fairness/{run_id}")
+    fairness_response = client.get(f"/api/workspaces/{workspace_id}/fairness/{run_id}", headers=auth_headers)
     assert fairness_response.status_code == 200
     fairness_payload = fairness_response.json()
     assert fairness_payload["run_label_counts"]["Good"] == 2
@@ -83,11 +95,17 @@ def test_fairness_endpoint_reads_snapshot_stored_on_run_row(
 def test_student_results_endpoint_reads_persisted_explanation_payload_directly(
     client: TestClient,
     db_session: Session,
+    seed_tenant_and_user
 ) -> None:
-    _seed_ready_segment_with_profiles(db_session)
+    tenant_id = seed_tenant_and_user["tenant_id"]
+    auth_headers = seed_tenant_and_user["headers"]
+    workspace_id = seed_tenant_and_user["workspace_id"]
+
+    _seed_ready_segment_with_profiles(db_session, tenant_id, workspace_id)
     run_response = client.post(
-        "/api/matching/run",
+        f"/api/workspaces/{workspace_id}/matching/runs",
         json={"scope": "segment", "segment_key": "M_1st_year_AC_2"},
+        headers=auth_headers
     )
     assert run_response.status_code == 200
     run_id = run_response.json()["run_id"]
@@ -104,15 +122,18 @@ def test_student_results_endpoint_reads_persisted_explanation_payload_directly(
     assignment.satisfaction_summary_json = json.dumps(summary, sort_keys=True)
     db_session.commit()
 
-    students_response = client.get(f"/api/matching/runs/{run_id}/segments/M_1st_year_AC_2/students")
+    students_response = client.get(f"/api/workspaces/{workspace_id}/matching/runs/{run_id}/students?segment_key=M_1st_year_AC_2", headers=auth_headers)
     assert students_response.status_code == 200
     reasons = [row["reasons"] for row in students_response.json()["students"]]
     assert ["Persisted explanation marker"] in reasons
 
 
-def test_matching_results_endpoints_return_404_for_unknown_run(client: TestClient) -> None:
-    rooms_response = client.get("/api/matching/runs/unknown/segments/M_1st_year_AC_2/rooms")
-    assert rooms_response.status_code == 404
+def test_matching_results_endpoints_return_404_for_unknown_run(client: TestClient, seed_tenant_and_user) -> None:
+    auth_headers = seed_tenant_and_user["headers"]
+    workspace_id = seed_tenant_and_user["workspace_id"]
 
-    students_response = client.get("/api/matching/runs/unknown/segments/M_1st_year_AC_2/students")
-    assert students_response.status_code == 404
+    rooms_response = client.get(f"/api/workspaces/{workspace_id}/matching/runs/unknown/rooms?segment_key=M_1st_year_AC_2", headers=auth_headers)
+    assert rooms_response.status_code == 403 # Not found or not owned is 403
+
+    students_response = client.get(f"/api/workspaces/{workspace_id}/matching/runs/unknown/students?segment_key=M_1st_year_AC_2", headers=auth_headers)
+    assert students_response.status_code == 403 # Not found or not owned is 403

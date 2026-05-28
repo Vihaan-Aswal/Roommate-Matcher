@@ -87,7 +87,7 @@ def create_app(*, frontend_dist_dir: Path | None = None) -> FastAPI:
     application.include_router(workspaces_router)
     application.include_router(public_form_router, prefix="/api/public/forms", tags=["public_form"])
     application.include_router(form_router, prefix="/api")
-    application.include_router(segments_router, prefix="/api")
+    application.include_router(segments_router)
     application.include_router(matching_router)
     application.include_router(fairness_router)
     application.include_router(checker_router)

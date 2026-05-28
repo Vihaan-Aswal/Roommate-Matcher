@@ -12,8 +12,8 @@ def test_checker_scoping(db_session: Session, client: TestClient, seed_tenant_an
     tenant_id = seed_tenant_and_user["tenant_id"]
     headers = seed_tenant_and_user["headers"]
 
-    ws1 = Workspace(tenant_id=tenant_id, name="WS 1", status="draft", source="manual")
-    ws2 = Workspace(tenant_id=tenant_id, name="WS 2", status="draft", source="manual")
+    ws1 = Workspace(id=uuid.uuid4(), tenant_id=tenant_id, name="WS 1", status="draft", source="manual")
+    ws2 = Workspace(id=uuid.uuid4(), tenant_id=tenant_id, name="WS 2", status="draft", source="manual")
     db_session.add_all([ws1, ws2])
     db_session.commit()
 
@@ -62,7 +62,7 @@ def test_checker_scoping(db_session: Session, client: TestClient, seed_tenant_an
 
     # Valid check in ws1
     response = client.post(
-        f"/api/checker/{ws1.id}/compatibility",
+        f"/api/workspaces/{ws1.id}/checker/compatibility",
         headers=headers,
         json={
             "segment_key": "WS1-M-1",
@@ -74,7 +74,7 @@ def test_checker_scoping(db_session: Session, client: TestClient, seed_tenant_an
 
     # Invalid check crossing workspaces
     response = client.post(
-        f"/api/checker/{ws1.id}/compatibility",
+        f"/api/workspaces/{ws2.id}/checker/compatibility",
         headers=headers,
         json={
             "segment_key": "WS1-M-1",

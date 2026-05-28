@@ -12,7 +12,8 @@ from app.auth.tokens import issue_demo_token
 def test_list_workspaces_empty(client: TestClient, seed_tenant_and_user: dict[str, Any]):
     response = client.get("/api/workspaces", headers=seed_tenant_and_user["headers"])
     assert response.status_code == 200
-    assert response.json() == {"workspaces": []}
+    assert len(response.json()["workspaces"]) == 1
+    assert response.json()["workspaces"][0]["name"] == "Test Workspace"
 
 def test_create_workspace(client: TestClient, seed_tenant_and_user: dict[str, Any]):
     response = client.post(
@@ -38,11 +39,12 @@ def test_list_workspaces_after_create(client: TestClient, seed_tenant_and_user: 
     response = client.get("/api/workspaces", headers=seed_tenant_and_user["headers"])
     assert response.status_code == 200
     data = response.json()
-    assert len(data["workspaces"]) == 2
+    assert len(data["workspaces"]) == 3
     
     names = [w["name"] for w in data["workspaces"]]
     assert "WS 1" in names
     assert "WS 2" in names
+    assert "Test Workspace" in names
 
 def test_get_workspace_by_id(client: TestClient, seed_tenant_and_user: dict[str, Any]):
     create_resp = client.post(

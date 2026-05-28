@@ -12,8 +12,11 @@ from app.models.segment import Segment
 from app.models.student import Student
 
 
-def _seed_student(db_session: Session, admission_number: str = "ADM200") -> Student:
-    segment = Segment(tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), segment_key="M_1st_year_AC_2",
+def _seed_student(db_session: Session, admission_number: str = "ADM200", tenant_id=None, workspace_id=None) -> Student:
+    import uuid
+    tenant_id = tenant_id or uuid.uuid4()
+    workspace_id = workspace_id or uuid.uuid4()
+    segment = Segment(tenant_id=tenant_id, workspace_id=workspace_id, segment_key="M_1st_year_AC_2",
         gender="M",
         year_group="1st_year",
         ac_type="AC",
@@ -21,7 +24,7 @@ def _seed_student(db_session: Session, admission_number: str = "ADM200") -> Stud
     )
     db_session.add(segment)
     db_session.flush()
-    student = Student(tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), admission_number=admission_number,
+    student = Student(tenant_id=tenant_id, workspace_id=workspace_id, admission_number=admission_number,
         full_name="API Student",
         gender="M",
         year_group="1st_year",
@@ -104,10 +107,13 @@ def test_form_submit_incomplete_submission_returns_400(client: TestClient, db_se
     assert payload["detail"]["code"] == "incomplete_form_submission"
 
 
-def test_segment_status_endpoint_returns_impossible(client: TestClient, db_session: Session) -> None:
-    student = _seed_student(db_session, admission_number="ADM202")
+def test_segment_status_endpoint_returns_impossible(client: TestClient, db_session: Session, seed_tenant_and_user) -> None:
+    auth_headers = seed_tenant_and_user["headers"]
+    workspace_id = seed_tenant_and_user["workspace_id"]
+    tenant_id = seed_tenant_and_user["tenant_id"]
+    student = _seed_student(db_session, admission_number="ADM202", tenant_id=tenant_id, workspace_id=workspace_id)
     db_session.add(
-        Student(tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), admission_number="ADM203",
+        Student(tenant_id=tenant_id, workspace_id=workspace_id, admission_number="ADM203",
             full_name="Second Student",
             gender="M",
             year_group="1st_year",
@@ -121,7 +127,7 @@ def test_segment_status_endpoint_returns_impossible(client: TestClient, db_sessi
             )
     )
     db_session.add(
-        Student(tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), admission_number="ADM204",
+        Student(tenant_id=tenant_id, workspace_id=workspace_id, admission_number="ADM204",
             full_name="Third Student",
             gender="M",
             year_group="1st_year",
@@ -134,23 +140,26 @@ def test_segment_status_endpoint_returns_impossible(client: TestClient, db_sessi
                 is_active=True,
             )
     )
-    db_session.add(Room(tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), room_id="A-900", segment_id=student.segment_id, capacity=2, source="uploaded", is_active=True))
+    db_session.add(Room(tenant_id=tenant_id, workspace_id=workspace_id, room_id="A-900", segment_id=student.segment_id, capacity=2, source="uploaded", is_active=True))
     db_session.commit()
 
-    response = client.get("/api/segments/M_1st_year_AC_2")
+    response = client.get(f"/api/workspaces/{student.workspace_id}/segments/M_1st_year_AC_2", headers=auth_headers)
     assert response.status_code == 200
     payload = response.json()
     assert payload["status"] == "Impossible"
 
 
-def test_segment_status_endpoint_ready_when_no_rooms_uploaded(client: TestClient, db_session: Session) -> None:
-    student = _seed_student(db_session, admission_number="ADM206")
+def test_segment_status_endpoint_ready_when_no_rooms_uploaded(client: TestClient, db_session: Session, seed_tenant_and_user) -> None:
+    auth_headers = seed_tenant_and_user["headers"]
+    workspace_id = seed_tenant_and_user["workspace_id"]
+    tenant_id = seed_tenant_and_user["tenant_id"]
+    student = _seed_student(db_session, admission_number="ADM206", tenant_id=tenant_id, workspace_id=workspace_id)
     db_session.add(
-        PreferenceProfile(tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), student_id=student.id, has_preferences=1, is_active=True)
+        PreferenceProfile(tenant_id=tenant_id, workspace_id=workspace_id, student_id=student.id, has_preferences=1, is_active=True)
     )
     db_session.commit()
 
-    response = client.get("/api/segments/M_1st_year_AC_2")
+    response = client.get(f"/api/workspaces/{student.workspace_id}/segments/M_1st_year_AC_2", headers=auth_headers)
 
     assert response.status_code == 200
     payload = response.json()
@@ -158,15 +167,20 @@ def test_segment_status_endpoint_ready_when_no_rooms_uploaded(client: TestClient
     assert payload["total_capacity"] == 1
 
 
-def test_segment_status_endpoint_returns_404_for_unknown_segment(client: TestClient) -> None:
-    response = client.get("/api/segments/UNKNOWN")
+def test_segment_status_endpoint_returns_404_for_unknown_segment(client: TestClient, seed_tenant_and_user) -> None:
+    auth_headers = seed_tenant_and_user["headers"]
+    workspace_id = seed_tenant_and_user["workspace_id"]
+    response = client.get(f"/api/workspaces/{workspace_id}/segments/UNKNOWN", headers=auth_headers)
     assert response.status_code == 404
 
 
-def test_segments_list_endpoint_returns_segment_rows(client: TestClient, db_session: Session) -> None:
-    _seed_student(db_session, admission_number="ADM220")
+def test_segments_list_endpoint_returns_segment_rows(client: TestClient, db_session: Session, seed_tenant_and_user) -> None:
+    auth_headers = seed_tenant_and_user["headers"]
+    workspace_id = seed_tenant_and_user["workspace_id"]
+    tenant_id = seed_tenant_and_user["tenant_id"]
+    student = _seed_student(db_session, admission_number="ADM220", tenant_id=tenant_id, workspace_id=workspace_id)
 
-    response = client.get("/api/segments")
+    response = client.get(f"/api/workspaces/{student.workspace_id}/segments", headers=auth_headers)
     assert response.status_code == 200
 
     payload = response.json()
@@ -180,9 +194,14 @@ def test_segments_list_endpoint_returns_segment_rows(client: TestClient, db_sess
 def test_segment_students_endpoint_returns_valid_invalid_missing_statuses(
     client: TestClient,
     db_session: Session,
+    seed_tenant_and_user
 ) -> None:
-    student = _seed_student(db_session, admission_number="ADM230")
-    st231 = Student(id=__import__("uuid").uuid4(), tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), admission_number="ADM231",
+    auth_headers = seed_tenant_and_user["headers"]
+    workspace_id = seed_tenant_and_user["workspace_id"]
+    tenant_id = seed_tenant_and_user["tenant_id"]
+    student = _seed_student(db_session, admission_number="ADM230", tenant_id=tenant_id, workspace_id=workspace_id)
+    import uuid
+    st231 = Student(id=uuid.uuid4(), tenant_id=tenant_id, workspace_id=workspace_id, admission_number="ADM231",
         full_name="Invalid Form Student",
         gender="M",
         year_group="1st_year",
@@ -194,7 +213,7 @@ def test_segment_students_endpoint_returns_valid_invalid_missing_statuses(
         phone_last4="3210",
         is_active=True,
     )
-    st232 = Student(id=__import__("uuid").uuid4(), tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), admission_number="ADM232",
+    st232 = Student(id=uuid.uuid4(), tenant_id=tenant_id, workspace_id=workspace_id, admission_number="ADM232",
         full_name="Missing Form Student",
         gender="M",
         year_group="1st_year",
@@ -208,13 +227,13 @@ def test_segment_students_endpoint_returns_valid_invalid_missing_statuses(
     )
     db_session.add_all([st231, st232])
     db_session.add(
-        PreferenceProfile(tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), student_id=student.id, has_preferences=1, is_active=True)
+        PreferenceProfile(tenant_id=tenant_id, workspace_id=workspace_id, student_id=student.id, has_preferences=1, is_active=True)
     )
     db_session.add(
         FormResponse(
             student_id=st231.id,
-            tenant_id=__import__("uuid").uuid4(),
-            workspace_id=__import__("uuid").uuid4(),
+            tenant_id=tenant_id,
+            workspace_id=workspace_id,
             submitted_admission_number="ADM231",
             submitted_phone_last4="3210",
             submitted_at=datetime.now(timezone.utc),
@@ -224,7 +243,7 @@ def test_segment_students_endpoint_returns_valid_invalid_missing_statuses(
     )
     db_session.commit()
 
-    response = client.get("/api/segments/M_1st_year_AC_2/students")
+    response = client.get(f"/api/workspaces/{student.workspace_id}/segments/M_1st_year_AC_2/students", headers=auth_headers)
     assert response.status_code == 200
 
     payload = response.json()

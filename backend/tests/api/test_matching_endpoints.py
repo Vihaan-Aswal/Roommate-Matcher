@@ -16,10 +16,10 @@ from app.models.segment import Segment
 from app.models.student import Student
 
 
-def _seed_ready_segment_with_profiles(db_session: Session, segment_key: str = "M_1st_year_AC_2") -> None:
+def _seed_ready_segment_with_profiles(db_session: Session, tenant_id, workspace_id, segment_key: str = "M_1st_year_AC_2") -> None:
     segment = Segment(
-        tenant_id=__import__("uuid").uuid4(), 
-        workspace_id=__import__("uuid").uuid4(), 
+        tenant_id=tenant_id, 
+        workspace_id=workspace_id, 
         segment_key=segment_key,
         gender="M",
         year_group="1st_year",
@@ -28,7 +28,7 @@ def _seed_ready_segment_with_profiles(db_session: Session, segment_key: str = "M
     )
     db_session.add(segment)
     db_session.flush()
-    s1 = Student(tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), admission_number="MR001",
+    s1 = Student(tenant_id=tenant_id, workspace_id=workspace_id, admission_number="MR001",
         full_name="Run Student 1",
         gender="M",
         year_group="1st_year",
@@ -40,7 +40,7 @@ def _seed_ready_segment_with_profiles(db_session: Session, segment_key: str = "M
         phone_last4="3210",
         is_active=True,
     )
-    s2 = Student(tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), admission_number="MR002",
+    s2 = Student(tenant_id=tenant_id, workspace_id=workspace_id, admission_number="MR002",
         full_name="Run Student 2",
         gender="M",
         year_group="1st_year",
@@ -56,7 +56,7 @@ def _seed_ready_segment_with_profiles(db_session: Session, segment_key: str = "M
     db_session.flush()
     db_session.add_all(
         [
-            PreferenceProfile(tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), student_id=s1.id,
+            PreferenceProfile(tenant_id=tenant_id, workspace_id=workspace_id, student_id=s1.id,
                 has_preferences=1,
                 is_active=True,
                 q1_enc=1.0,
@@ -72,7 +72,7 @@ def _seed_ready_segment_with_profiles(db_session: Session, segment_key: str = "M
                 q9_enc=1.0,
                 q10_enc=0.0,
             ),
-            PreferenceProfile(tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), student_id=s2.id,
+            PreferenceProfile(tenant_id=tenant_id, workspace_id=workspace_id, student_id=s2.id,
                 has_preferences=1,
                 is_active=True,
                 q1_enc=1.0,
@@ -91,7 +91,7 @@ def _seed_ready_segment_with_profiles(db_session: Session, segment_key: str = "M
         ]
     )
     db_session.add(
-        Room(tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), room_id="A-101",
+        Room(tenant_id=tenant_id, workspace_id=workspace_id, room_id="A-101",
             segment_id=segment.id,
             capacity=2,
             source="uploaded",
@@ -104,12 +104,18 @@ def _seed_ready_segment_with_profiles(db_session: Session, segment_key: str = "M
 def test_matching_run_persists_artifacts_and_fairness_snapshot(
     client: TestClient,
     db_session: Session,
+    seed_tenant_and_user,
 ) -> None:
-    _seed_ready_segment_with_profiles(db_session)
+    tenant_id = seed_tenant_and_user["tenant_id"]
+    auth_headers = seed_tenant_and_user["headers"]
+    workspace_id = seed_tenant_and_user["workspace_id"]
+    
+    _seed_ready_segment_with_profiles(db_session, tenant_id, workspace_id)
 
     response = client.post(
-        "/api/matching/run",
+        f"/api/workspaces/{workspace_id}/matching/runs",
         json={"scope": "segment", "segment_key": "M_1st_year_AC_2"},
+        headers=auth_headers
     )
     assert response.status_code == 200
     payload = response.json()
@@ -140,16 +146,22 @@ def test_matching_run_persists_artifacts_and_fairness_snapshot(
 def test_matching_runs_endpoint_reads_persisted_run_rows(
     client: TestClient,
     db_session: Session,
+    seed_tenant_and_user,
 ) -> None:
-    _seed_ready_segment_with_profiles(db_session)
+    tenant_id = seed_tenant_and_user["tenant_id"]
+    auth_headers = seed_tenant_and_user["headers"]
+    workspace_id = seed_tenant_and_user["workspace_id"]
+
+    _seed_ready_segment_with_profiles(db_session, tenant_id, workspace_id)
     run_response = client.post(
-        "/api/matching/run",
+        f"/api/workspaces/{workspace_id}/matching/runs",
         json={"scope": "segment", "segment_key": "M_1st_year_AC_2"},
+        headers=auth_headers
     )
     assert run_response.status_code == 200
     run_id = run_response.json()["run_id"]
 
-    response = client.get("/api/matching/runs")
+    response = client.get(f"/api/workspaces/{workspace_id}/matching/runs", headers=auth_headers)
     assert response.status_code == 200
     payload = response.json()
     row = next(item for item in payload["runs"] if item["run_id"] == run_id)
@@ -157,8 +169,12 @@ def test_matching_runs_endpoint_reads_persisted_run_rows(
     assert row["segments_completed"] == 1
 
 
-def test_matching_run_rejects_not_ready_segment(client: TestClient, db_session: Session) -> None:
-    segment = Segment(tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), segment_key="M_1st_year_AC_2",
+def test_matching_run_rejects_not_ready_segment(client: TestClient, db_session: Session, seed_tenant_and_user) -> None:
+    tenant_id = seed_tenant_and_user["tenant_id"]
+    auth_headers = seed_tenant_and_user["headers"]
+    workspace_id = seed_tenant_and_user["workspace_id"]
+
+    segment = Segment(tenant_id=tenant_id, workspace_id=workspace_id, segment_key="M_1st_year_AC_2",
         gender="M",
         year_group="1st_year",
         ac_type="AC",
@@ -168,7 +184,7 @@ def test_matching_run_rejects_not_ready_segment(client: TestClient, db_session: 
     db_session.flush()
     db_session.add_all(
         [
-            Student(tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), admission_number="MR010",
+            Student(tenant_id=tenant_id, workspace_id=workspace_id, admission_number="MR010",
                 full_name="Missing Pref 1",
                 gender="M",
                 year_group="1st_year",
@@ -180,7 +196,7 @@ def test_matching_run_rejects_not_ready_segment(client: TestClient, db_session: 
                 phone_last4="3210",
                 is_active=True,
             ),
-            Student(tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), admission_number="MR011",
+            Student(tenant_id=tenant_id, workspace_id=workspace_id, admission_number="MR011",
                 full_name="Missing Pref 2",
                 gender="M",
                 year_group="1st_year",
@@ -197,8 +213,9 @@ def test_matching_run_rejects_not_ready_segment(client: TestClient, db_session: 
     db_session.commit()
 
     response = client.post(
-        "/api/matching/run",
+        f"/api/workspaces/{workspace_id}/matching/runs",
         json={"scope": "segment", "segment_key": "M_1st_year_AC_2"},
+        headers=auth_headers
     )
     assert response.status_code == 400
     assert "not ready" in response.json()["detail"].lower()
