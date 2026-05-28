@@ -23,19 +23,21 @@ from app.services.orchestration.run_workflow import (
     run_matching_workflow,
 )
 
+from app.api.deps.run_access import resolve_run_or_403
 
-router = APIRouter(prefix="/matching", tags=["matching"])
+router = APIRouter(prefix="/api/workspaces/{workspace_id}/matching", tags=["matching"])
 
 
-@router.post("/{workspace_id}/run", response_model=MatchingRunResponse)
+@router.post("/runs", response_model=MatchingRunResponse)
 def run_matching(
     workspace_id: uuid.UUID,
     payload: MatchingRunRequest,
     db: Session = Depends(get_db),
     workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_access),
 ) -> MatchingRunResponse:
+    user, tenant, workspace = workspace_ctx
     try:
-        result = run_matching_workflow(db, payload.scope, payload.segment_key, workspace_id)
+        result = run_matching_workflow(db, workspace_id, tenant.id, payload.scope, payload.segment_key)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -48,7 +50,7 @@ def run_matching(
     )
 
 
-@router.get("/{workspace_id}/runs", response_model=MatchingRunListResponse)
+@router.get("/runs", response_model=MatchingRunListResponse)
 def get_matching_runs(
     workspace_id: uuid.UUID,
     db: Session = Depends(get_db),
@@ -72,14 +74,17 @@ def get_matching_runs(
     )
 
 
-@router.get("/{workspace_id}/runs/{run_id}/segments/{segment_key}/rooms", response_model=MatchingRunRoomsResponse)
+from fastapi import Query
+
+@router.get("/runs/{run_id}/rooms", response_model=MatchingRunRoomsResponse)
 def get_matching_run_rooms(
     workspace_id: uuid.UUID,
     run_id: str,
-    segment_key: str,
+    segment_key: str = Query(...),
     db: Session = Depends(get_db),
     workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_access),
 ) -> MatchingRunRoomsResponse:
+    resolve_run_or_403(db, workspace_id, run_id)
     try:
         rooms = get_run_rooms_from_persisted_artifacts(db, run_id=run_id, segment_key=segment_key, workspace_id=workspace_id)
     except KeyError as exc:
@@ -90,14 +95,15 @@ def get_matching_run_rooms(
     return MatchingRunRoomsResponse(run_id=run_id, segment_key=segment_key, rooms=rooms)
 
 
-@router.get("/{workspace_id}/runs/{run_id}/segments/{segment_key}/students", response_model=MatchingRunStudentsResponse)
+@router.get("/runs/{run_id}/students", response_model=MatchingRunStudentsResponse)
 def get_matching_run_students(
     workspace_id: uuid.UUID,
     run_id: str,
-    segment_key: str,
+    segment_key: str = Query(...),
     db: Session = Depends(get_db),
     workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_access),
 ) -> MatchingRunStudentsResponse:
+    resolve_run_or_403(db, workspace_id, run_id)
     try:
         students = get_run_students_from_persisted_artifacts(db, run_id=run_id, segment_key=segment_key, workspace_id=workspace_id)
     except KeyError as exc:
@@ -106,3 +112,41 @@ def get_matching_run_students(
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
     return MatchingRunStudentsResponse(run_id=run_id, segment_key=segment_key, students=students)
+
+
+@router.get("/runs/{run_id}/students/all-segments")
+def get_all_segments_students(
+    workspace_id: uuid.UUID,
+    run_id: str,
+    db: Session = Depends(get_db),
+    workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_access),
+):
+    run = resolve_run_or_403(db, workspace_id, run_id)
+    
+    # Get all assignments for this run
+    from app.models.room_assignment import RoomAssignment
+    from app.models.segment import Segment
+    from sqlalchemy import select
+    import json
+    
+    # We just need to know which segments are part of the run
+    # and then call get_run_students_from_persisted_artifacts for each
+    segments = db.scalars(
+        select(Segment)
+        .join(RoomAssignment, RoomAssignment.segment_id == Segment.id)
+        .where(RoomAssignment.matching_run_id == run.id)
+        .distinct()
+        .order_by(Segment.segment_key)
+    ).all()
+    
+    segments_payload = []
+    for segment in segments:
+        students = get_run_students_from_persisted_artifacts(
+            db, run_id=run_id, segment_key=segment.segment_key, workspace_id=workspace_id
+        )
+        segments_payload.append({
+            "segment_key": segment.segment_key,
+            "students": students,
+        })
+        
+    return {"segments": segments_payload}

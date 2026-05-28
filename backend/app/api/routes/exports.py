@@ -21,7 +21,9 @@ from app.models.matching_run import MatchingRun
 from app.models.segment import Segment
 
 
-router = APIRouter(prefix="/exports", tags=["exports"])
+from app.api.deps.run_access import resolve_run_or_403
+
+router = APIRouter(prefix="/api/workspaces/{workspace_id}/exports", tags=["exports"])
 
 
 def _iter_assignment_rows(run_id: str, assignments: list[RoomAssignment]):
@@ -57,7 +59,7 @@ def _iter_assignment_rows(run_id: str, assignments: list[RoomAssignment]):
         buffer.truncate(0)
 
 
-@router.get("/{workspace_id}/assignments/{run_id}")
+@router.get("/assignments/{run_id}")
 def export_assignments_csv(
     workspace_id: uuid.UUID,
     run_id: str,
@@ -65,6 +67,7 @@ def export_assignments_csv(
     db: Session = Depends(get_db),
     workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_access),
 ) -> StreamingResponse:
+    resolve_run_or_403(db, workspace_id, run_id)
     query = (
         select(RoomAssignment, Segment.segment_key)
         .join(MatchingRun, RoomAssignment.matching_run_id == MatchingRun.id)

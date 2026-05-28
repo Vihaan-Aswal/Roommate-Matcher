@@ -14,16 +14,18 @@ from app.schemas.fairness import FairnessReportResponse
 from app.services.orchestration.run_workflow import get_run_fairness_snapshot
 
 
-router = APIRouter(prefix="/fairness", tags=["fairness"])
+from app.api.deps.run_access import resolve_run_or_403
 
+router = APIRouter(prefix="/api/workspaces/{workspace_id}/fairness", tags=["fairness"])
 
-@router.get("/{workspace_id}/{run_id}", response_model=FairnessReportResponse)
+@router.get("/{run_id}", response_model=FairnessReportResponse)
 def get_fairness_report(
     workspace_id: uuid.UUID,
     run_id: str,
     db: Session = Depends(get_db),
     workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_access),
 ) -> FairnessReportResponse:
+    resolve_run_or_403(db, workspace_id, run_id)
     try:
         snapshot = get_run_fairness_snapshot(db, run_id, workspace_id)
     except KeyError as exc:

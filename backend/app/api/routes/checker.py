@@ -16,10 +16,10 @@ from app.schemas.checker import CheckerRequest, CheckerResponse, CheckerStudentR
 from app.services.orchestration.checker_workflow import run_manual_checker
 
 
-router = APIRouter(prefix="/checker", tags=["checker"])
+router = APIRouter(prefix="/api/workspaces/{workspace_id}/checker", tags=["checker"])
 
 
-@router.post("/{workspace_id}/compatibility", response_model=CheckerResponse)
+@router.post("/compatibility", response_model=CheckerResponse)
 def check_compatibility(
     workspace_id: uuid.UUID,
     payload: CheckerRequest, 
