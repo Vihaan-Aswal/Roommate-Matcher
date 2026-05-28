@@ -56,8 +56,9 @@ export function LoginPage() {
     try {
       console.log("Starting demo session...");
       await startDemoSession(demoEmail || "demo@example.com");
+      const wsId = sessionStorage.getItem("demo_workspace_id");
       console.log("Demo session started, navigating to /app");
-      navigate("/app");
+      navigate(wsId ? `/app/${wsId}/dashboard` : "/app");
     } catch (err) {
       console.error("Demo failed:", err);
       setDemoError(err instanceof Error ? err.message : "Failed to start demo.");

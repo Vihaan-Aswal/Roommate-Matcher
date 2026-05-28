@@ -219,6 +219,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     const data = await res.json();
     sessionStorage.setItem(DEMO_TOKEN_KEY, data.token);
+    sessionStorage.setItem("demo_workspace_id", data.workspace_id); // NEW
 
     // Immediately hydrate
     const appUser = await hydrateFromBackend(data.token);
