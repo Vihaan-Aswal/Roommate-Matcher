@@ -1,0 +1,58 @@
+# .github/workflows/demo-cleanup.yml
+#
+# Scheduled cleanup job: purges expired demo tenants from the production database.
+#
+# WHY GITHUB ACTIONS AND NOT RENDER CRON:
+#   Render Cron Jobs are a paid feature and are not available on the free tier.
+#   This workflow is a zero-cost, auditable alternative that runs on GitHub's
+#   shared runners and hits the backend's internal cleanup endpoint.
+#
+# REQUIRED GITHUB SECRETS:
+#   CLEANUP_JOB_SECRET  — shared secret matching CLEANUP_JOB_SECRET on Render.
+#   BACKEND_URL         — production backend root URL (no trailing slash).
+#                         Example: https://roommate-matcher-backend-dev.onrender.com
+#
+# SCHEDULE:
+#   Runs once per hour. Adjust the cron expression as needed.
+#   GitHub Actions cron runs in UTC.
+
+name: Demo Tenant Cleanup
+
+on:
+  schedule:
+    - cron: "0 * * * *"    # Every hour at :00 UTC
+  workflow_dispatch:         # Allow manual trigger from the GitHub Actions UI
+
+jobs:
+  cleanup:
+    name: Purge Expired Demo Tenants
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Call demo-tenant cleanup endpoint
+        env:
+          CLEANUP_JOB_SECRET: ${{ secrets.CLEANUP_JOB_SECRET }}
+          BACKEND_URL: ${{ secrets.BACKEND_URL }}
+        run: |
+          echo "Hitting ${BACKEND_URL}/api/internal/cleanup/demo-tenants"
+          
+          RESPONSE=$(curl \
+            --silent \
+            --show-error \
+            --fail \
+            --max-time 30 \
+            --retry 3 \
+            --retry-delay 5 \
+            --request POST \
+            --header "Authorization: Bearer ${CLEANUP_JOB_SECRET}" \
+            --header "Content-Type: application/json" \
+            "${BACKEND_URL}/api/internal/cleanup/demo-tenants")
+          
+          echo "Response: ${RESPONSE}"
+          
+          PURGED=$(echo "${RESPONSE}" | python3 -c "import sys, json; print(json.load(sys.stdin)['purged_count'])")
+          echo "Purged ${PURGED} expired demo tenant(s)."
+
+      - name: Report success
+        run: echo "Demo cleanup job completed successfully."
