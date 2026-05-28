@@ -18,6 +18,7 @@ from app.api.routes.segments import router as segments_router
 from app.api.routes.workspaces import router as workspaces_router
 from app.api.routes.public_form import router as public_form_router
 from app.api.routes.platform import router as platform_router
+from app.api.routes.internal import router as internal_router
 from app.config import get_settings
 
 settings = get_settings()
@@ -95,6 +96,7 @@ def create_app(*, frontend_dist_dir: Path | None = None) -> FastAPI:
     application.include_router(checker_router)
     application.include_router(exports_router)
     application.include_router(dashboard_router, prefix="/api")
+    application.include_router(internal_router)
 
     @application.get("/health")
     def health() -> dict[str, str]:

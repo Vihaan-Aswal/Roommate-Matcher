@@ -1,4 +1,4 @@
-from functools import lru_cache
+ï»¿from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     app_port: int = 8000
 
     # --- Database (Postgres only) ---
-    database_url: str  # REQUIRED — no default, forces explicit config
+    database_url: str  # REQUIRED - no default, forces explicit config
     alembic_database_url: str = ""  # optional override for Alembic direct connection
 
     # --- CORS ---
@@ -33,6 +33,9 @@ class Settings(BaseSettings):
     # --- DFY / Demo ---
     whatsapp_dfy_number: str = ""
     demo_ttl_hours: int = 24
+
+    # --- Cleanup Job ---
+    cleanup_job_secret: str | None = None
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
