@@ -24,8 +24,8 @@ export function useRunMatchingMutation(workspaceId: string) {
         queryClient.invalidateQueries({
           queryKey: adminQueryKeys.matchingRuns(workspaceId),
         }),
-        queryClient.invalidateQueries({ queryKey: adminQueryKeys.dashboard }),
-        queryClient.invalidateQueries({ queryKey: adminQueryKeys.segments }),
+        queryClient.invalidateQueries({ queryKey: adminQueryKeys.dashboard(workspaceId) }),
+        queryClient.invalidateQueries({ queryKey: adminQueryKeys.segments(workspaceId) }),
       ]);
     },
   });

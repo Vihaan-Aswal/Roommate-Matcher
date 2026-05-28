@@ -10,7 +10,7 @@ export function AdminAtRiskReview(): JSX.Element {
 
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const runsQuery = useAdminMatchingRunsQuery(workspaceId);
+  const runsQuery = useAdminMatchingRunsQuery(workspaceId!);
 
   const runFromQuery = searchParams.get("run");
   const segment = searchParams.get("segment") ?? "all";

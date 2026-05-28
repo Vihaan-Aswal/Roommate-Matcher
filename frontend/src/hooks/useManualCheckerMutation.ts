@@ -8,6 +8,6 @@ import {
 export function useManualCheckerMutation(workspaceId: string) {
   return useMutation({
     mutationFn: (payload: CheckerRequestPayload) =>
-      runCheckerCompatibility(payload),
+      runCheckerCompatibility(workspaceId, payload),
   });
 }

@@ -5,7 +5,7 @@ import { adminQueryKeys } from "./adminQueryKeys";
 
 export function useAdminDashboardQuery() {
   return useQuery({
-    queryKey: adminQueryKeys.dashboard,
+    queryKey: adminQueryKeys.dashboard("legacy"),
     queryFn: getDashboardSummary,
   });
 }

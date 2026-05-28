@@ -20,9 +20,9 @@ async function invalidateUploadDependents(
 ): Promise<void> {
   await Promise.all([
     invalidate(adminQueryKeys.workspaceDashboard(workspaceId)),
-    invalidate(adminQueryKeys.segments),
-    invalidate(adminQueryKeys.formStatus),
-    invalidate(adminQueryKeys.nonSubmitters),
+    invalidate(adminQueryKeys.segments(workspaceId)),
+    invalidate(adminQueryKeys.formStatus(workspaceId)),
+    invalidate(adminQueryKeys.nonSubmitters(workspaceId)),
   ]);
 }
 
@@ -77,10 +77,10 @@ export function useUploadStudentsMutation() {
     onSuccess: async () => {
       // Legacy hooks might use old dashboard key, we just invalidate commonly used keys to be safe
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: adminQueryKeys.dashboard }),
-        queryClient.invalidateQueries({ queryKey: adminQueryKeys.segments }),
-        queryClient.invalidateQueries({ queryKey: adminQueryKeys.formStatus }),
-        queryClient.invalidateQueries({ queryKey: adminQueryKeys.nonSubmitters }),
+        queryClient.invalidateQueries({ queryKey: adminQueryKeys.dashboard("legacy") }),
+        queryClient.invalidateQueries({ queryKey: adminQueryKeys.segments("legacy") }),
+        queryClient.invalidateQueries({ queryKey: adminQueryKeys.formStatus("legacy") }),
+        queryClient.invalidateQueries({ queryKey: adminQueryKeys.nonSubmitters("legacy") }),
       ]);
     },
   });
@@ -93,10 +93,10 @@ export function useUploadRoomsMutation() {
     mutationFn: (file) => uploadRoomsCsv(file),
     onSuccess: async () => {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: adminQueryKeys.dashboard }),
-        queryClient.invalidateQueries({ queryKey: adminQueryKeys.segments }),
-        queryClient.invalidateQueries({ queryKey: adminQueryKeys.formStatus }),
-        queryClient.invalidateQueries({ queryKey: adminQueryKeys.nonSubmitters }),
+        queryClient.invalidateQueries({ queryKey: adminQueryKeys.dashboard("legacy") }),
+        queryClient.invalidateQueries({ queryKey: adminQueryKeys.segments("legacy") }),
+        queryClient.invalidateQueries({ queryKey: adminQueryKeys.formStatus("legacy") }),
+        queryClient.invalidateQueries({ queryKey: adminQueryKeys.nonSubmitters("legacy") }),
       ]);
     },
   });

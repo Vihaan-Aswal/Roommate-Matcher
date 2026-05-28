@@ -78,7 +78,7 @@ export function ManualCheckerPage(): JSX.Element {
     setSearchParams(next, { replace: true });
   }, [searchParams, segmentKey, segmentsQuery.data?.segments, setSearchParams]);
 
-  const segmentStudentsQuery = useSegmentStudentsQuery(segmentKey || null);
+  const segmentStudentsQuery = useSegmentStudentsQuery(workspaceId, segmentKey || null);
 
   const sortedStudents = useMemo(
     () =>

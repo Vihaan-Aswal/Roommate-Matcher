@@ -31,9 +31,9 @@ function formatDateTime(value: string): string {
 export function AdminMatchingRuns(): JSX.Element {
   const { workspaceId } = useWorkspace();
 
-  const segmentsQuery = useAdminSegmentsQuery(workspaceId);
-  const runsQuery = useAdminMatchingRunsQuery(workspaceId);
-  const runMutation = useRunMatchingMutation(workspaceId);
+  const segmentsQuery = useAdminSegmentsQuery(workspaceId!);
+  const runsQuery = useAdminMatchingRunsQuery(workspaceId!);
+  const runMutation = useRunMatchingMutation(workspaceId!);
 
   const [magicFillLoading, setMagicFillLoading] = useState(false);
 

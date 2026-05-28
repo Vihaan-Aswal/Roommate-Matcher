@@ -10,6 +10,6 @@ export interface ExportAssignmentsInput {
 export function useAssignmentsExportMutation(workspaceId: string) {
   return useMutation({
     mutationFn: ({ runId, segmentKey }: ExportAssignmentsInput) =>
-      exportAssignmentsCsv(runId, segmentKey),
+      exportAssignmentsCsv(workspaceId, runId, segmentKey),
   });
 }

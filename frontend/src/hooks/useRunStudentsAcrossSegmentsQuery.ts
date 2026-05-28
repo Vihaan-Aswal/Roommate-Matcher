@@ -14,6 +14,7 @@ interface UseRunStudentsAcrossSegmentsResult {
 }
 
 export function useRunStudentsAcrossSegmentsQuery(
+  workspaceId: string,
   runId: string,
   segmentKeys: string[],
   enabled: boolean,

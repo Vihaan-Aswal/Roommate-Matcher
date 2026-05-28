@@ -5,7 +5,7 @@ import { adminQueryKeys } from "./adminQueryKeys";
 
 export function useAdminFormStatusQuery(workspaceId: string | null) {
   return useQuery({
-    queryKey: [...adminQueryKeys.formStatus, workspaceId],
+    queryKey: adminQueryKeys.formStatus(workspaceId!),
     queryFn: () => getFormStatus(workspaceId!),
     enabled: !!workspaceId,
   });
@@ -13,7 +13,7 @@ export function useAdminFormStatusQuery(workspaceId: string | null) {
 
 export function useAdminNonSubmittersQuery(workspaceId: string | null) {
   return useQuery({
-    queryKey: [...adminQueryKeys.nonSubmitters, workspaceId],
+    queryKey: adminQueryKeys.nonSubmitters(workspaceId!),
     queryFn: () => getNonSubmitters(workspaceId!),
     enabled: !!workspaceId,
   });
