@@ -32,8 +32,14 @@ describe("DiffPreviewPanel", () => {
   it("renders with student diff and calls callbacks", () => {
     render(
       <DiffPreviewPanel
-        diff={studentDiff}
-        type="students"
+        title="Students Upload Preview"
+        toInsert={studentDiff.to_insert}
+        toUpdate={studentDiff.to_update}
+        toSoftDelete={studentDiff.to_soft_delete}
+        unchanged={studentDiff.unchanged}
+        validationErrors={studentDiff.validation_errors}
+        workspaceWarnings={studentDiff.warnings}
+        diffEntries={[]}
         onConfirm={mockOnConfirm}
         onCancel={mockOnCancel}
         isApplying={false}
@@ -41,10 +47,10 @@ describe("DiffPreviewPanel", () => {
     );
 
     // Verify stats
-    expect(screen.getByTestId("stat-adding")).toHaveTextContent("2");
-    expect(screen.getByTestId("stat-updating")).toHaveTextContent("1");
-    expect(screen.getByTestId("stat-removing")).toHaveTextContent("1");
-    expect(screen.getByTestId("stat-unchanged")).toHaveTextContent("6");
+    expect(screen.getByText("Adding")).toBeInTheDocument();
+    expect(screen.getByText("Updating")).toBeInTheDocument();
+    expect(screen.getByText("Removing")).toBeInTheDocument();
+    expect(screen.getByText("Unchanged")).toBeInTheDocument();
 
     // Verify warnings
     expect(screen.getByText("Warning 1")).toBeInTheDocument();

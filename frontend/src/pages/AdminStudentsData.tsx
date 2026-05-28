@@ -26,7 +26,7 @@ type UploadStep = "select" | "preview" | "applied";
 
 export function AdminStudentsData(): JSX.Element {
   const { workspaceId } = useWorkspace();
-  const formStatusQuery = useAdminFormStatusQuery();
+  const formStatusQuery = useAdminFormStatusQuery(workspaceId);
 
   const previewStudents = usePreviewStudentUploadMutation(workspaceId!);
   const applyStudents = useApplyStudentUploadMutation(workspaceId!);

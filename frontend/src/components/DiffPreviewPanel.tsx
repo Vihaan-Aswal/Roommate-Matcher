@@ -177,7 +177,7 @@ export function DiffPreviewPanel({
         {workspaceWarnings.length > 0 && (
           <div className="space-y-2">
             {workspaceWarnings.map((warning, index) => (
-              <InlineAlert key={index} title="Notice" message={warning} tone="warning" />
+              <InlineAlert key={index} title="Notice" message={warning} tone="info" />
             ))}
           </div>
         )}
