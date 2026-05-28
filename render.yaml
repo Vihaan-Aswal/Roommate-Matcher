@@ -1,0 +1,72 @@
+# render.yaml
+# Render Infrastructure-as-Code blueprint for Roommate Matcher backend.
+# Docs: https://render.com/docs/blueprint-spec
+#
+# IMPORTANT — Free-tier constraints:
+#   • Cold starts: the instance sleeps after ~15 min of inactivity.
+#   • No persistent disk: all data must live in Supabase Postgres (DATABASE_URL).
+#   • No Render Cron (paid feature): demo-tenant cleanup is handled by the
+#     GitHub Actions workflow at .github/workflows/demo-cleanup.yml instead.
+
+services:
+  - type: web
+    name: roommate-matcher-backend-dev
+    runtime: python
+    region: oregon               # Change to match your Supabase region if latency matters.
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -e ".[dev]"
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: true             # Redeploy on every push to the deploy branch.
+
+    envVars:
+      # ── Database ───────────────────────────────────────────────────────────
+      - key: DATABASE_URL
+        sync: false              # Set manually in Render dashboard — never commit secrets.
+
+      - key: ALEMBIC_DATABASE_URL
+        sync: false              # Port 5432 for direct (non-pooled) Alembic migrations.
+
+      # ── Supabase ───────────────────────────────────────────────────────────
+      - key: SUPABASE_PROJECT_URL
+        sync: false
+
+      - key: SUPABASE_ANON_KEY
+        sync: false
+
+      - key: SUPABASE_JWT_ISSUER
+        sync: false              # https://<project-id>.supabase.co/auth/v1
+
+      - key: SUPABASE_JWT_AUDIENCE
+        value: authenticated     # This is always "authenticated" for Supabase projects.
+
+      - key: SUPABASE_JWT_SECRET
+        sync: false
+
+      # ── Application ────────────────────────────────────────────────────────
+      - key: APP_JWT_SECRET
+        sync: false              # Generate: openssl rand -hex 32
+
+      - key: ADMIN_EMAILS
+        sync: false              # Comma-separated list of platform admin emails.
+
+      - key: FRONTEND_URL
+        value: https://roommate-matcher.vercel.app
+
+      - key: CORS_ALLOWED_ORIGINS
+        value: https://roommate-matcher.vercel.app
+
+      - key: APP_ENV
+        value: production
+
+      - key: DEMO_TTL_HOURS
+        value: "24"
+
+      # ── Cleanup Job ────────────────────────────────────────────────────────
+      - key: CLEANUP_JOB_SECRET
+        sync: false              # Generate: openssl rand -hex 32. Must match GitHub Actions secret.
+
+      # ── WhatsApp DFY ───────────────────────────────────────────────────────
+      - key: WHATSAPP_DFY_NUMBER
+        sync: false
