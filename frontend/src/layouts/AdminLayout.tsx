@@ -1,6 +1,7 @@
 import { NavLink, Outlet, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../providers/AuthProvider";
 import { useWorkspace } from "../providers/WorkspaceProvider";
+import { ImpersonationBanner } from "../components/ImpersonationBanner";
 
 const links = [
   { to: "dashboard", label: "Dashboard" },
@@ -24,6 +25,7 @@ export function AdminLayout(): JSX.Element {
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_#fdf7ef_0%,_#fff_40%,_#f3f8f6_100%)]">
+      <ImpersonationBanner />
       <div className="mx-auto grid min-h-screen max-w-7xl grid-cols-1 md:grid-cols-[280px_1fr]">
         <aside className="border-r border-border/70 bg-white/80 p-6 backdrop-blur flex flex-col">
           <h1 className="font-serif text-2xl font-bold tracking-tight">

@@ -70,6 +70,7 @@ export function useAuth(): AuthState {
 // ---------------------------------------------------------------------------
 
 const DEMO_TOKEN_KEY = "demo_token";
+const IMPERSONATION_TOKEN_KEY = "impersonation_token";
 const API_BASE = (import.meta.env.VITE_API_BASE_URL as string) ?? "";
 
 // ---------------------------------------------------------------------------
@@ -138,15 +139,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Check for demo token first
       const demoToken = sessionStorage.getItem(DEMO_TOKEN_KEY);
-      if (demoToken) {
-        const appUser = await hydrateFromBackend(demoToken);
+      // Also check for impersonation token (platform admin entering tenant)
+      const impersonationToken = sessionStorage.getItem(IMPERSONATION_TOKEN_KEY);
+      const appSessionToken = demoToken ?? impersonationToken;
+
+      if (appSessionToken) {
+        const appUser = await hydrateFromBackend(appSessionToken);
         if (!cancelled) {
           if (appUser) {
             setUser(appUser);
-            setToken(demoToken);
+            setToken(appSessionToken);
           } else {
             // Token invalid/expired — clear it
             sessionStorage.removeItem(DEMO_TOKEN_KEY);
+            sessionStorage.removeItem(IMPERSONATION_TOKEN_KEY);
           }
           setIsLoading(false);
           return;
@@ -222,6 +228,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     sessionStorage.setItem("demo_workspace_id", data.workspace_id); // NEW
 
     // Immediately hydrate
+    setApiToken(data.token);
     const appUser = await hydrateFromBackend(data.token);
     setUser(appUser);
     setToken(data.token);
