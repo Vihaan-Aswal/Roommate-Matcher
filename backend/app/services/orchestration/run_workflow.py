@@ -158,7 +158,7 @@ def _resolve_target_segments(db: Session, scope: RunScope, segment_key: str | No
 def _segment_scoring_profiles(db: Session, segment: Segment) -> tuple[list[str], list[ScoringProfile]]:
     students = db.scalars(
         select(Student)
-        .where(Student.segment_id == segment.id, Student.workspace_id == segment.workspace_id)
+        .where(Student.segment_id == segment.id, Student.workspace_id == segment.workspace_id, Student.is_active == True)
         .order_by(Student.admission_number)
     ).all()
     student_ids = [student.admission_number for student in students]
@@ -180,6 +180,9 @@ def _segment_scoring_profiles(db: Session, segment: Segment) -> tuple[list[str],
         for profile in active_profiles
         if student_id_map[profile.student_id] in student_id_set
     }
+
+    if not active_profiles:
+        raise ValueError("Segment has zero active profiles")
 
     scoring_profiles: list[ScoringProfile] = []
     for student_id in student_ids:
@@ -314,7 +317,7 @@ def _persist_segment_artifacts(
     return fairness_records
 
 
-def run_matching_workflow(db: Session, scope: RunScope, segment_key: str | None, workspace_id: uuid.UUID) -> MatchingRunStartResult:
+def run_matching_workflow(db: Session, workspace_id: uuid.UUID, tenant_id: uuid.UUID, scope: RunScope, segment_key: str | None) -> MatchingRunStartResult:
     targets = _resolve_target_segments(db, scope, segment_key, workspace_id)
     run_id = _new_run_id()
     started_at = _now_utc()

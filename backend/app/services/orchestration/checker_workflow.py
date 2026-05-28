@@ -107,11 +107,12 @@ def run_manual_checker(
             Student.segment_id == segment.id,
             Student.workspace_id == workspace_id,
             Student.admission_number.in_(student_ids),
+            Student.is_active == True,
         )
         .order_by(Student.admission_number)
     ).all()
     if len(students) != len(student_ids):
-        raise ValueError("One or more student_ids are not in the target segment")
+        raise ValueError("One or more student_ids are invalid, not in the target segment, or inactive")
 
     student_id_map = {student.id: student.admission_number for student in students}
     active_profiles = db.scalars(
