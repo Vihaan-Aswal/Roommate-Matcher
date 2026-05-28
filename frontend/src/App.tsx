@@ -16,6 +16,28 @@ import { AdminStudentsData } from "./pages/AdminStudentsData";
 import { StudentForm } from "./pages/StudentForm";
 import { RoomResultsPage } from "./pages/matching/RoomResultsPage";
 import { StudentResultsPage } from "./pages/matching/StudentResultsPage";
+import { PlatformTenantsPage } from "./pages/platform/PlatformTenantsPage";
+import { PlatformTenantWorkspacesPage } from "./pages/platform/PlatformTenantWorkspacesPage";
+
+/**
+ * PlatformRoute — restricts access to platform admins only.
+ */
+function PlatformRoute({ children }: { children: React.ReactNode }) {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (!user) return <Navigate replace to="/login" />;
+  if (!user.isPlatformAdmin) return <Navigate replace to="/app" />;
+
+  return <>{children}</>;
+}
 
 /**
  * ProtectedRoute — renders children only when the user is authenticated.
@@ -60,6 +82,24 @@ export default function App(): JSX.Element {
             <ProtectedRoute>
               <WorkspaceChooserPage />
             </ProtectedRoute>
+          }
+        />
+
+        {/* Platform Routes */}
+        <Route
+          path="/platform"
+          element={
+            <PlatformRoute>
+              <PlatformTenantsPage />
+            </PlatformRoute>
+          }
+        />
+        <Route
+          path="/platform/tenants/:tenantId/workspaces"
+          element={
+            <PlatformRoute>
+              <PlatformTenantWorkspacesPage />
+            </PlatformRoute>
           }
         />
 
