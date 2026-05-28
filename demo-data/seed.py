@@ -271,7 +271,7 @@ def main() -> None:
         Session.get = patched_session_get
 
         if args.run_matching:
-            run_result = run_matching_workflow(db, "all_ready_segments", None)
+            run_result = run_matching_workflow(db, workspace_id, tenant_id, "all_ready_segments", None)
             print("\nMatching run summary")
             print("--------------------")
             print(f"Run ID: {run_result.run_id}")
