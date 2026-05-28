@@ -133,7 +133,7 @@ For 2-bed rooms: direct pair factors, no aggregation needed.
 |---|---|
 | Frontend | React, TypeScript, Vite, React Router, Tailwind CSS, shadcn/ui, TanStack Query |
 | Backend | FastAPI, Python, Pydantic v2, SQLAlchemy, Alembic |
-| Database | SQLite (`data/app.db`) |
+| Database | Supabase Postgres (production) / SQLite (local demo) |
 | Matching | pandas, NumPy, NetworkX |
 | Testing | pytest, Vitest, Playwright |
 
@@ -224,6 +224,82 @@ cd frontend && npm run test
 # Frontend E2E (Playwright)
 cd frontend && npm run e2e:install && npm run e2e
 ```
+
+---
+
+## Deployment
+
+### Production URLs (Default Domains)
+
+| Service | URL |
+|---|---|
+| **Backend (Render)** | `https://roommate-matcher-backend-dev.onrender.com` |
+| **Frontend (Vercel)** | `https://roommate-matcher.vercel.app` |
+
+> **Render free-tier note:** The backend instance sleeps after ~15 min of inactivity.
+> The first request after a cold start may take 30–60 s. This is expected behaviour
+> on the free tier. Upgrade to a paid Render plan (Starter+) to eliminate cold starts.
+
+> **Custom domain (optional):** Custom DNS is not configured in Phase 8. To add it,
+> point your domain to Vercel (frontend) and Render (backend) via their respective
+> domain settings panels. No code changes are required.
+
+---
+
+### Startup Order for Production
+
+1. **Render auto-deploys** the backend on every push to the configured branch.
+   - Build command: `pip install -e ".[dev]"`
+   - Start command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+   - Health check: `GET /health` → `{"status": "ok", "environment": "production"}`
+2. **Vercel auto-deploys** the frontend on every push.
+   - Build command: `npm run build` (from `frontend/`)
+   - Output directory: `frontend/dist`
+   - `VITE_API_BASE_URL` is baked in at build time from `vercel.json`.
+3. **Alembic migrations** must be run manually before the first deployment
+   and after any schema-changing PR:
+   ```bash
+   # Run from backend/ with ALEMBIC_DATABASE_URL set to your production Postgres URL
+   cd backend
+   alembic upgrade head
+   ```
+
+---
+
+### Required Environment Variables (Backend — Render Dashboard)
+
+| Variable | Description |
+|---|---|
+| `DATABASE_URL` | Supabase Postgres pooled URL (port 6543) |
+| `ALEMBIC_DATABASE_URL` | Supabase Postgres direct URL (port 5432) — for migrations only |
+| `SUPABASE_PROJECT_URL` | `https://<project-id>.supabase.co` |
+| `SUPABASE_ANON_KEY` | Supabase anon/public key |
+| `SUPABASE_JWT_ISSUER` | `https://<project-id>.supabase.co/auth/v1` |
+| `SUPABASE_JWT_AUDIENCE` | `authenticated` |
+| `SUPABASE_JWT_SECRET` | Supabase JWT secret (from Auth settings) |
+| `APP_JWT_SECRET` | 32-byte hex secret for app-issued tokens — `openssl rand -hex 32` |
+| `ADMIN_EMAILS` | Comma-separated platform admin emails |
+| `FRONTEND_URL` | `https://roommate-matcher.vercel.app` |
+| `CORS_ALLOWED_ORIGINS` | `https://roommate-matcher.vercel.app` |
+| `APP_ENV` | `production` |
+| `DEMO_TTL_HOURS` | `24` |
+| `CLEANUP_JOB_SECRET` | 32-byte hex secret for cleanup cron — `openssl rand -hex 32` |
+| `WHATSAPP_DFY_NUMBER` | WhatsApp DFY number with country code, no spaces |
+
+---
+
+### Required GitHub Secrets (for Demo Cleanup Cron)
+
+| Secret | Value |
+|---|---|
+| `CLEANUP_JOB_SECRET` | Same value as the Render env var |
+| `BACKEND_URL` | `https://roommate-matcher-backend-dev.onrender.com` |
+
+---
+
+### Local Database (Development)
+
+SQLite remains the default database for local development to ensure zero-setup onboarding.
 
 ---
 
@@ -337,7 +413,6 @@ python demo-data/seed.py --reset --schema-only
 
 **Out of scope:**
 - Deciding who gets AC/non-AC, hostel, or block
-- Cloud deployment and managed infrastructure
 - Continuous automatic global rematching during semester
 - Complex legal discrimination auditing beyond operational fairness reporting
 
@@ -345,7 +420,6 @@ python demo-data/seed.py --reset --schema-only
 
 ## Known limitations
 
-- Local-only runtime (no cloud deployment target in v1)
 - CSV export supported; PDF reporting is out of scope for v1
 - Matching runs execute synchronously in the API flow
 
