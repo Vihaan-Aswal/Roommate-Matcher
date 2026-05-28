@@ -66,7 +66,10 @@ def compute_form_collection_status(db: Session, workspace_id: uuid.UUID) -> Form
     results = db.execute(
         select(Student, Segment.segment_key)
         .join(Segment, Student.segment_id == Segment.id)
-        .where(Student.workspace_id == workspace_id)
+        .where(
+            Student.workspace_id == workspace_id,
+            Student.is_active == True,
+        )
         .order_by(Segment.segment_key, Student.admission_number)
     ).all()
     
@@ -117,7 +120,10 @@ def list_non_submitters(db: Session, workspace_id: uuid.UUID) -> list[NonSubmitt
     results = db.execute(
         select(Student, Segment.segment_key)
         .join(Segment, Student.segment_id == Segment.id)
-        .where(Student.workspace_id == workspace_id)
+        .where(
+            Student.workspace_id == workspace_id,
+            Student.is_active == True,
+        )
         .order_by(Segment.segment_key, Student.admission_number)
     ).all()
 
