@@ -2,6 +2,7 @@ import { useEffect, useMemo } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 
 import { AdminPageHeader } from "../../components/AdminPageHeader";
+import DataWarningBanner from "../../components/DataWarningBanner";
 import { InlineAlert } from "../../components/InlineAlert";
 import { StudentResultsFilters } from "../../components/matching/filters/StudentResultsFilters";
 import { StudentResultsTable } from "../../components/matching/tables/StudentResultsTable";
@@ -192,6 +193,10 @@ export function StudentResultsPage(): JSX.Element {
         title="Student Results"
         description={`Student-level matching results for run ${runId}.`}
       />
+
+      {singleSegmentQuery.data?.has_generated_profiles && (
+        <DataWarningBanner hasGeneratedProfiles={true} context="results" />
+      )}
 
       <StudentResultsFilters
         atRiskOnly={atRiskOnly}

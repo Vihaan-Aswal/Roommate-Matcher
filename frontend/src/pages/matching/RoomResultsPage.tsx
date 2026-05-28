@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 
 import { AdminPageHeader } from "../../components/AdminPageHeader";
+import DataWarningBanner from "../../components/DataWarningBanner";
 import { InlineAlert } from "../../components/InlineAlert";
 import { RoomResultsFilters } from "../../components/matching/filters/RoomResultsFilters";
 import { RoomResultsTable } from "../../components/matching/tables/RoomResultsTable";
@@ -145,6 +146,10 @@ export function RoomResultsPage(): JSX.Element {
         description={`Room-level matching output for run ${runId}.`}
         actions={actions}
       />
+
+      {roomsQuery.data?.has_generated_profiles && (
+        <DataWarningBanner hasGeneratedProfiles={true} context="results" />
+      )}
 
       {segmentsQuery.isLoading ? (
         <InlineAlert

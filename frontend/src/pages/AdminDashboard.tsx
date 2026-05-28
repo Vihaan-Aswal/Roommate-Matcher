@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 
 import { AdminPageHeader } from "../components/AdminPageHeader";
+import DataWarningBanner from "../components/DataWarningBanner";
 import { InlineAlert } from "../components/InlineAlert";
 import { StatCard } from "../components/StatCard";
 import { StatusBadge } from "../components/StatusBadge";
@@ -79,6 +80,13 @@ export function AdminDashboard(): JSX.Element {
 
       {dashboardQuery.data ? (
         <>
+          {dashboardQuery.data.generated_data_warning?.has_generated_data && (
+            <DataWarningBanner
+              hasGeneratedProfiles={true}
+              context="dashboard"
+            />
+          )}
+
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <StatCard
               label="Total Students"

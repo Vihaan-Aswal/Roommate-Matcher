@@ -7,6 +7,7 @@ import {
 } from "react-router-dom";
 
 import { AdminPageHeader } from "../../components/AdminPageHeader";
+import DataWarningBanner from "../../components/DataWarningBanner";
 import { InlineAlert } from "../../components/InlineAlert";
 import { FairnessBarChart } from "../../components/reports/FairnessBarChart";
 import { FairnessCountsCard } from "../../components/reports/FairnessCountsCard";
@@ -224,6 +225,9 @@ export function FairnessReportsPage(): JSX.Element {
 
       {fairnessQuery.data ? (
         <>
+          {fairnessQuery.data.has_generated_profiles && (
+            <DataWarningBanner hasGeneratedProfiles={true} context="fairness" />
+          )}
           <Card className="border-border/80 bg-white/90">
             <CardHeader>
               <CardTitle className="text-lg">Run summary</CardTitle>

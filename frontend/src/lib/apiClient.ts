@@ -167,6 +167,10 @@ export interface WorkspaceDashboardResponse {
   form_collection_stats: DashboardFormCollectionStats;
   segments_status: DashboardSegmentsStatus;
   latest_matching_run: DashboardLatestRun;
+  generated_data_warning?: {
+    generated_profiles_count: number;
+    has_generated_data: boolean;
+  };
 }
 
 export interface DashboardResponse {
@@ -293,6 +297,7 @@ export interface MatchingRunRoomsResponse {
   run_id: string;
   segment_key: string;
   rooms: RunRoomRow[];
+  has_generated_profiles?: boolean;
 }
 
 export interface RunStudentRow {
@@ -311,6 +316,7 @@ export interface MatchingRunStudentsResponse {
   run_id: string;
   segment_key: string;
   students: RunStudentRow[];
+  has_generated_profiles?: boolean;
 }
 
 export interface SegmentFairnessRow {
@@ -331,6 +337,7 @@ export interface FairnessReportResponse {
   run_at_risk_count: number;
   run_at_risk_student_ids: string[];
   by_segment: SegmentFairnessRow[];
+  has_generated_profiles?: boolean;
 }
 
 export interface SegmentStudentPreferenceRow {
