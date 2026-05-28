@@ -566,8 +566,8 @@ export async function regenerateWorkspaceFormLink(workspaceId: string): Promise<
   });
 }
 
-export async function getSegments(): Promise<SegmentListResponse> {
-  return requestJson<SegmentListResponse>("/api/segments");
+export async function getSegments(workspaceId: string): Promise<SegmentListResponse> {
+  return requestJson<SegmentListResponse>(`/api/workspaces/${encodeURIComponent(workspaceId)}/segments`);
 }
 
 export async function getFormStatus(workspaceId: string): Promise<FormStatusResponse> {
@@ -796,4 +796,86 @@ export async function magicFillWorkspace(
     throw new Error(err.detail ?? "Magic Fill failed.");
   }
   return res.json();
+}
+
+// ---------------------------------------------------------------------------
+// Platform / God-Mode types  (Phase 7)
+// ---------------------------------------------------------------------------
+
+export interface PlatformTenantRow {
+  id: string;
+  slug: string;
+  display_name: string;
+  contact_email: string | null;
+  is_demo: boolean;
+  demo_expires_at: string | null;
+  created_at: string;
+  workspace_count: number;
+}
+
+export interface PlatformTenantListResponse {
+  tenants: PlatformTenantRow[];
+  total: number;
+}
+
+export interface PlatformWorkspaceRow {
+  id: string;
+  name: string;
+  status: string;
+  source: string;
+  is_demo_seeded: boolean;
+  created_at: string;
+}
+
+export interface PlatformWorkspaceListResponse {
+  tenant_id: string;
+  workspaces: PlatformWorkspaceRow[];
+}
+
+export interface ImpersonateRequest {
+  workspace_id: string;
+}
+
+export interface ImpersonateResponse {
+  token: string;
+  tenant_id: string;
+  workspace_id: string;
+  expires_in_hours: number;
+}
+
+// ---------------------------------------------------------------------------
+// Platform API functions  (Phase 7)
+// ---------------------------------------------------------------------------
+
+export async function getPlatformTenants(
+  includeDemo = false,
+): Promise<PlatformTenantListResponse> {
+  const qs = includeDemo ? "?include_demo=true" : "";
+  return requestJson<PlatformTenantListResponse>(`/api/platform/tenants${qs}`);
+}
+
+export async function getPlatformTenant(tenantId: string): Promise<PlatformTenantRow> {
+  return requestJson<PlatformTenantRow>(`/api/platform/tenants/${encodeURIComponent(tenantId)}`);
+}
+
+export async function getPlatformTenantWorkspaces(
+  tenantId: string,
+): Promise<PlatformWorkspaceListResponse> {
+  return requestJson<PlatformWorkspaceListResponse>(
+    `/api/platform/tenants/${encodeURIComponent(tenantId)}/workspaces`,
+  );
+}
+
+export async function impersonateTenant(
+  tenantId: string,
+  workspaceId: string,
+): Promise<ImpersonateResponse> {
+  return requestJson<ImpersonateResponse>(
+    `/api/platform/tenants/${encodeURIComponent(tenantId)}/impersonate`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ workspace_id: workspaceId } satisfies ImpersonateRequest),
+    },
+  );
 }

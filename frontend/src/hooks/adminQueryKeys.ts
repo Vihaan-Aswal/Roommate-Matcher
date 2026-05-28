@@ -18,4 +18,12 @@ export const adminQueryKeys = {
     ["workspace", workspaceId, "checker", segmentKey, ...studentIds] as const,
   runStudentsAllSegments: (workspaceId: string, runId: string) =>
     ["workspace", workspaceId, "matching-students-all", runId] as const,
+
+  // Phase 7 additions:
+  platformTenants: (includeDemo?: boolean) =>
+    ["platform", "tenants", { includeDemo: includeDemo ?? false }] as const,
+  platformTenant: (tenantId: string) =>
+    ["platform", "tenant", tenantId] as const,
+  platformTenantWorkspaces: (tenantId: string) =>
+    ["platform", "tenant", tenantId, "workspaces"] as const,
 };
