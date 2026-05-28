@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import csv
+import uuid
 from dataclasses import dataclass
-from datetime import date
 from pathlib import Path
 
 from sqlalchemy.orm import Session
@@ -14,7 +14,7 @@ from app.services.ingestion.form_response import (
 )
 
 
-REQUIRED_COLUMNS = {"admission_number", "dob", *QUESTION_KEYS}
+REQUIRED_COLUMNS = {"admission_number", "phone_last4", *QUESTION_KEYS}
 
 
 @dataclass
@@ -49,15 +49,7 @@ def _safe_text(value: str | None) -> str:
     return value.strip()
 
 
-def _parse_dob(value: str) -> date | None:
-    text_value = value.strip()
-    try:
-        return date.fromisoformat(text_value)
-    except ValueError:
-        return None
-
-
-def ingest_form_responses_csv(db: Session, csv_path: str) -> dict[str, object]:
+def ingest_form_responses_csv(db: Session, workspace_id: uuid.UUID, csv_path: str) -> dict[str, object]:
     path = Path(csv_path)
     if not path.exists():
         raise FileNotFoundError(f"CSV file not found: {csv_path}")
@@ -86,15 +78,14 @@ def ingest_form_responses_csv(db: Session, csv_path: str) -> dict[str, object]:
                     )
                 )
 
-            dob_raw = _safe_text(row.get("dob"))
-            dob = _parse_dob(dob_raw)
-            if dob is None:
+            phone_last4 = _safe_text(row.get("phone_last4"))
+            if not phone_last4:
                 row_errors.append(
                     RowError(
                         row_number,
-                        "dob",
-                        "invalid_dob_iso_format",
-                        row.get("dob"),
+                        "phone_last4",
+                        "required",
+                        row.get("phone_last4"),
                     )
                 )
 
@@ -120,13 +111,13 @@ def ingest_form_responses_csv(db: Session, csv_path: str) -> dict[str, object]:
                 continue
 
             seen_in_file.add(admission_number)
-            assert dob is not None
 
             try:
                 ingest_form_response(
                     db=db,
+                    workspace_id=workspace_id,
                     admission_number=admission_number,
-                    dob=dob,
+                    phone_last4=phone_last4,
                     raw_answers=answers,
                 )
             except FormIntakeError as exc:

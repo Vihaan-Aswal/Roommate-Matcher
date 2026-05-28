@@ -39,13 +39,14 @@ def _seed_student(db_session: Session, admission_number: str = "ADM200") -> Stud
 
 
 def test_form_submit_success(client: TestClient, db_session: Session) -> None:
-    _seed_student(db_session)
+    student = _seed_student(db_session)
 
     response = client.post(
         "/api/form/submit",
         json={
+            "workspace_id": str(student.workspace_id),
             "admission_number": "ADM200",
-            "dob": "2005-01-01",
+            "phone_last4": "3210",
             "q1_raw": "Before 11 PM (early)",
             "q2_raw": "Very tidy - I like things clean and organized",
             "q3_raw": "Before 10 PM",
@@ -67,31 +68,33 @@ def test_form_submit_success(client: TestClient, db_session: Session) -> None:
     assert payload["has_preferences"] is True
 
 
-def test_form_submit_dob_mismatch_returns_400(client: TestClient, db_session: Session) -> None:
-    _seed_student(db_session, admission_number="ADM201")
+def test_form_submit_phone_last4_mismatch_returns_400(client: TestClient, db_session: Session) -> None:
+    student = _seed_student(db_session, admission_number="ADM201")
 
     response = client.post(
         "/api/form/submit",
         json={
+            "workspace_id": str(student.workspace_id),
             "admission_number": "ADM201",
-            "dob": "2005-02-01",
+            "phone_last4": "9999",
             "q1_raw": "Before 11 PM (early)",
         },
     )
 
     assert response.status_code == 400
     payload = response.json()
-    assert payload["detail"]["code"] == "dob_mismatch"
+    assert payload["detail"]["code"] == "phone_mismatch"
 
 
 def test_form_submit_incomplete_submission_returns_400(client: TestClient, db_session: Session) -> None:
-    _seed_student(db_session, admission_number="ADM205")
+    student = _seed_student(db_session, admission_number="ADM205")
 
     response = client.post(
         "/api/form/submit",
         json={
+            "workspace_id": str(student.workspace_id),
             "admission_number": "ADM205",
-            "dob": "2005-01-01",
+            "phone_last4": "3210",
             "q1_raw": "Before 11 PM (early)",
         },
     )
@@ -236,7 +239,7 @@ def test_segment_students_endpoint_returns_valid_invalid_missing_statuses(
 
 def test_form_status_endpoint_returns_aggregate_counts(client: TestClient, db_session: Session) -> None:
     student = _seed_student(db_session, admission_number="ADM240")
-    st241 = Student(id=__import__("uuid").uuid4(), tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), admission_number="ADM241",
+    st241 = Student(id=__import__("uuid").uuid4(), tenant_id=__import__("uuid").uuid4(), workspace_id=student.workspace_id, admission_number="ADM241",
         full_name="Invalid Form Student",
         gender="M",
         year_group="1st_year",
@@ -248,7 +251,7 @@ def test_form_status_endpoint_returns_aggregate_counts(client: TestClient, db_se
         phone_last4="3210",
         is_active=True,
     )
-    st242 = Student(id=__import__("uuid").uuid4(), tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), admission_number="ADM242",
+    st242 = Student(id=__import__("uuid").uuid4(), tenant_id=__import__("uuid").uuid4(), workspace_id=student.workspace_id, admission_number="ADM242",
         full_name="Missing Form Student",
         gender="M",
         year_group="1st_year",
@@ -262,13 +265,13 @@ def test_form_status_endpoint_returns_aggregate_counts(client: TestClient, db_se
     )
     db_session.add_all([st241, st242])
     db_session.add(
-        PreferenceProfile(tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), student_id=student.id, has_preferences=1, is_active=True)
+        PreferenceProfile(tenant_id=__import__("uuid").uuid4(), workspace_id=student.workspace_id, student_id=student.id, has_preferences=1, is_active=True)
     )
     db_session.add(
         FormResponse(
             student_id=st241.id,
             tenant_id=__import__("uuid").uuid4(),
-            workspace_id=__import__("uuid").uuid4(),
+            workspace_id=student.workspace_id,
             submitted_admission_number="ADM241",
             submitted_phone_last4="3210",
             submitted_at=datetime.now(timezone.utc),
@@ -278,11 +281,40 @@ def test_form_status_endpoint_returns_aggregate_counts(client: TestClient, db_se
     )
     db_session.commit()
 
-    response = client.get("/api/form/status")
-    assert response.status_code == 200
+    # Create dummy user and mock require_workspace_access dependency
+    from app.auth.dependencies import require_workspace_access
+    from app.auth.contracts import AuthenticatedUser
+    from app.models.tenant import Tenant
+    from app.models.workspace import Workspace
 
-    payload = response.json()
-    assert payload["total_students"] == 3
+    tenant = db_session.query(Tenant).filter_by(id=student.tenant_id).first()
+    if not tenant:
+        tenant = Tenant(id=student.tenant_id, slug="t1", display_name="T1")
+        db_session.add(tenant)
+    workspace = db_session.query(Workspace).filter_by(id=student.workspace_id).first()
+    if not workspace:
+        workspace = Workspace(id=student.workspace_id, tenant_id=tenant.id, name="W1")
+        db_session.add(workspace)
+    db_session.commit()
+    
+    user = AuthenticatedUser(
+        auth_kind="app_jwt",
+        tenant_id=tenant.id,
+        supabase_user_id="user1",
+        email="user@example.com",
+        role="admin"
+    )
+
+    from app.main import app
+    app.dependency_overrides[require_workspace_access] = lambda: (user, tenant, workspace)
+    try:
+        response = client.get(f"/api/workspaces/{student.workspace_id}/collection/status")
+        assert response.status_code == 200
+
+        payload = response.json()
+        assert payload["total_students"] == 3
+    finally:
+        app.dependency_overrides.clear()
     assert payload["valid_responses"] == 1
     assert payload["invalid_responses"] == 1
     assert payload["percentage_valid"] == 33.33
@@ -295,7 +327,7 @@ def test_non_submitters_endpoint_returns_students_without_valid_profiles(
     db_session: Session,
 ) -> None:
     student = _seed_student(db_session, admission_number="ADM250")
-    st251 = Student(id=__import__("uuid").uuid4(), tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), admission_number="ADM251",
+    st251 = Student(id=__import__("uuid").uuid4(), tenant_id=__import__("uuid").uuid4(), workspace_id=student.workspace_id, admission_number="ADM251",
         full_name="Invalid Form Student",
         gender="M",
         year_group="1st_year",
@@ -307,7 +339,7 @@ def test_non_submitters_endpoint_returns_students_without_valid_profiles(
         phone_last4="3210",
         is_active=True,
     )
-    st252 = Student(id=__import__("uuid").uuid4(), tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), admission_number="ADM252",
+    st252 = Student(id=__import__("uuid").uuid4(), tenant_id=__import__("uuid").uuid4(), workspace_id=student.workspace_id, admission_number="ADM252",
         full_name="Missing Form Student",
         gender="M",
         year_group="1st_year",
@@ -321,13 +353,13 @@ def test_non_submitters_endpoint_returns_students_without_valid_profiles(
     )
     db_session.add_all([st251, st252])
     db_session.add(
-        PreferenceProfile(tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), student_id=student.id, has_preferences=1, is_active=True)
+        PreferenceProfile(tenant_id=__import__("uuid").uuid4(), workspace_id=student.workspace_id, student_id=student.id, has_preferences=1, is_active=True)
     )
     db_session.add(
         FormResponse(
             student_id=st251.id,
             tenant_id=__import__("uuid").uuid4(),
-            workspace_id=__import__("uuid").uuid4(),
+            workspace_id=student.workspace_id,
             submitted_admission_number="ADM251",
             submitted_phone_last4="3210",
             submitted_at=datetime.now(timezone.utc),
@@ -337,10 +369,38 @@ def test_non_submitters_endpoint_returns_students_without_valid_profiles(
     )
     db_session.commit()
 
-    response = client.get("/api/form/non-submitters")
-    assert response.status_code == 200
+    from app.auth.dependencies import require_workspace_access
+    from app.auth.contracts import AuthenticatedUser
+    from app.models.tenant import Tenant
+    from app.models.workspace import Workspace
 
-    payload = response.json()
-    ids = [row["admission_number"] for row in payload["non_submitters"]]
+    tenant = db_session.query(Tenant).filter_by(id=student.tenant_id).first()
+    if not tenant:
+        tenant = Tenant(id=student.tenant_id, slug="t2", display_name="T2")
+        db_session.add(tenant)
+    workspace = db_session.query(Workspace).filter_by(id=student.workspace_id).first()
+    if not workspace:
+        workspace = Workspace(id=student.workspace_id, tenant_id=tenant.id, name="W2")
+        db_session.add(workspace)
+    db_session.commit()
+    
+    user = AuthenticatedUser(
+        auth_kind="app_jwt",
+        tenant_id=tenant.id,
+        supabase_user_id="user1",
+        email="user@example.com",
+        role="admin"
+    )
+
+    from app.main import app
+    app.dependency_overrides[require_workspace_access] = lambda: (user, tenant, workspace)
+    try:
+        response = client.get(f"/api/workspaces/{student.workspace_id}/collection/non-submitters")
+        assert response.status_code == 200
+
+        payload = response.json()
+        ids = [row["admission_number"] for row in payload["non_submitters"]]
+    finally:
+        app.dependency_overrides.clear()
     assert payload["total_count"] == 2
     assert ids == ["ADM251", "ADM252"]

@@ -35,12 +35,13 @@ class NonSubmitterRecord:
     segment_key: str
 
 
-def _valid_admissions(db: Session) -> set[str]:
+def _valid_admissions(db: Session, workspace_id: uuid.UUID) -> set[str]:
     return set(
         db.scalars(
             select(Student.admission_number)
             .join(PreferenceProfile, PreferenceProfile.student_id == Student.id)
             .where(
+                Student.workspace_id == workspace_id,
                 PreferenceProfile.is_active == True,
                 PreferenceProfile.has_preferences == True,
             )
@@ -48,10 +49,12 @@ def _valid_admissions(db: Session) -> set[str]:
     )
 
 
-def _latest_form_status_by_admission(db: Session) -> dict[str, str]:
+def _latest_form_status_by_admission(db: Session, workspace_id: uuid.UUID) -> dict[str, str]:
     latest_status: dict[str, str] = {}
     rows = db.scalars(
-        select(FormResponse).order_by(desc(FormResponse.submitted_at), desc(FormResponse.id))
+        select(FormResponse)
+        .where(FormResponse.workspace_id == workspace_id)
+        .order_by(desc(FormResponse.submitted_at), desc(FormResponse.id))
     ).all()
     for row in rows:
         if row.submitted_admission_number not in latest_status:
@@ -59,15 +62,16 @@ def _latest_form_status_by_admission(db: Session) -> dict[str, str]:
     return latest_status
 
 
-def compute_form_collection_status(db: Session) -> FormCollectionStatusResult:
+def compute_form_collection_status(db: Session, workspace_id: uuid.UUID) -> FormCollectionStatusResult:
     results = db.execute(
         select(Student, Segment.segment_key)
         .join(Segment, Student.segment_id == Segment.id)
+        .where(Student.workspace_id == workspace_id)
         .order_by(Segment.segment_key, Student.admission_number)
     ).all()
     
-    valid_admissions = _valid_admissions(db)
-    latest_status = _latest_form_status_by_admission(db)
+    valid_admissions = _valid_admissions(db, workspace_id)
+    latest_status = _latest_form_status_by_admission(db, workspace_id)
 
     total_students = len(results)
     valid_responses = sum(1 for student, _ in results if student.admission_number in valid_admissions)
@@ -108,11 +112,12 @@ def compute_form_collection_status(db: Session) -> FormCollectionStatusResult:
     )
 
 
-def list_non_submitters(db: Session) -> list[NonSubmitterRecord]:
-    valid_admissions = _valid_admissions(db)
+def list_non_submitters(db: Session, workspace_id: uuid.UUID) -> list[NonSubmitterRecord]:
+    valid_admissions = _valid_admissions(db, workspace_id)
     results = db.execute(
         select(Student, Segment.segment_key)
         .join(Segment, Student.segment_id == Segment.id)
+        .where(Student.workspace_id == workspace_id)
         .order_by(Segment.segment_key, Student.admission_number)
     ).all()
 

@@ -151,7 +151,7 @@ def main() -> None:
             rooms_result = apply_room_import(db, workspace_id, tenant_id, f.read())
         print(f"Rooms: inserted={rooms_result.inserted}, updated={rooms_result.updated}, soft_deleted={rooms_result.soft_deleted}")
 
-        form_responses_result = ingest_form_responses_csv(db, str(form_responses_csv))
+        form_responses_result = ingest_form_responses_csv(db, workspace_id, str(form_responses_csv))
         _print_summary("Form responses ingestion summary", form_responses_result)
 
         # Apply monkeypatches so that run_matching_workflow app code can run

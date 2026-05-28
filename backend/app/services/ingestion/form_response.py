@@ -207,14 +207,19 @@ def _deactivate_active_profiles(db: Session, student_id: uuid.UUID) -> None:
 
 def ingest_form_response(
     db: Session,
+    workspace_id: uuid.UUID,
     admission_number: str,
-    dob: date,
+    phone_last4: str,
     raw_answers: dict[str, str | None],
     submitted_at: datetime | None = None,
 ) -> dict[str, Any]:
     student = db.scalars(
         select(Student)
-        .where(Student.admission_number == admission_number)
+        .where(
+            Student.workspace_id == workspace_id,
+            Student.admission_number == admission_number,
+            Student.is_active == True
+        )
         .order_by(Student.created_at.desc())
     ).first()
     if student is None:
@@ -226,24 +231,24 @@ def ingest_form_response(
     normalized_answers = _normalize_raw_answers(raw_answers)
     submitted_at_value = _to_utc_naive(submitted_at or datetime.now(tz=timezone.utc))
 
-    if student.dob != dob:
+    if student.phone_last4 != phone_last4:
         db.add(
             FormResponse(
                 tenant_id=student.tenant_id,
                 workspace_id=student.workspace_id,
                 student_id=student.id,
                 submitted_admission_number=admission_number,
-                submitted_phone_last4=student.phone_last4,
+                submitted_phone_last4=phone_last4,
                 submitted_at=submitted_at_value,
                 validation_status="invalid",
-                invalid_reason="dob_mismatch",
+                invalid_reason="phone_mismatch",
                 **normalized_answers,
             )
         )
         db.commit()
         raise FormIntakeError(
-            code="dob_mismatch",
-            message="DOB does not match the admission number.",
+            code="phone_mismatch",
+            message="Phone number did not match.",
         )
 
     option_validation = _validate_answer_options(normalized_answers)

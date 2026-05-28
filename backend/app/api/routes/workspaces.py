@@ -24,6 +24,10 @@ from app.schemas.ingestion import (
 )
 from app.services.ingestion.student_csv import plan_student_import, apply_student_import
 from app.services.ingestion.room_csv import plan_room_import, apply_room_import
+from app.services.public_form.token_service import get_active_token, regenerate_token
+from app.services.ingestion.form_collection import compute_form_collection_status, list_non_submitters
+from app.schemas.workspace import FormLinkResponse
+from app.schemas.form import FormStatusResponse, NonSubmittersResponse, NonSubmitterResponseRow
 
 
 router = APIRouter(prefix="/api/workspaces", tags=["workspaces"])
@@ -91,6 +95,74 @@ def get_workspace_dashboard(
         segments_status=summary.segments_status,
         latest_matching_run=summary.latest_matching_run,
     )
+
+
+@router.get("/{workspace_id}/form-link", response_model=FormLinkResponse)
+def get_form_link(
+    workspace_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_access),
+) -> FormLinkResponse:
+    user, tenant, workspace = workspace_ctx
+    token = get_active_token(db, workspace.id)
+    if not token:
+        token = regenerate_token(db, workspace.id)
+    return FormLinkResponse(token=token)
+
+
+@router.post("/{workspace_id}/form-link/regenerate", response_model=FormLinkResponse)
+def regenerate_form_link(
+    workspace_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_access),
+) -> FormLinkResponse:
+    user, tenant, workspace = workspace_ctx
+    token = regenerate_token(db, workspace.id)
+    return FormLinkResponse(token=token)
+
+
+@router.get("/{workspace_id}/collection/status", response_model=FormStatusResponse)
+def get_form_status(
+    workspace_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_access),
+) -> FormStatusResponse:
+    user, tenant, workspace = workspace_ctx
+    result = compute_form_collection_status(db, workspace.id)
+    return FormStatusResponse(
+        total_students=result.total_students,
+        valid_responses=result.valid_responses,
+        invalid_responses=result.invalid_responses,
+        percentage_valid=result.percentage_valid,
+        by_segment=[
+            {
+                "segment_key": row.segment_key,
+                "total": row.total,
+                "valid": row.valid,
+                "percentage": row.percentage,
+            }
+            for row in result.by_segment
+        ],
+    )
+
+
+@router.get("/{workspace_id}/collection/non-submitters", response_model=NonSubmittersResponse)
+def get_non_submitters(
+    workspace_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_access),
+) -> NonSubmittersResponse:
+    user, tenant, workspace = workspace_ctx
+    rows = list_non_submitters(db, workspace.id)
+    records = [
+        NonSubmitterResponseRow(
+            admission_number=row.admission_number,
+            full_name=row.full_name,
+            segment_key=row.segment_key,
+        )
+        for row in rows
+    ]
+    return NonSubmittersResponse(non_submitters=records, total_count=len(records))
 
 
 @router.post("/{workspace_id}/students/upload/preview", response_model=StudentImportDiffResponse)

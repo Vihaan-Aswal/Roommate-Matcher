@@ -1,5 +1,5 @@
-from datetime import date, datetime, timezone
-
+from datetime import datetime, timezone
+import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -8,7 +8,6 @@ from app.models.preference_profile import PreferenceProfile
 from app.models.segment import Segment
 from app.models.student import Student
 from app.services.ingestion.form_response import FormIntakeError, ingest_form_response
-
 
 def _seed_student(db_session: Session, admission_number: str = "ADM100") -> Student:
     segment = Segment(id=__import__("uuid").uuid4(), tenant_id=__import__("uuid").uuid4(), workspace_id=__import__("uuid").uuid4(), segment_key="M_1st_year_AC_2",
@@ -23,13 +22,12 @@ def _seed_student(db_session: Session, admission_number: str = "ADM100") -> Stud
         year_group="1st_year",
         ac_type="AC",
         room_size=2,
-        dob=date(2005, 1, 1), segment_id=segment.id, phone_number="1234567890", phone_last4="7890", is_active=True,
+        dob=datetime(2005, 1, 1).date(), segment_id=segment.id, phone_number="1234567890", phone_last4="7890", is_active=True,
     )
     db_session.add(segment)
     db_session.add(student)
     db_session.commit()
     return student
-
 
 def _valid_answers() -> dict[str, str | None]:
     return {
@@ -47,14 +45,14 @@ def _valid_answers() -> dict[str, str | None]:
         "q10_raw": "I prefer someone very similar to me",
     }
 
-
 def test_ingest_form_response_accepts_valid_submission(db_session: Session) -> None:
-    _seed_student(db_session)
+    student = _seed_student(db_session)
 
     result = ingest_form_response(
         db=db_session,
+        workspace_id=student.workspace_id,
         admission_number="ADM100",
-        dob=date(2005, 1, 1),
+        phone_last4="7890",
         raw_answers=_valid_answers(),
         submitted_at=datetime(2026, 3, 30, 12, 0, tzinfo=timezone.utc),
     )
@@ -73,13 +71,13 @@ def test_ingest_form_response_accepts_valid_submission(db_session: Session) -> N
     assert profile.q1_enc == 1.0
     assert profile.q10_enc == 0.0
 
-
 def test_ingest_form_response_rejects_unknown_admission_number(db_session: Session) -> None:
     try:
         ingest_form_response(
             db=db_session,
+            workspace_id=__import__("uuid").uuid4(),
             admission_number="UNKNOWN",
-            dob=date(2005, 1, 1),
+            phone_last4="7890",
             raw_answers=_valid_answers(),
         )
         raise AssertionError("Expected FormIntakeError for unknown admission number")
@@ -89,30 +87,29 @@ def test_ingest_form_response_rejects_unknown_admission_number(db_session: Sessi
     assert db_session.query(FormResponse).count() == 0
     assert db_session.query(PreferenceProfile).count() == 0
 
-
-def test_ingest_form_response_rejects_dob_mismatch_and_persists_invalid_response(db_session: Session) -> None:
-    _seed_student(db_session)
+def test_ingest_form_response_rejects_phone_mismatch_and_persists_invalid_response(db_session: Session) -> None:
+    student = _seed_student(db_session)
 
     try:
         ingest_form_response(
             db=db_session,
+            workspace_id=student.workspace_id,
             admission_number="ADM100",
-            dob=date(2005, 2, 2),
+            phone_last4="9999",
             raw_answers=_valid_answers(),
         )
-        raise AssertionError("Expected FormIntakeError for dob mismatch")
+        raise AssertionError("Expected FormIntakeError for phone mismatch")
     except FormIntakeError as exc:
-        assert exc.code == "dob_mismatch"
+        assert exc.code == "phone_mismatch"
 
     responses = db_session.scalars(select(FormResponse)).all()
     assert len(responses) == 1
     assert responses[0].validation_status == "invalid"
-    assert responses[0].invalid_reason == "dob_mismatch"
+    assert responses[0].invalid_reason == "phone_mismatch"
     assert db_session.query(PreferenceProfile).count() == 0
 
-
 def test_ingest_form_response_applies_latest_valid_wins(db_session: Session) -> None:
-    _seed_student(db_session)
+    student = _seed_student(db_session)
 
     first_answers = _valid_answers()
     second_answers = _valid_answers()
@@ -120,23 +117,24 @@ def test_ingest_form_response_applies_latest_valid_wins(db_session: Session) -> 
 
     ingest_form_response(
         db=db_session,
+        workspace_id=student.workspace_id,
         admission_number="ADM100",
-        dob=date(2005, 1, 1),
+        phone_last4="7890",
         raw_answers=first_answers,
         submitted_at=datetime(2026, 3, 30, 12, 0, tzinfo=timezone.utc),
     )
     ingest_form_response(
         db=db_session,
+        workspace_id=student.workspace_id,
         admission_number="ADM100",
-        dob=date(2005, 1, 1),
+        phone_last4="7890",
         raw_answers=second_answers,
         submitted_at=datetime(2026, 3, 30, 12, 5, tzinfo=timezone.utc),
     )
 
     profiles = db_session.scalars(
         select(PreferenceProfile)
-        .join(Student, PreferenceProfile.student_id == Student.id)
-        .where(Student.admission_number == "ADM100")
+        .where(PreferenceProfile.student_id == student.id)
         .order_by(PreferenceProfile.created_at)
     ).all()
 
@@ -145,9 +143,8 @@ def test_ingest_form_response_applies_latest_valid_wins(db_session: Session) -> 
     assert profiles[1].is_active == 1
     assert profiles[1].q1_enc == 4.0
 
-
 def test_ingest_form_response_rejects_incomplete_submission(db_session: Session) -> None:
-    _seed_student(db_session)
+    student = _seed_student(db_session)
 
     partial_answers = _valid_answers()
     partial_answers["q5b_raw"] = None
@@ -156,8 +153,9 @@ def test_ingest_form_response_rejects_incomplete_submission(db_session: Session)
     try:
         ingest_form_response(
             db=db_session,
+            workspace_id=student.workspace_id,
             admission_number="ADM100",
-            dob=date(2005, 1, 1),
+            phone_last4="7890",
             raw_answers=partial_answers,
         )
         raise AssertionError("Expected FormIntakeError for incomplete form submission")

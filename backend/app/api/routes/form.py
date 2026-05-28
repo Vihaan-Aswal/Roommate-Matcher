@@ -28,8 +28,9 @@ def submit_form(
     try:
         result = ingest_form_response(
             db=db,
+            workspace_id=payload.workspace_id,
             admission_number=payload.admission_number,
-            dob=payload.dob,
+            phone_last4=payload.phone_last4,
             raw_answers=answers,
         )
     except FormIntakeError as exc:

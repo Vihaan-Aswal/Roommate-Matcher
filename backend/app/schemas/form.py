@@ -5,9 +5,13 @@ from datetime import date
 from pydantic import BaseModel
 
 
+import uuid
+from pydantic import BaseModel
+
 class FormSubmissionRequest(BaseModel):
+    workspace_id: uuid.UUID
     admission_number: str
-    dob: date
+    phone_last4: str
 
     q1_raw: str | None = None
     q2_raw: str | None = None

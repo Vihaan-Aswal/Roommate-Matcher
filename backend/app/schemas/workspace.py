@@ -11,6 +11,10 @@ class WorkspaceCreateRequest(BaseModel):
     name: str
 
 
+class FormLinkResponse(BaseModel):
+    token: str
+
+
 class WorkspaceResponse(BaseModel):
     id: uuid.UUID
     tenant_id: uuid.UUID
