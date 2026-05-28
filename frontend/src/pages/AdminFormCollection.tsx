@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useState } from "react";
 
 import { AdminPageHeader } from "../components/AdminPageHeader";
 import { DataTable, type DataTableColumn } from "../components/DataTable";
@@ -7,6 +8,8 @@ import { StatCard } from "../components/StatCard";
 import {
   useAdminFormStatusQuery,
   useAdminNonSubmittersQuery,
+  useWorkspaceFormLinkQuery,
+  useRegenerateFormLinkMutation,
 } from "../hooks/useAdminFormCollection";
 import { QUESTION_CONFIGS } from "../lib/formQuestions";
 import { Button } from "../components/ui/button";
@@ -16,6 +19,8 @@ import {
   CardHeader,
   CardTitle,
 } from "../components/ui/card";
+import { useWorkspace } from "../providers/WorkspaceProvider";
+import { Copy, RefreshCw, Check } from "lucide-react";
 
 function triggerCsvDownload(fileName: string, content: string): void {
   const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
@@ -28,8 +33,28 @@ function triggerCsvDownload(fileName: string, content: string): void {
 }
 
 export function AdminFormCollection(): JSX.Element {
-  const formStatusQuery = useAdminFormStatusQuery();
-  const nonSubmittersQuery = useAdminNonSubmittersQuery();
+  const { workspaceId } = useWorkspace();
+  const formStatusQuery = useAdminFormStatusQuery(workspaceId);
+  const nonSubmittersQuery = useAdminNonSubmittersQuery(workspaceId);
+  const formLinkQuery = useWorkspaceFormLinkQuery(workspaceId);
+  const regenerateMutation = useRegenerateFormLinkMutation(workspaceId);
+
+  const [copied, setCopied] = useState(false);
+  const [showRegenerateConfirm, setShowRegenerateConfirm] = useState(false);
+
+  const handleCopy = () => {
+    if (formLinkQuery.data?.form_url) {
+      navigator.clipboard.writeText(formLinkQuery.data.form_url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const handleRegenerate = () => {
+    regenerateMutation.mutate(undefined, {
+      onSuccess: () => setShowRegenerateConfirm(false),
+    });
+  };
 
   const segmentColumns: DataTableColumn<
     NonNullable<typeof formStatusQuery.data>["by_segment"][number]
@@ -78,11 +103,6 @@ export function AdminFormCollection(): JSX.Element {
 
   const actions = (
     <>
-      <Button asChild size="sm" variant="outline">
-        <a href="/form" rel="noreferrer" target="_blank">
-          Open Student Form
-        </a>
-      </Button>
       <Button asChild size="sm" variant="accent">
         <Link to="/admin/students-data">Go to Uploads</Link>
       </Button>
@@ -96,6 +116,69 @@ export function AdminFormCollection(): JSX.Element {
         description="Monitor completion, review non-submitters, and keep the questionnaire visible for admin reference."
         actions={actions}
       />
+
+      <Card className="border-border/80 bg-white/90">
+        <CardHeader>
+          <CardTitle className="text-lg">Public Form Link</CardTitle>
+          <p className="text-sm text-muted-foreground mt-1">
+            Share this link with your students to collect their preferences.
+          </p>
+        </CardHeader>
+        <CardContent>
+          {formLinkQuery.isLoading ? (
+            <p className="text-sm text-muted-foreground">Loading form link...</p>
+          ) : formLinkQuery.isError ? (
+            <InlineAlert
+              title="Unable to load form link"
+              message={
+                formLinkQuery.error instanceof Error
+                  ? formLinkQuery.error.message
+                  : "Request failed."
+              }
+              tone="error"
+            />
+          ) : (
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+              <div className="flex-1 bg-muted px-4 py-2.5 rounded-lg border border-border/80 text-sm overflow-x-auto whitespace-nowrap text-foreground font-mono">
+                {formLinkQuery.data?.form_url}
+              </div>
+              <div className="flex gap-2">
+                <Button onClick={handleCopy} variant="outline" size="sm" className="gap-2">
+                  {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  {copied ? "Copied" : "Copy link"}
+                </Button>
+                {!showRegenerateConfirm ? (
+                  <Button onClick={() => setShowRegenerateConfirm(true)} variant="outline" size="sm" className="gap-2 text-destructive hover:text-destructive hover:bg-destructive/10">
+                    <RefreshCw className="h-4 w-4" />
+                    Regenerate link
+                  </Button>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Button onClick={handleRegenerate} variant="destructive" size="sm" disabled={regenerateMutation.isPending}>
+                      {regenerateMutation.isPending ? "Regenerating..." : "Yes, Regenerate"}
+                    </Button>
+                    <Button onClick={() => setShowRegenerateConfirm(false)} variant="outline" size="sm" disabled={regenerateMutation.isPending}>
+                      Cancel
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          {showRegenerateConfirm && (
+            <p className="mt-3 text-sm text-destructive font-medium">
+              Warning: Regenerating the link will immediately invalidate the current link. Any students attempting to use the old link will see an error.
+            </p>
+          )}
+          <div className="mt-4 pt-4 border-t border-border/50">
+             <Button asChild size="sm" variant="outline">
+                <a href={formLinkQuery.data?.form_url || "#"} rel="noreferrer" target="_blank">
+                  Open Student Form
+                </a>
+              </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {formStatusQuery.isError ? (
         <InlineAlert

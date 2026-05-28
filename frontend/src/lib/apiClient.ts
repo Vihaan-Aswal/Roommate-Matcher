@@ -1,6 +1,6 @@
 export interface FormSubmissionPayload {
   admission_number: string;
-  dob: string;
+  phone_last4: string;
   q1_raw: string;
   q2_raw: string;
   q3_raw: string;
@@ -20,6 +20,19 @@ export interface FormSubmissionResult {
   message: string;
   code?: string;
   has_preferences?: boolean;
+}
+
+export interface PublicFormConfig {
+  token_valid: boolean;
+  workspace_id: string | null;
+  workspace_name: string | null;
+  expires_at: string | null;
+}
+
+export interface FormLinkResponse {
+  form_url: string;
+  token: string;
+  expires_at: string;
 }
 
 export interface InvalidRow {
@@ -469,6 +482,35 @@ export async function submitStudentForm(
   });
 }
 
+// -- Public Form API --
+
+export async function getPublicFormConfig(token: string): Promise<PublicFormConfig> {
+  const response = await fetch(buildUrl(`/api/public/forms/${encodeURIComponent(token)}`));
+  const data = (await response.json().catch(() => null)) as unknown;
+  if (!response.ok) {
+    throw new Error(extractErrorMessage(data));
+  }
+  return data as PublicFormConfig;
+}
+
+export async function submitPublicForm(
+  token: string,
+  payload: FormSubmissionPayload,
+): Promise<FormSubmissionResult> {
+  const response = await fetch(buildUrl(`/api/public/forms/${encodeURIComponent(token)}/submit`), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  const data = (await response.json().catch(() => null)) as unknown;
+  if (!response.ok) {
+    throw new Error(extractErrorMessage(data));
+  }
+  return data as FormSubmissionResult;
+}
+
 export async function getDashboardSummary(): Promise<DashboardResponse> {
   return requestJson<DashboardResponse>("/api/dashboard");
 }
@@ -505,16 +547,28 @@ export async function getWorkspaceDashboard(
   );
 }
 
+// -- Form Link API --
+
+export async function getWorkspaceFormLink(workspaceId: string): Promise<FormLinkResponse> {
+  return requestJson<FormLinkResponse>(`/api/workspaces/${encodeURIComponent(workspaceId)}/form-link`);
+}
+
+export async function regenerateWorkspaceFormLink(workspaceId: string): Promise<FormLinkResponse> {
+  return requestJson<FormLinkResponse>(`/api/workspaces/${encodeURIComponent(workspaceId)}/form-link/regenerate`, {
+    method: "POST"
+  });
+}
+
 export async function getSegments(): Promise<SegmentListResponse> {
   return requestJson<SegmentListResponse>("/api/segments");
 }
 
-export async function getFormStatus(): Promise<FormStatusResponse> {
-  return requestJson<FormStatusResponse>("/api/form/status");
+export async function getFormStatus(workspaceId: string): Promise<FormStatusResponse> {
+  return requestJson<FormStatusResponse>(`/api/workspaces/${encodeURIComponent(workspaceId)}/collection/status`);
 }
 
-export async function getNonSubmitters(): Promise<NonSubmittersResponse> {
-  return requestJson<NonSubmittersResponse>("/api/form/non-submitters");
+export async function getNonSubmitters(workspaceId: string): Promise<NonSubmittersResponse> {
+  return requestJson<NonSubmittersResponse>(`/api/workspaces/${encodeURIComponent(workspaceId)}/collection/non-submitters`);
 }
 
 // -- Workspace-scoped upload (Phase 3) --

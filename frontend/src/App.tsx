@@ -51,7 +51,7 @@ export default function App(): JSX.Element {
         <Route path="/login" element={<LoginPage />} />
 
         {/* Public student-facing form — no auth required */}
-        <Route path="/form" element={<StudentForm />} />
+        <Route path="/f/:token" element={<StudentForm />} />
 
         {/* Chooser page */}
         <Route

@@ -1,8 +1,11 @@
+import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
+import { useParams } from "react-router-dom";
 
 import { FormQuestion } from "../components/FormQuestion";
 import { useFormSubmit } from "../hooks/useFormSubmit";
 import { QUESTION_CONFIGS, type QuestionConfig } from "../lib/formQuestions";
+import { getPublicFormConfig } from "../lib/apiClient";
 
 type Step = "identity" | "questions" | "success";
 
@@ -24,27 +27,54 @@ const EMPTY_ANSWERS: AnswerMap = {
 };
 
 export function StudentForm(): JSX.Element {
+  const { token } = useParams<{ token: string }>();
   const [step, setStep] = useState<Step>("identity");
   const [admissionNumber, setAdmissionNumber] = useState("");
-  const [dob, setDob] = useState("");
+  const [phoneLast4, setPhoneLast4] = useState("");
   const [answers, setAnswers] = useState<AnswerMap>(EMPTY_ANSWERS);
   const [identityError, setIdentityError] = useState<string | null>(null);
   const [questionErrors, setQuestionErrors] = useState<Partial<AnswerMap>>({});
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const { submit, submitting, submitError } = useFormSubmit();
 
+  const { data: config, isLoading, isError } = useQuery({
+    queryKey: ["publicForm", token],
+    queryFn: () => getPublicFormConfig(token ?? ""),
+    enabled: !!token,
+    retry: false,
+  });
+
   const completedCount = useMemo(
     () => Object.values(answers).filter(Boolean).length,
     [answers],
   );
+
+  if (isLoading) {
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-[radial-gradient(circle_at_top,_#f9f4de_0%,_#f4f8fc_38%,_#ecfaf3_100%)]">
+        <p className="text-muted-foreground">Loading form...</p>
+      </main>
+    );
+  }
+
+  if (isError || !config || !config.token_valid) {
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-[radial-gradient(circle_at_top,_#f9f4de_0%,_#f4f8fc_38%,_#ecfaf3_100%)]">
+        <section className="mx-auto w-full max-w-md overflow-hidden rounded-3xl border border-border/80 bg-white/90 p-8 text-center shadow-xl backdrop-blur-sm">
+          <h1 className="font-serif text-2xl font-semibold text-foreground">Form Unavailable</h1>
+          <p className="mt-4 text-muted-foreground">This link has expired or is invalid.</p>
+        </section>
+      </main>
+    );
+  }
 
   const validateIdentity = (): boolean => {
     if (!admissionNumber.trim()) {
       setIdentityError("Admission number is required.");
       return false;
     }
-    if (!dob) {
-      setIdentityError("Date of birth is required.");
+    if (!phoneLast4.trim() || phoneLast4.trim().length !== 4) {
+      setIdentityError("Please enter the last 4 digits of your phone number.");
       return false;
     }
 
@@ -87,15 +117,18 @@ export function StudentForm(): JSX.Element {
     }
 
     try {
-      const response = await submit({
+      if (!token) return;
+      const response = await submit(token, {
         admission_number: admissionNumber.trim(),
-        dob,
+        phone_last4: phoneLast4.trim(),
         ...answers,
       });
 
       if (response.success) {
         setStep("success");
         setStatusMessage(response.message);
+      } else {
+        setStatusMessage(response.message || "Invalid identity verification.");
       }
     } catch {
       // Error state is rendered via submitError from the hook.
@@ -107,7 +140,7 @@ export function StudentForm(): JSX.Element {
       <section className="mx-auto w-full max-w-4xl overflow-hidden rounded-3xl border border-border/80 bg-white/90 shadow-xl backdrop-blur-sm">
         <header className="border-b border-border/70 bg-[linear-gradient(100deg,#fff6d8_0%,#f2f8ff_55%,#e6f8ef_100%)] px-5 py-6 sm:px-8">
           <h1 className="font-serif text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-            Student Preference Form
+            {config.workspace_name ? `Submitting form for: ${config.workspace_name}` : "Student Preference Form"}
           </h1>
           <p className="mt-2 text-sm text-muted-foreground sm:text-base">
             Complete identity verification and answer all 12 preference prompts.
@@ -139,13 +172,15 @@ export function StudentForm(): JSX.Element {
 
               <label className="space-y-2">
                 <span className="text-sm font-medium text-foreground">
-                  Date of Birth
+                  Last 4 digits of Phone Number
                 </span>
                 <input
-                  type="date"
-                  value={dob}
-                  onChange={(event) => setDob(event.target.value)}
+                  type="text"
+                  maxLength={4}
+                  value={phoneLast4}
+                  onChange={(event) => setPhoneLast4(event.target.value.replace(/\D/g, ""))}
                   className="w-full rounded-xl border border-input bg-white px-4 py-2.5 text-sm text-foreground outline-none ring-0 transition focus:border-primary focus:shadow-[0_0_0_2px_rgba(227,108,27,0.18)]"
+                  placeholder="e.g. 1234"
                 />
               </label>
 

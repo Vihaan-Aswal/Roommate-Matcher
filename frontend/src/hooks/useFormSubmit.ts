@@ -3,11 +3,11 @@ import { useState } from "react";
 import {
   type FormSubmissionPayload,
   type FormSubmissionResult,
-  submitStudentForm,
+  submitPublicForm,
 } from "../lib/apiClient";
 
 interface UseFormSubmitResult {
-  submit: (payload: FormSubmissionPayload) => Promise<FormSubmissionResult>;
+  submit: (token: string, payload: FormSubmissionPayload) => Promise<FormSubmissionResult>;
   submitting: boolean;
   submitError: string | null;
 }
@@ -17,12 +17,13 @@ export function useFormSubmit(): UseFormSubmitResult {
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const submit = async (
+    token: string,
     payload: FormSubmissionPayload,
   ): Promise<FormSubmissionResult> => {
     setSubmitting(true);
     setSubmitError(null);
     try {
-      const result = await submitStudentForm(payload);
+      const result = await submitPublicForm(token, payload);
       return result;
     } catch (error) {
       const message =
