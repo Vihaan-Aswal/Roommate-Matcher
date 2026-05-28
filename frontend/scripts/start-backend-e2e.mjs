@@ -34,6 +34,7 @@ const server = spawn(
   {
     cwd: backendDir,
     stdio: "inherit",
+    env: { ...process.env, DATABASE_URL: `sqlite:///${path.join(repoRoot, "data", "app.db").replace(/\\/g, "/")}` },
   },
 );
 

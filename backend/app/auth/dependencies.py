@@ -114,10 +114,13 @@ async def get_authenticated_user(
         # Not a valid Supabase token — try app JWT
         try:
             app_payload = verify_app_token(raw_token)
-        except jwt.InvalidTokenError:
+        except jwt.InvalidTokenError as e:
+            import sys
+            print(f"DEBUG: verify_app_token failed: {e}")
+            sys.stdout.flush()
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Token is invalid or expired.",
+                detail=f"Token is invalid or expired. Reason: {str(e)}",
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
@@ -238,11 +241,15 @@ async def require_workspace_access(
         .first()
     )
     if workspace is None:
-        print(f"DEBUG: workspace is None for workspace_id={workspace_id} and tenant_id={effective_tenant_id}")
+        import sys
+        print(f"DEBUG: workspace is None for workspace_id={workspace_id} and effective_tenant_id={effective_tenant_id}")
+        print(f"DEBUG: user.tenant_id={user.tenant_id}, user.impersonated_tenant_id={user.impersonated_tenant_id}")
+        
         # Intentionally return 403 (not 404) to avoid leaking workspace existence.
+        # DEBUG MODE: Include variables in error string for Playwright to capture
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Workspace not found or access denied.",
+            detail=f"Workspace not found or access denied. ctx: WS={workspace_id} ET={effective_tenant_id} UID={user.supabase_user_id} IT={user.impersonated_tenant_id}",
         )
     return user, tenant, workspace
 

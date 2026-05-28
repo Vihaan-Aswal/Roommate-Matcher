@@ -19,7 +19,7 @@ export function RoomResultsPage(): JSX.Element {
   const { workspaceId, runId } = useParams<{ workspaceId: string; runId: string }>();
   if (!workspaceId) throw new Error("workspaceId is required");
   const [searchParams, setSearchParams] = useSearchParams();
-  const segmentsQuery = useAdminSegmentsQuery();
+  const segmentsQuery = useAdminSegmentsQuery(workspaceId);
   const exportMutation = useAssignmentsExportMutation(workspaceId);
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
 
@@ -133,7 +133,7 @@ export function RoomResultsPage(): JSX.Element {
           tone="error"
         />
         <Button asChild size="sm" variant="accent">
-          <Link to="/admin/matching-runs">Go to Matching Runs</Link>
+          <Link to={`/app/${workspaceId}/matching-runs`}>Go to Matching Runs</Link>
         </Button>
       </section>
     );

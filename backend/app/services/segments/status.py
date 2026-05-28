@@ -101,7 +101,7 @@ def compute_segment_status(db: Session, segment_key: str, workspace_id: uuid.UUI
     for student_id in student_rows:
         profile_query = select(PreferenceProfile).where(
             PreferenceProfile.student_id == student_id,
-            PreferenceProfile.is_active == 1,
+            PreferenceProfile.is_active == True,
             PreferenceProfile.workspace_id == workspace_id,
         )
             
@@ -209,15 +209,15 @@ def get_segment_students_preference_status(db: Session, segment_key: str, worksp
     for student in students:
         profile_query = select(PreferenceProfile).where(
             PreferenceProfile.student_id == student.id,
-            PreferenceProfile.is_active == 1,
+            PreferenceProfile.is_active == True,
             PreferenceProfile.workspace_id == workspace_id,
         )
         active_profile = db.scalars(profile_query.limit(1)).first()
 
-        if active_profile is not None and active_profile.has_preferences == 1:
+        if active_profile is not None and active_profile.has_preferences is True:
             preference_status = "valid"
             has_valid_preferences = True
-        elif active_profile is not None and active_profile.has_preferences == 0:
+        elif active_profile is not None and active_profile.has_preferences is False:
             preference_status = "missing"
             has_valid_preferences = False
         else:

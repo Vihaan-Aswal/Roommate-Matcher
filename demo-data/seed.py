@@ -138,7 +138,7 @@ def main() -> None:
         now = datetime.now(timezone.utc)
         tenant_id = uuid.uuid4()
         workspace_id = uuid.uuid4()
-        db.add(Tenant(id=tenant_id, slug="demo", display_name="Demo Tenant", created_at=now, updated_at=now))
+        db.add(Tenant(id=tenant_id, slug="demo", display_name="Demo Tenant", created_at=now, updated_at=now, is_demo=True))
         db.flush()
         db.add(Workspace(id=workspace_id, tenant_id=tenant_id, name="Demo WS", created_at=now, updated_at=now))
         db.commit()

@@ -31,7 +31,7 @@ function formatDateTime(value: string): string {
 export function AdminMatchingRuns(): JSX.Element {
   const { workspaceId } = useWorkspace();
 
-  const segmentsQuery = useAdminSegmentsQuery();
+  const segmentsQuery = useAdminSegmentsQuery(workspaceId);
   const runsQuery = useAdminMatchingRunsQuery(workspaceId);
   const runMutation = useRunMatchingMutation(workspaceId);
 
@@ -163,10 +163,10 @@ export function AdminMatchingRuns(): JSX.Element {
         const canOpenResults = row.status === "completed";
 
         const roomRoute = defaultSegmentKey
-          ? `/admin/matching-runs/${encodeURIComponent(row.run_id)}/rooms?segment=${encodeURIComponent(defaultSegmentKey)}&needsReview=0`
+          ? `/app/${workspaceId}/matching-runs/${encodeURIComponent(row.run_id)}/rooms?segment=${encodeURIComponent(defaultSegmentKey)}&needsReview=0`
           : "";
-        const studentRoute = `/admin/matching-runs/${encodeURIComponent(row.run_id)}/students?segment=all&label=all&atRisk=0`;
-        const fairnessRoute = `/admin/fairness/${encodeURIComponent(row.run_id)}?segment=all`;
+        const studentRoute = `/app/${workspaceId}/matching-runs/${encodeURIComponent(row.run_id)}/students?segment=all&label=all&atRisk=0`;
+        const fairnessRoute = `/app/${workspaceId}/fairness/${encodeURIComponent(row.run_id)}?segment=all`;
 
         return (
           <div className="flex flex-wrap gap-2">
@@ -176,7 +176,7 @@ export function AdminMatchingRuns(): JSX.Element {
               size="sm"
               variant="outline"
             >
-              <Link to={roomRoute || "/admin/matching-runs"}>Room View</Link>
+              <Link to={roomRoute || `/app/${workspaceId}/matching-runs`}>Room View</Link>
             </Button>
             <Button
               asChild

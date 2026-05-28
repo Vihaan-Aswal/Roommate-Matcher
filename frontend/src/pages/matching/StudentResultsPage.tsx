@@ -21,7 +21,7 @@ export function StudentResultsPage(): JSX.Element {
   const { workspaceId, runId } = useParams<{ workspaceId: string; runId: string }>();
   if (!workspaceId) throw new Error("workspaceId is required");
   const [searchParams, setSearchParams] = useSearchParams();
-  const segmentsQuery = useAdminSegmentsQuery();
+  const segmentsQuery = useAdminSegmentsQuery(workspaceId);
 
   const selectedSegment = searchParams.get("segment") ?? "all";
   const selectedLabel = searchParams.get("label") ?? "all";
@@ -181,7 +181,7 @@ export function StudentResultsPage(): JSX.Element {
           tone="error"
         />
         <Button asChild size="sm" variant="accent">
-          <Link to="/admin/matching-runs">Go to Matching Runs</Link>
+          <Link to={`/app/${workspaceId}/matching-runs`}>Go to Matching Runs</Link>
         </Button>
       </section>
     );

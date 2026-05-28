@@ -119,7 +119,7 @@ def run_manual_checker(
         select(PreferenceProfile)
         .where(
             PreferenceProfile.workspace_id == workspace_id,
-            PreferenceProfile.is_active == 1,
+            PreferenceProfile.is_active == True,
             PreferenceProfile.student_id.in_(list(student_id_map.keys())),
         )
     ).all()

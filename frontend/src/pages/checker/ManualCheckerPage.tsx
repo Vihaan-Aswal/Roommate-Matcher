@@ -49,7 +49,7 @@ export function ManualCheckerPage(): JSX.Element {
   if (!workspaceId) throw new Error("workspaceId is required");
 
   const [searchParams, setSearchParams] = useSearchParams();
-  const segmentsQuery = useAdminSegmentsQuery();
+  const segmentsQuery = useAdminSegmentsQuery(workspaceId);
   const checkerMutation = useManualCheckerMutation(workspaceId);
 
   const [existingStudentIds, setExistingStudentIds] = useState<string[]>([]);

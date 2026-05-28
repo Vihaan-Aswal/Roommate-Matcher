@@ -91,7 +91,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const res = await fetch(`${API_BASE}/api/auth/me`, {
       headers: { Authorization: `Bearer ${rawToken}` },
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      console.error("hydrateFromBackend failed:", res.status, await res.text());
+      return null;
+    }
     const data = await res.json();
     const appUser: AppUser = {
       authKind: data.auth_kind,
@@ -137,11 +140,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async function bootstrap() {
       setIsLoading(true);
 
-      // Check for demo token first
-      const demoToken = sessionStorage.getItem(DEMO_TOKEN_KEY);
-      // Also check for impersonation token (platform admin entering tenant)
+      // Check for impersonation token first (platform admin entering tenant)
       const impersonationToken = sessionStorage.getItem(IMPERSONATION_TOKEN_KEY);
-      const appSessionToken = demoToken ?? impersonationToken;
+      // Also check for demo token
+      const demoToken = sessionStorage.getItem(DEMO_TOKEN_KEY);
+      const appSessionToken = impersonationToken ?? demoToken;
 
       if (appSessionToken) {
         const appUser = await hydrateFromBackend(appSessionToken);
@@ -182,6 +185,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (cancelled) return;
+
+      // Do NOT overwrite state if an app JWT (demo or impersonation) is actively in use.
+      // Those take precedence. If the user exits demo/impersonation, they trigger a hard reload.
+      if (sessionStorage.getItem(DEMO_TOKEN_KEY) || sessionStorage.getItem(IMPERSONATION_TOKEN_KEY)) {
+        return;
+      }
+
       if (session?.access_token) {
         const appUser = await exchangeSupabaseToken(session.access_token);
         setUser(appUser);

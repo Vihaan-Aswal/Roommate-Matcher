@@ -171,7 +171,7 @@ def _segment_scoring_profiles(db: Session, segment: Segment) -> tuple[list[str],
     active_profiles = db.scalars(
         select(PreferenceProfile).where(
             PreferenceProfile.workspace_id == segment.workspace_id,
-            PreferenceProfile.is_active == 1,
+            PreferenceProfile.is_active == True,
             PreferenceProfile.student_id.in_(list(student_id_map.keys())),
         )
     ).all()

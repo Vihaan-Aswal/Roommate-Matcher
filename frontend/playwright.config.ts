@@ -21,13 +21,13 @@ export default defineConfig({
       command: "node ./scripts/start-backend-e2e.mjs",
       url: "http://127.0.0.1:8000/health",
       timeout: 180_000,
-      reuseExistingServer: false,
+      reuseExistingServer: true,
     },
     {
       command: "node ./scripts/start-frontend-e2e.mjs",
       url: "http://localhost:5173",
       timeout: 180_000,
-      reuseExistingServer: false,
+      reuseExistingServer: true,
     },
   ],
 });
