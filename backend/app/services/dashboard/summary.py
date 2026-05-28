@@ -23,6 +23,7 @@ class DashboardSummaryResult:
     latest_matching_run: dict[str, str | None | object]
     workspace_name: str | None = None
     workspace_status: str | None = None
+    generated_data_warning: dict[str, int | bool] | None = None
 
 
 def get_workspace_dashboard_summary(db: Session, workspace: Workspace) -> DashboardSummaryResult:
@@ -82,6 +83,18 @@ def get_workspace_dashboard_summary(db: Session, workspace: Workspace) -> Dashbo
 
     percentage_complete = round((valid_preferences / total_students) * 100, 2) if total_students else 0.0
 
+    # Generated data warning
+    generated_profiles_count = int(
+        db.scalar(
+            select(func.count(PreferenceProfile.id)).where(
+                PreferenceProfile.workspace_id == workspace.id,
+                PreferenceProfile.is_active == True,
+                PreferenceProfile.is_generated == True,
+            )
+        )
+        or 0
+    )
+
     return DashboardSummaryResult(
         workspace_name=workspace.name,
         workspace_status=workspace.status,
@@ -106,6 +119,11 @@ def get_workspace_dashboard_summary(db: Session, workspace: Workspace) -> Dashbo
             "run_id": latest_run.run_id if latest_run else None,
             "status": latest_run.status if latest_run else None,
             "created_at": latest_run.created_at if latest_run else None,
+        },
+        generated_data_warning={
+            "has_generated_data": generated_profiles_count > 0,
+            "generated_profiles_count": generated_profiles_count,
+            "total_active_profiles": valid_preferences,
         },
     )
 

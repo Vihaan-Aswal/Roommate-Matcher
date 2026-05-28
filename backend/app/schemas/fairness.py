@@ -21,3 +21,4 @@ class FairnessReportResponse(BaseModel):
     run_at_risk_count: int
     run_at_risk_student_ids: list[str]
     by_segment: list[SegmentFairnessRow]
+    has_generated_profiles: bool = False

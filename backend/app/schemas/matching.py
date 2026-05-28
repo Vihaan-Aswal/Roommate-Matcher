@@ -60,6 +60,7 @@ class MatchingRunRoomsResponse(BaseModel):
     run_id: str
     segment_key: str
     rooms: list[RunRoomRow]
+    has_generated_profiles: bool = False
 
 
 class RunStudentRow(BaseModel):
@@ -78,3 +79,4 @@ class MatchingRunStudentsResponse(BaseModel):
     run_id: str
     segment_key: str
     students: list[RunStudentRow]
+    has_generated_profiles: bool = False

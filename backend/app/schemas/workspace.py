@@ -38,3 +38,4 @@ class WorkspaceDashboardResponse(BaseModel):
     form_collection_stats: dict[str, float | int]
     segments_status: dict[str, int]
     latest_matching_run: dict[str, Any]
+    generated_data_warning: dict | None = None

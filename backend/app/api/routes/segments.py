@@ -12,12 +12,22 @@ from app.services.segments.status import (
 )
 
 
-router = APIRouter(prefix="/segments", tags=["segments"])
+import uuid
+from app.auth.dependencies import require_workspace_access
+from app.auth.contracts import AuthenticatedUser
+from app.models.tenant import Tenant
+from app.models.workspace import Workspace
+
+router = APIRouter(prefix="/api/workspaces/{workspace_id}/segments", tags=["segments"])
 
 
 @router.get("", response_model=SegmentListResponse)
-def list_segments(db: Session = Depends(get_db)) -> SegmentListResponse:
-    rows = list_segment_overviews(db)
+def list_segments(
+    workspace_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_access),
+) -> SegmentListResponse:
+    rows = list_segment_overviews(db, workspace_id)
     return SegmentListResponse(
         segments=[
             {
@@ -39,11 +49,13 @@ def list_segments(db: Session = Depends(get_db)) -> SegmentListResponse:
 
 @router.get("/{segment_key}", response_model=SegmentStatusResponse)
 def get_segment_status(
+    workspace_id: uuid.UUID,
     segment_key: str,
     db: Session = Depends(get_db),
+    workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_access),
 ) -> SegmentStatusResponse:
     try:
-        status = compute_segment_status(db, segment_key)
+        status = compute_segment_status(db, segment_key, workspace_id)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
@@ -51,9 +63,14 @@ def get_segment_status(
 
 
 @router.get("/{segment_key}/students", response_model=SegmentStudentsResponse)
-def get_segment_students(segment_key: str, db: Session = Depends(get_db)) -> SegmentStudentsResponse:
+def get_segment_students(
+    workspace_id: uuid.UUID,
+    segment_key: str, 
+    db: Session = Depends(get_db),
+    workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_access),
+) -> SegmentStudentsResponse:
     try:
-        result = get_segment_students_preference_status(db, segment_key)
+        result = get_segment_students_preference_status(db, segment_key, workspace_id)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 

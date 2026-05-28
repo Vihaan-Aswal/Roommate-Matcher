@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import select, exists
+from app.models.preference_profile import PreferenceProfile
 
 from app.database import get_db
 from app.auth.dependencies import require_workspace_access
@@ -33,6 +35,17 @@ def get_fairness_report(
     except ValueError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
+    has_generated = bool(db.scalar(
+        select(
+            exists(
+                select(PreferenceProfile.id).where(
+                    PreferenceProfile.workspace_id == workspace_id,
+                    PreferenceProfile.is_active == True,
+                    PreferenceProfile.is_generated == True,
+                )
+            )
+        )
+    ))
     return FairnessReportResponse(
         run_id=run_id,
         total_students=int(snapshot.get("total_students", 0)),
@@ -41,4 +54,5 @@ def get_fairness_report(
         run_at_risk_count=int(snapshot.get("run_at_risk_count", 0)),
         run_at_risk_student_ids=list(snapshot.get("run_at_risk_student_ids", [])),
         by_segment=list(snapshot.get("by_segment", [])),
+        has_generated_profiles=has_generated,
     )

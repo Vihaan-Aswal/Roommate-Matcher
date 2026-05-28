@@ -99,6 +99,7 @@ def get_workspace_dashboard(
         form_collection_stats=summary.form_collection_stats,
         segments_status=summary.segments_status,
         latest_matching_run=summary.latest_matching_run,
+        generated_data_warning=summary.generated_data_warning,
     )
 
 

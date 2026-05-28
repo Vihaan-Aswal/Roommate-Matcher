@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import select, exists
+from app.models.preference_profile import PreferenceProfile
 
 from app.auth.dependencies import require_workspace_access
 from app.models.tenant import Tenant
@@ -92,7 +94,18 @@ def get_matching_run_rooms(
     except ValueError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
-    return MatchingRunRoomsResponse(run_id=run_id, segment_key=segment_key, rooms=rooms)
+    has_generated = bool(db.scalar(
+        select(
+            exists(
+                select(PreferenceProfile.id).where(
+                    PreferenceProfile.workspace_id == workspace_id,
+                    PreferenceProfile.is_active == True,
+                    PreferenceProfile.is_generated == True,
+                )
+            )
+        )
+    ))
+    return MatchingRunRoomsResponse(run_id=run_id, segment_key=segment_key, rooms=rooms, has_generated_profiles=has_generated)
 
 
 @router.get("/runs/{run_id}/students", response_model=MatchingRunStudentsResponse)
@@ -111,7 +124,18 @@ def get_matching_run_students(
     except ValueError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
-    return MatchingRunStudentsResponse(run_id=run_id, segment_key=segment_key, students=students)
+    has_generated = bool(db.scalar(
+        select(
+            exists(
+                select(PreferenceProfile.id).where(
+                    PreferenceProfile.workspace_id == workspace_id,
+                    PreferenceProfile.is_active == True,
+                    PreferenceProfile.is_generated == True,
+                )
+            )
+        )
+    ))
+    return MatchingRunStudentsResponse(run_id=run_id, segment_key=segment_key, students=students, has_generated_profiles=has_generated)
 
 
 @router.get("/runs/{run_id}/students/all-segments")
