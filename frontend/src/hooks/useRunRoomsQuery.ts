@@ -3,10 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import { getRunRooms } from "../lib/apiClient";
 import { adminQueryKeys } from "./adminQueryKeys";
 
-export function useRunRoomsQuery(runId: string, segmentKey: string | null) {
+export function useRunRoomsQuery(workspaceId: string, runId: string, segmentKey: string | null) {
   return useQuery({
-    queryKey: adminQueryKeys.roomsByRunSegment(runId, segmentKey ?? ""),
-    queryFn: () => getRunRooms(runId, segmentKey ?? ""),
+    queryKey: adminQueryKeys.roomsByRunSegment(workspaceId, runId, segmentKey ?? ""),
+    queryFn: () => getRunRooms(workspaceId, runId, segmentKey ?? ""),
     enabled: Boolean(runId && segmentKey),
   });
 }

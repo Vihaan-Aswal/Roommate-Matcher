@@ -1,7 +1,9 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { renderWithProviders } from "./renderWithProviders";
 import { vi } from "vitest";
 
 import { StudentForm } from "../pages/StudentForm";
+import { Route, Routes } from "react-router-dom";
 
 const { submitMock } = vi.hoisted(() => ({
   submitMock: vi.fn(),
@@ -14,6 +16,35 @@ vi.mock("../hooks/useFormSubmit", () => ({
     submitError: null,
   }),
 }));
+
+vi.mock("@tanstack/react-query", async () => {
+  const actual = await vi.importActual("@tanstack/react-query");
+  return {
+    ...actual,
+    useQuery: () => ({
+      data: {
+        token_valid: true,
+        workspace_name: "Test Workspace",
+        questions: [
+          { id: "q1_raw", type: "single_choice", required: true, label: "Q1" },
+          { id: "q2_raw", type: "single_choice", required: true, label: "Q2" },
+          { id: "q3_raw", type: "single_choice", required: true, label: "Q3" },
+          { id: "q4a_raw", type: "single_choice", required: true, label: "Q4a" },
+          { id: "q4b_raw", type: "single_choice", required: true, label: "Q4b" },
+          { id: "q5a_raw", type: "single_choice", required: true, label: "Q5a" },
+          { id: "q5b_raw", type: "single_choice", required: true, label: "Q5b" },
+          { id: "q6_raw", type: "single_choice", required: true, label: "Q6" },
+          { id: "q7_raw", type: "single_choice", required: true, label: "Q7" },
+          { id: "q8_raw", type: "single_choice", required: true, label: "Q8" },
+          { id: "q9_raw", type: "single_choice", required: true, label: "Q9" },
+          { id: "q10_raw", type: "single_choice", required: true, label: "Q10" }
+        ]
+      },
+      isLoading: false,
+      isError: false,
+    }),
+  };
+});
 
 const QUESTION_IDS = [
   "q1_raw",
@@ -36,7 +67,12 @@ describe("StudentForm", () => {
   });
 
   it("shows identity validation errors", () => {
-    render(<StudentForm />);
+    renderWithProviders(
+      <Routes>
+        <Route path="/:token" element={<StudentForm />} />
+      </Routes>,
+      { initialEntries: ["/test-token"] },
+    );
 
     fireEvent.click(
       screen.getByRole("button", { name: /continue to questions/i }),
@@ -48,13 +84,18 @@ describe("StudentForm", () => {
   });
 
   it("validates unanswered questions before submit", () => {
-    render(<StudentForm />);
+    renderWithProviders(
+      <Routes>
+        <Route path="/:token" element={<StudentForm />} />
+      </Routes>,
+      { initialEntries: ["/test-token"] },
+    );
 
     fireEvent.change(screen.getByLabelText("Admission Number"), {
       target: { value: "ADM500" },
     });
-    fireEvent.change(screen.getByLabelText("Date of Birth"), {
-      target: { value: "2005-01-01" },
+    fireEvent.change(screen.getByLabelText("Last 4 digits of Phone Number"), {
+      target: { value: "1234" },
     });
 
     fireEvent.click(
@@ -76,13 +117,18 @@ describe("StudentForm", () => {
       has_preferences: true,
     });
 
-    const { container } = render(<StudentForm />);
+    const { container } = renderWithProviders(
+      <Routes>
+        <Route path="/:token" element={<StudentForm />} />
+      </Routes>,
+      { initialEntries: ["/test-token"] },
+    );
 
     fireEvent.change(screen.getByLabelText("Admission Number"), {
       target: { value: "ADM501" },
     });
-    fireEvent.change(screen.getByLabelText("Date of Birth"), {
-      target: { value: "2005-01-01" },
+    fireEvent.change(screen.getByLabelText("Last 4 digits of Phone Number"), {
+      target: { value: "1234" },
     });
     fireEvent.click(
       screen.getByRole("button", { name: /continue to questions/i }),

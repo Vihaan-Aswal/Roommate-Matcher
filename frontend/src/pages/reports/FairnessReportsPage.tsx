@@ -34,12 +34,16 @@ function buildStudentRoute(
   return `/admin/matching-runs/${encodeURIComponent(runId)}/students?${params.toString()}`;
 }
 
+import { useWorkspace } from "../../providers/WorkspaceProvider";
+
 export function FairnessReportsPage(): JSX.Element {
+  const { workspaceId } = useWorkspace();
+
   const { runId: routeRunId } = useParams<{ runId?: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  const runsQuery = useAdminMatchingRunsQuery();
+  const runsQuery = useAdminMatchingRunsQuery(workspaceId);
   const selectedSegment = searchParams.get("segment") ?? "all";
 
   const runOptions = useMemo(
@@ -75,7 +79,7 @@ export function FairnessReportsPage(): JSX.Element {
     );
   }, [navigate, resolvedRunId, routeRunId, searchParams]);
 
-  const fairnessQuery = useRunFairnessQuery(resolvedRunId);
+  const fairnessQuery = useRunFairnessQuery(workspaceId, resolvedRunId);
 
   useEffect(() => {
     if (!fairnessQuery.data) {

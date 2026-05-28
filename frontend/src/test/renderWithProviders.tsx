@@ -2,6 +2,7 @@ import type { ReactElement } from "react";
 import { render } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
+import { WorkspaceContext } from "../providers/WorkspaceProvider";
 
 export function renderWithProviders(
   ui: ReactElement,
@@ -21,7 +22,15 @@ export function renderWithProviders(
   return render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={options?.initialEntries ?? ["/"]}>
-        {ui}
+        <WorkspaceContext.Provider
+          value={{
+            workspaceId: "ws_test",
+            workspaceName: "Test Workspace",
+            navigateToWorkspace: () => {},
+          }}
+        >
+          {ui}
+        </WorkspaceContext.Provider>
       </MemoryRouter>
     </QueryClientProvider>,
   );

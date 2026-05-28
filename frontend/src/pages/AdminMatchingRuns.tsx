@@ -10,6 +10,7 @@ import {
   useRunMatchingMutation,
 } from "../hooks/useAdminMatchingRuns";
 import { useAdminSegmentsQuery } from "../hooks/useAdminSegments";
+import { useWorkspace } from "../providers/WorkspaceProvider";
 import { Button } from "../components/ui/button";
 import {
   Card,
@@ -27,9 +28,11 @@ function formatDateTime(value: string): string {
 }
 
 export function AdminMatchingRuns(): JSX.Element {
+  const { workspaceId } = useWorkspace();
+
   const segmentsQuery = useAdminSegmentsQuery();
-  const runsQuery = useAdminMatchingRunsQuery();
-  const runMutation = useRunMatchingMutation();
+  const runsQuery = useAdminMatchingRunsQuery(workspaceId);
+  const runMutation = useRunMatchingMutation(workspaceId);
 
   const readySegments = useMemo(
     () =>

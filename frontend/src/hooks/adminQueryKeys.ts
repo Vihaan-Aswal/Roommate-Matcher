@@ -6,14 +6,14 @@ export const adminQueryKeys = {
   segments: ["admin", "segments"] as const,
   formStatus: ["admin", "form-status"] as const,
   nonSubmitters: ["admin", "form-non-submitters"] as const,
-  matchingRuns: ["admin", "matching-runs"] as const,
-  fairnessByRun: (runId: string) => ["admin", "fairness", runId] as const,
-  roomsByRunSegment: (runId: string, segmentKey: string) =>
-    ["admin", "matching-rooms", runId, segmentKey] as const,
-  studentsByRunSegment: (runId: string, segmentKey: string) =>
-    ["admin", "matching-students", runId, segmentKey] as const,
-  segmentStudents: (segmentKey: string) =>
-    ["admin", "segment-students", segmentKey] as const,
-  checkerCompatibility: (segmentKey: string, studentIds: string[]) =>
-    ["admin", "checker", segmentKey, ...studentIds] as const,
+  matchingRuns: (workspaceId: string) => ["admin", workspaceId, "matching-runs"] as const,
+  fairnessByRun: (workspaceId: string, runId: string) => ["admin", workspaceId, "fairness", runId] as const,
+  roomsByRunSegment: (workspaceId: string, runId: string, segmentKey: string) =>
+    ["admin", workspaceId, "matching-rooms", runId, segmentKey] as const,
+  studentsByRunSegment: (workspaceId: string, runId: string, segmentKey: string) =>
+    ["admin", workspaceId, "matching-students", runId, segmentKey] as const,
+  segmentStudents: (workspaceId: string, segmentKey: string) =>
+    ["admin", workspaceId, "segment-students", segmentKey] as const,
+  checkerCompatibility: (workspaceId: string, segmentKey: string, studentIds: string[]) =>
+    ["admin", workspaceId, "checker", segmentKey, ...studentIds] as const,
 };

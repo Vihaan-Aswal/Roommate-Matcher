@@ -10,6 +10,12 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.auth.dependencies import require_workspace_access
+from app.models.tenant import Tenant
+from app.auth.contracts import AuthenticatedUser
+from app.models.workspace import Workspace
+import uuid
+
 from app.models.room_assignment import RoomAssignment
 from app.models.matching_run import MatchingRun
 from app.models.segment import Segment
@@ -51,17 +57,19 @@ def _iter_assignment_rows(run_id: str, assignments: list[RoomAssignment]):
         buffer.truncate(0)
 
 
-@router.get("/assignments/{run_id}")
+@router.get("/{workspace_id}/assignments/{run_id}")
 def export_assignments_csv(
+    workspace_id: uuid.UUID,
     run_id: str,
     segment_key: str | None = Query(default=None),
     db: Session = Depends(get_db),
+    workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_access),
 ) -> StreamingResponse:
     query = (
         select(RoomAssignment, Segment.segment_key)
         .join(MatchingRun, RoomAssignment.matching_run_id == MatchingRun.id)
         .join(Segment, RoomAssignment.segment_id == Segment.id)
-        .where(MatchingRun.run_id == run_id)
+        .where(MatchingRun.run_id == run_id, MatchingRun.workspace_id == workspace_id)
     )
     if segment_key:
         query = query.where(Segment.segment_key == segment_key)

@@ -3,11 +3,14 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { InlineAlert } from "../components/InlineAlert";
 import { useAdminMatchingRunsQuery } from "../hooks/useAdminMatchingRuns";
+import { useWorkspace } from "../providers/WorkspaceProvider";
 
 export function AdminAtRiskReview(): JSX.Element {
+  const { workspaceId } = useWorkspace();
+
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const runsQuery = useAdminMatchingRunsQuery();
+  const runsQuery = useAdminMatchingRunsQuery(workspaceId);
 
   const runFromQuery = searchParams.get("run");
   const segment = searchParams.get("segment") ?? "all";

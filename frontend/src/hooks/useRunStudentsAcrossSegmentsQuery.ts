@@ -20,8 +20,8 @@ export function useRunStudentsAcrossSegmentsQuery(
 ): UseRunStudentsAcrossSegmentsResult {
   const segmentQueries = useQueries({
     queries: segmentKeys.map((segmentKey) => ({
-      queryKey: adminQueryKeys.studentsByRunSegment(runId, segmentKey),
-      queryFn: () => getRunStudents(runId, segmentKey),
+      queryKey: adminQueryKeys.studentsByRunSegment(workspaceId, runId, segmentKey),
+      queryFn: () => getRunStudents(workspaceId, runId, segmentKey),
       enabled: enabled && Boolean(runId),
     })),
   });

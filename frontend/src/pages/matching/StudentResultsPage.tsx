@@ -16,8 +16,11 @@ import { SATISFACTION_LABELS } from "../../lib/resultEnums";
 
 const VALID_AT_RISK = new Set(["0", "1"]);
 const VALID_LABELS = new Set<string>(["all", ...SATISFACTION_LABELS]);
+import { useWorkspace } from "../../providers/WorkspaceProvider";
 
 export function StudentResultsPage(): JSX.Element {
+  const { workspaceId } = useWorkspace();
+
   const { runId } = useParams<{ runId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const segmentsQuery = useAdminSegmentsQuery();
@@ -36,11 +39,13 @@ export function StudentResultsPage(): JSX.Element {
   );
 
   const singleSegmentQuery = useRunStudentsQuery(
+    workspaceId,
     runId ?? "",
     selectedSegment === "all" ? null : selectedSegment,
   );
 
   const allSegmentsQuery = useRunStudentsAcrossSegmentsQuery(
+    workspaceId,
     runId ?? "",
     segmentKeys,
     selectedSegment === "all" && Boolean(runId),

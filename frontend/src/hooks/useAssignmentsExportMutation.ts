@@ -7,7 +7,7 @@ export interface ExportAssignmentsInput {
   segmentKey?: string;
 }
 
-export function useAssignmentsExportMutation() {
+export function useAssignmentsExportMutation(workspaceId: string) {
   return useMutation({
     mutationFn: ({ runId, segmentKey }: ExportAssignmentsInput) =>
       exportAssignmentsCsv(runId, segmentKey),

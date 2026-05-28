@@ -44,10 +44,14 @@ function resolveValidationMessage(
   return "Ready to run compatibility report.";
 }
 
+import { useWorkspace } from "../../providers/WorkspaceProvider";
+
 export function ManualCheckerPage(): JSX.Element {
+  const { workspaceId } = useWorkspace();
+
   const [searchParams, setSearchParams] = useSearchParams();
   const segmentsQuery = useAdminSegmentsQuery();
-  const checkerMutation = useManualCheckerMutation();
+  const checkerMutation = useManualCheckerMutation(workspaceId);
 
   const [existingStudentIds, setExistingStudentIds] = useState<string[]>([]);
   const [candidateStudentId, setCandidateStudentId] = useState<string | null>(

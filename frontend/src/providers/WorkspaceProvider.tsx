@@ -8,7 +8,7 @@ interface WorkspaceState {
   navigateToWorkspace: (id: string) => void;
 }
 
-const WorkspaceContext = createContext<WorkspaceState | null>(null);
+export const WorkspaceContext = createContext<WorkspaceState | null>(null);
 
 export function useWorkspace(): WorkspaceState {
   const ctx = useContext(WorkspaceContext);

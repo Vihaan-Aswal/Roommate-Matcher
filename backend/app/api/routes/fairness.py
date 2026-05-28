@@ -4,6 +4,12 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.auth.dependencies import require_workspace_access
+from app.models.tenant import Tenant
+from app.auth.contracts import AuthenticatedUser
+from app.models.workspace import Workspace
+import uuid
+
 from app.schemas.fairness import FairnessReportResponse
 from app.services.orchestration.run_workflow import get_run_fairness_snapshot
 
@@ -11,10 +17,15 @@ from app.services.orchestration.run_workflow import get_run_fairness_snapshot
 router = APIRouter(prefix="/fairness", tags=["fairness"])
 
 
-@router.get("/{run_id}", response_model=FairnessReportResponse)
-def get_fairness_report(run_id: str, db: Session = Depends(get_db)) -> FairnessReportResponse:
+@router.get("/{workspace_id}/{run_id}", response_model=FairnessReportResponse)
+def get_fairness_report(
+    workspace_id: uuid.UUID,
+    run_id: str,
+    db: Session = Depends(get_db),
+    workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_access),
+) -> FairnessReportResponse:
     try:
-        snapshot = get_run_fairness_snapshot(db, run_id)
+        snapshot = get_run_fairness_snapshot(db, run_id, workspace_id)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:

@@ -4,15 +4,23 @@ import { vi } from "vitest";
 import { AdminFormCollection } from "../pages/AdminFormCollection";
 import { renderWithProviders } from "./renderWithProviders";
 
-const { useAdminFormStatusQueryMock, useAdminNonSubmittersQueryMock } =
-  vi.hoisted(() => ({
-    useAdminFormStatusQueryMock: vi.fn(),
-    useAdminNonSubmittersQueryMock: vi.fn(),
-  }));
+const {
+  useAdminFormStatusQueryMock,
+  useAdminNonSubmittersQueryMock,
+  useWorkspaceFormLinkQueryMock,
+  useRegenerateFormLinkMutationMock,
+} = vi.hoisted(() => ({
+  useAdminFormStatusQueryMock: vi.fn(),
+  useAdminNonSubmittersQueryMock: vi.fn(),
+  useWorkspaceFormLinkQueryMock: vi.fn(),
+  useRegenerateFormLinkMutationMock: vi.fn(),
+}));
 
 vi.mock("../hooks/useAdminFormCollection", () => ({
   useAdminFormStatusQuery: useAdminFormStatusQueryMock,
   useAdminNonSubmittersQuery: useAdminNonSubmittersQueryMock,
+  useWorkspaceFormLinkQuery: useWorkspaceFormLinkQueryMock,
+  useRegenerateFormLinkMutation: useRegenerateFormLinkMutationMock,
 }));
 
 describe("AdminFormCollection", () => {
@@ -51,6 +59,16 @@ describe("AdminFormCollection", () => {
         total_count: 1,
       },
       error: null,
+    });
+    useWorkspaceFormLinkQueryMock.mockReturnValue({
+      data: { token: "abc-def", created_at: "2026-05-01T00:00:00Z" },
+      isLoading: false,
+      isError: false,
+    });
+
+    useRegenerateFormLinkMutationMock.mockReturnValue({
+      mutate: vi.fn(),
+      isPending: false,
     });
   });
 

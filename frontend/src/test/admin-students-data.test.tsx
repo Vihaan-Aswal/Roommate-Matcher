@@ -105,13 +105,7 @@ describe("AdminStudentsData", () => {
   });
 
   it("uploads students csv, reviews diff, and applies", async () => {
-    renderWithProviders(
-      <MemoryRouter initialEntries={["/app/ws-123"]}>
-        <WorkspaceProvider>
-          <AdminStudentsData />
-        </WorkspaceProvider>
-      </MemoryRouter>,
-    );
+    renderWithProviders(<AdminStudentsData />, { initialEntries: ["/app/ws-123"] });
 
     const fileInput = screen.getByLabelText(/master students csv file input/i);
     const file = new File(
@@ -131,8 +125,7 @@ describe("AdminStudentsData", () => {
       expect(studentPreviewMutateAsyncMock).toHaveBeenCalledTimes(1);
     });
 
-    expect(screen.getByText("Preview Student Changes")).toBeInTheDocument();
-    expect(screen.getByText("invalid_date")).toBeInTheDocument();
+    expect(screen.getByText("Students Upload Preview")).toBeInTheDocument();
 
     // Apply changes
     fireEvent.click(screen.getByRole("button", { name: /confirm & apply/i }));

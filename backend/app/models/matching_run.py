@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, ForeignKeyConstraint, String, Text
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, ForeignKeyConstraint, String, Text, Index
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
@@ -19,6 +19,7 @@ class MatchingRun(UUIDPrimaryKeyMixin, Base):
         ),
         ForeignKeyConstraint(["tenant_id"], ["tenants.id"], name="fk_matching_runs_tenant_id", ondelete="CASCADE"),
         ForeignKeyConstraint(["workspace_id"], ["workspaces.id"], name="fk_matching_runs_workspace_id", ondelete="CASCADE"),
+        Index("ix_matching_runs_workspace_id_id", "workspace_id", "id"),
     )
 
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)

@@ -14,11 +14,15 @@ import { useAssignmentsExportMutation } from "../../hooks/useAssignmentsExportMu
 import { useRunRoomsQuery } from "../../hooks/useRunRoomsQuery";
 import { useRunStudentsQuery } from "../../hooks/useRunStudentsQuery";
 
+import { useWorkspace } from "../../providers/WorkspaceProvider";
+
 export function RoomResultsPage(): JSX.Element {
+  const { workspaceId } = useWorkspace();
+
   const { runId } = useParams<{ runId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const segmentsQuery = useAdminSegmentsQuery();
-  const exportMutation = useAssignmentsExportMutation();
+  const exportMutation = useAssignmentsExportMutation(workspaceId);
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
 
   const selectedSegment = searchParams.get("segment");
@@ -44,8 +48,8 @@ export function RoomResultsPage(): JSX.Element {
     setSearchParams,
   ]);
 
-  const roomsQuery = useRunRoomsQuery(runId ?? "", selectedSegment);
-  const studentsQuery = useRunStudentsQuery(runId ?? "", selectedSegment);
+  const roomsQuery = useRunRoomsQuery(workspaceId, runId ?? "", selectedSegment ?? "");
+  const studentsQuery = useRunStudentsQuery(workspaceId, runId ?? "", selectedSegment ?? "");
 
   const rooms = roomsQuery.data?.rooms ?? [];
   const filteredRooms = useMemo(

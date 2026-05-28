@@ -3,6 +3,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import App from "../App";
 
+import { AuthProvider } from "../providers/AuthProvider";
+
 describe("App shell", () => {
   it("renders the admin shell", () => {
     const queryClient = new QueryClient({
@@ -14,7 +16,9 @@ describe("App shell", () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <App />
+        <AuthProvider>
+          <App />
+        </AuthProvider>
       </QueryClientProvider>,
     );
 

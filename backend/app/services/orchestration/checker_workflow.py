@@ -82,6 +82,7 @@ def run_manual_checker(
     db: Session,
     *,
     segment_key: str,
+    workspace_id: uuid.UUID,
     room_size: int,
     student_ids: list[str],
     precomputed_satisfaction: dict[str, float] | None,
@@ -94,7 +95,7 @@ def run_manual_checker(
     if len(student_ids) != room_size:
         raise ValueError("student_ids count must equal room_size")
 
-    segment = db.scalars(select(Segment).where(Segment.segment_key == segment_key)).first()
+    segment = db.scalars(select(Segment).where(Segment.segment_key == segment_key, Segment.workspace_id == workspace_id)).first()
     if segment is None:
         raise ValueError("Segment not found")
     if segment.room_size != room_size:
@@ -104,6 +105,7 @@ def run_manual_checker(
         select(Student)
         .where(
             Student.segment_id == segment.id,
+            Student.workspace_id == workspace_id,
             Student.admission_number.in_(student_ids),
         )
         .order_by(Student.admission_number)
@@ -115,6 +117,7 @@ def run_manual_checker(
     active_profiles = db.scalars(
         select(PreferenceProfile)
         .where(
+            PreferenceProfile.workspace_id == workspace_id,
             PreferenceProfile.is_active == 1,
             PreferenceProfile.student_id.in_(list(student_id_map.keys())),
         )

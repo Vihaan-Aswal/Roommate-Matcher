@@ -4,6 +4,7 @@ import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { vi } from "vitest";
 
 import { FairnessReportsPage } from "../../pages/reports/FairnessReportsPage";
+import { WorkspaceContext } from "../../providers/WorkspaceProvider";
 
 const { useAdminMatchingRunsQueryMock, useRunFairnessQueryMock } = vi.hoisted(
   () => ({
@@ -18,6 +19,14 @@ vi.mock("../../hooks/useAdminMatchingRuns", () => ({
 
 vi.mock("../../hooks/useRunFairnessQuery", () => ({
   useRunFairnessQuery: useRunFairnessQueryMock,
+}));
+
+vi.mock("../../providers/WorkspaceProvider", () => ({
+  useWorkspace: () => ({
+    workspaceId: "ws_test",
+    workspaceName: "Test Workspace",
+    navigateToWorkspace: vi.fn(),
+  }),
 }));
 
 function LocationProbe() {

@@ -5,7 +5,7 @@ import {
   runCheckerCompatibility,
 } from "../lib/apiClient";
 
-export function useManualCheckerMutation() {
+export function useManualCheckerMutation(workspaceId: string) {
   return useMutation({
     mutationFn: (payload: CheckerRequestPayload) =>
       runCheckerCompatibility(payload),

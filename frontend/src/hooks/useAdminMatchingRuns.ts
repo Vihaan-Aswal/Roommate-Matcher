@@ -7,22 +7,22 @@ import {
 } from "../lib/apiClient";
 import { adminQueryKeys } from "./adminQueryKeys";
 
-export function useAdminMatchingRunsQuery() {
+export function useAdminMatchingRunsQuery(workspaceId: string) {
   return useQuery({
-    queryKey: adminQueryKeys.matchingRuns,
-    queryFn: getMatchingRuns,
+    queryKey: adminQueryKeys.matchingRuns(workspaceId),
+    queryFn: () => getMatchingRuns(workspaceId),
   });
 }
 
-export function useRunMatchingMutation() {
+export function useRunMatchingMutation(workspaceId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (payload: MatchingRunRequest) => runMatching(payload),
+    mutationFn: (payload: MatchingRunRequest) => runMatching(workspaceId, payload),
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({
-          queryKey: adminQueryKeys.matchingRuns,
+          queryKey: adminQueryKeys.matchingRuns(workspaceId),
         }),
         queryClient.invalidateQueries({ queryKey: adminQueryKeys.dashboard }),
         queryClient.invalidateQueries({ queryKey: adminQueryKeys.segments }),

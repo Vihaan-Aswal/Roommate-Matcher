@@ -8,8 +8,8 @@ const { useAdminDashboardQueryMock } = vi.hoisted(() => ({
   useAdminDashboardQueryMock: vi.fn(),
 }));
 
-vi.mock("../hooks/useAdminDashboard", () => ({
-  useAdminDashboardQuery: useAdminDashboardQueryMock,
+vi.mock("../hooks/useWorkspacesQuery", () => ({
+  useWorkspaceDashboardQuery: useAdminDashboardQueryMock,
 }));
 
 describe("AdminDashboard", () => {
@@ -48,7 +48,7 @@ describe("AdminDashboard", () => {
   it("renders dashboard metrics and latest run summary", () => {
     renderWithProviders(<AdminDashboard />);
 
-    expect(screen.getByText("Dashboard")).toBeInTheDocument();
+    expect(screen.getByText("Test Workspace Dashboard")).toBeInTheDocument();
     expect(screen.getByText("Total Students")).toBeInTheDocument();
     expect(screen.getByText("42")).toBeInTheDocument();
     expect(screen.getByText("run-001")).toBeInTheDocument();

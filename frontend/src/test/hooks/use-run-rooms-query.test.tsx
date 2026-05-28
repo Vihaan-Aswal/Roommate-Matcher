@@ -19,7 +19,8 @@ function Probe({
   runId: string;
   segmentKey: string | null;
 }) {
-  const query = useRunRoomsQuery(runId, segmentKey);
+  const workspaceId = "ws_test";
+  const query = useRunRoomsQuery(workspaceId, runId, segmentKey);
 
   if (!segmentKey) {
     return <p>segment-missing</p>;

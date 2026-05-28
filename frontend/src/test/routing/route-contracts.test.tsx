@@ -5,6 +5,7 @@ import { vi } from "vitest";
 
 import { RoomResultsPage } from "../../pages/matching/RoomResultsPage";
 import { StudentResultsPage } from "../../pages/matching/StudentResultsPage";
+import { WorkspaceContext } from "../../providers/WorkspaceProvider";
 
 const {
   useAdminSegmentsQueryMock,
@@ -38,6 +39,14 @@ vi.mock("../../hooks/useRunStudentsAcrossSegmentsQuery", () => ({
 
 vi.mock("../../hooks/useAssignmentsExportMutation", () => ({
   useAssignmentsExportMutation: useAssignmentsExportMutationMock,
+}));
+
+vi.mock("../../providers/WorkspaceProvider", () => ({
+  useWorkspace: () => ({
+    workspaceId: "ws_test",
+    workspaceName: "Test Workspace",
+    navigateToWorkspace: vi.fn(),
+  }),
 }));
 
 describe("result route contracts", () => {
