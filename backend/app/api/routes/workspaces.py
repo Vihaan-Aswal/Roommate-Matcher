@@ -30,6 +30,9 @@ from app.schemas.workspace import FormLinkResponse
 from app.schemas.form import FormStatusResponse, NonSubmittersResponse, NonSubmitterResponseRow
 from app.schemas.segment import SegmentListResponse, SegmentStatusResponse, SegmentStudentsResponse
 from app.services.segments.status import compute_segment_status, get_segment_students_preference_status, list_segment_overviews
+from app.models.segment import Segment
+from app.schemas.magic_fill import MagicFillRequest, MagicFillResponse
+from app.services.magic_fill.service import magic_fill
 
 
 router = APIRouter(prefix="/api/workspaces", tags=["workspaces"])
@@ -356,4 +359,50 @@ def get_workspace_segment_students(
             }
             for row in result.students
         ],
+    )
+
+
+@router.post("/{workspace_id}/magic-fill", response_model=MagicFillResponse)
+def run_magic_fill(
+    workspace_id: uuid.UUID,
+    body: MagicFillRequest = MagicFillRequest(),
+    db: Session = Depends(get_db),
+    workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_access),
+) -> MagicFillResponse:
+    """
+    Generate synthetic preference profiles for active students
+    missing data.
+
+    If body.segment_key is provided, only fill that segment.
+    If omitted or null, fill all missing students workspace-wide.
+    """
+    user, tenant, workspace = workspace_ctx
+
+    segment_id: uuid.UUID | None = None
+    if body.segment_key:
+        segment = db.scalars(
+            select(Segment).where(
+                Segment.workspace_id == workspace.id,
+                Segment.segment_key == body.segment_key,
+            )
+        ).first()
+        if segment is None:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Segment '{body.segment_key}' not found in this workspace."
+            )
+        segment_id = segment.id
+
+    result = magic_fill(
+        db=db,
+        workspace_id=workspace.id,
+        tenant_id=tenant.id,
+        segment_id=segment_id,
+    )
+
+    return MagicFillResponse(
+        workspace_id=str(workspace.id),
+        segment_key=body.segment_key,
+        profiles_created=result.profiles_created,
+        students_skipped=result.students_skipped,
     )
