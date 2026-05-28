@@ -762,3 +762,31 @@ export function getErrorReportDownloadUrl(reportName: string): string {
     `/api/upload/error-reports/${encodeURIComponent(reportName)}`,
   );
 }
+
+export async function magicFillWorkspace(
+  workspaceId: string,
+  segmentKey?: string | null,
+): Promise<{
+  workspace_id: string;
+  segment_key: string | null;
+  profiles_created: number;
+  students_skipped: number;
+}> {
+  const body: Record<string, string | null> = {};
+  if (segmentKey) {
+    body.segment_key = segmentKey;
+  }
+  const res = await fetch(buildUrl(`/api/workspaces/${encodeURIComponent(workspaceId)}/magic-fill`), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(_apiToken ? { Authorization: `Bearer ${_apiToken}` } : {}),
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail ?? "Magic Fill failed.");
+  }
+  return res.json();
+}

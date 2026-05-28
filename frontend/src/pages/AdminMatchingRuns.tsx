@@ -1,5 +1,6 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { magicFillWorkspace } from "../lib/apiClient";
 
 import { AdminPageHeader } from "../components/AdminPageHeader";
 import { DataTable, type DataTableColumn } from "../components/DataTable";
@@ -33,6 +34,22 @@ export function AdminMatchingRuns(): JSX.Element {
   const segmentsQuery = useAdminSegmentsQuery();
   const runsQuery = useAdminMatchingRunsQuery(workspaceId);
   const runMutation = useRunMatchingMutation(workspaceId);
+
+  const [magicFillLoading, setMagicFillLoading] = useState(false);
+
+  async function handleSegmentMagicFill(segmentKey: string) {
+    if (!workspaceId) return;
+    setMagicFillLoading(true);
+    try {
+      const result = await magicFillWorkspace(workspaceId, segmentKey);
+      alert(`Segment ${segmentKey}: created ${result.profiles_created} profiles.`);
+      segmentsQuery.refetch();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Magic Fill failed.");
+    } finally {
+      setMagicFillLoading(false);
+    }
+  }
 
   const readySegments = useMemo(
     () =>
@@ -97,12 +114,14 @@ export function AdminMatchingRuns(): JSX.Element {
             Run Segment
           </Button>
           <Button
-            disabled={true}
+            onClick={() => void handleSegmentMagicFill(row.segment_key)}
+            disabled={magicFillLoading || row.status === "Ready"}
             size="sm"
             variant="outline"
-            title="Magic Fill — coming in next update"
+            className="text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+            title="Generate synthetic missing data"
           >
-            Magic Fill
+            ⚡ Fill Missing
           </Button>
         </div>
       ),
@@ -183,14 +202,6 @@ export function AdminMatchingRuns(): JSX.Element {
 
   const actions = (
     <div className="flex gap-2">
-      <Button
-        disabled={true}
-        size="sm"
-        variant="outline"
-        title="Magic Fill — coming in next update"
-      >
-        Magic Fill
-      </Button>
       <Button
         disabled={runMutation.isPending || readySegments.length === 0}
         size="sm"
