@@ -39,6 +39,7 @@ from app.auth.tokens import issue_demo_token
 from app.config import get_settings
 from app.database import get_db
 from app.models import Tenant, TenantMembership, Workspace
+from app.services.demo_seed.service import seed_demo_workspace
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -68,6 +69,9 @@ class DemoResponse(BaseModel):
     tenant_id: str
     workspace_id: str
     expires_at: str      # ISO-8601 UTC string
+    students_seeded: int = 0
+    rooms_seeded: int = 0
+    responses_seeded: int = 0
 
 
 class MeResponse(BaseModel):
@@ -198,6 +202,20 @@ async def create_demo_session(
     db.add(membership)
     db.commit()
 
+    # --- Phase 6: Seed demo workspace with sample data ---
+    import logging
+    try:
+        seed_result = seed_demo_workspace(db, workspace.id, tenant.id)
+    except FileNotFoundError as exc:
+        # Don't fail the demo session — just log and leave workspace empty
+        logging.getLogger(__name__).warning("Demo seed files missing: %s", exc)
+        seed_result = None
+
+    # Mark workspace as seeded
+    workspace.is_demo_seeded = True
+    workspace.status = "active"
+    db.commit()
+
     # Issue demo app JWT
     token = issue_demo_token(
         tenant_id=tenant.id,
@@ -210,6 +228,9 @@ async def create_demo_session(
         tenant_id=str(tenant.id),
         workspace_id=str(workspace.id),
         expires_at=demo_expires_at.isoformat(),
+        students_seeded=seed_result.students_inserted if seed_result else 0,
+        rooms_seeded=seed_result.rooms_inserted if seed_result else 0,
+        responses_seeded=seed_result.form_responses_accepted if seed_result else 0,
     )
 
 
