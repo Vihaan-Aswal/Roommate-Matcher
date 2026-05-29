@@ -172,7 +172,7 @@ def get_non_submitters(
 
 
 @router.post("/{workspace_id}/students/upload/preview", response_model=StudentImportDiffResponse)
-async def preview_student_upload(
+def preview_student_upload(
     workspace_id: uuid.UUID,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
@@ -183,7 +183,7 @@ async def preview_student_upload(
     No database changes are made.
     """
     user, tenant, workspace = workspace_ctx
-    csv_bytes = await file.read()
+    csv_bytes = file.file.read()
 
     try:
         diff = plan_student_import(db, workspace.id, tenant.id, csv_bytes)
@@ -207,7 +207,7 @@ async def preview_student_upload(
 
 
 @router.post("/{workspace_id}/students/upload/apply", response_model=StudentImportApplyResponse)
-async def apply_student_upload(
+def apply_student_upload(
     workspace_id: uuid.UUID,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
@@ -218,7 +218,7 @@ async def apply_student_upload(
     This is the confirmation step after the user reviews the diff preview.
     """
     user, tenant, workspace = workspace_ctx
-    csv_bytes = await file.read()
+    csv_bytes = file.file.read()
 
     try:
         apply_result = apply_student_import(db, workspace.id, tenant.id, csv_bytes)
@@ -237,14 +237,14 @@ async def apply_student_upload(
 
 
 @router.post("/{workspace_id}/rooms/upload/preview", response_model=RoomImportDiffResponse)
-async def preview_room_upload(
+def preview_room_upload(
     workspace_id: uuid.UUID,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_access),
 ) -> RoomImportDiffResponse:
     user, tenant, workspace = workspace_ctx
-    csv_bytes = await file.read()
+    csv_bytes = file.file.read()
 
     try:
         diff = plan_room_import(db, workspace.id, tenant.id, csv_bytes)
@@ -268,14 +268,14 @@ async def preview_room_upload(
 
 
 @router.post("/{workspace_id}/rooms/upload/apply", response_model=RoomImportApplyResponse)
-async def apply_room_upload(
+def apply_room_upload(
     workspace_id: uuid.UUID,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_access),
 ) -> RoomImportApplyResponse:
     user, tenant, workspace = workspace_ctx
-    csv_bytes = await file.read()
+    csv_bytes = file.file.read()
 
     try:
         apply_result = apply_room_import(db, workspace.id, tenant.id, csv_bytes)

@@ -90,7 +90,7 @@ class MeResponse(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/session", response_model=SessionResponse)
-async def exchange_session(
+def exchange_session(
     body: SessionRequest,
     db: Annotated[Session, Depends(get_db)],
 ) -> SessionResponse:
@@ -145,7 +145,7 @@ async def exchange_session(
 # ---------------------------------------------------------------------------
 
 @router.post("/demo", response_model=DemoResponse)
-async def create_demo_session(
+def create_demo_session(
     body: DemoRequest,
     db: Annotated[Session, Depends(get_db)],
 ) -> DemoResponse:
@@ -239,7 +239,7 @@ async def create_demo_session(
 # ---------------------------------------------------------------------------
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
-async def logout(
+def logout(
     user: Annotated[AuthenticatedUser, Depends(get_authenticated_user)],
 ) -> None:
     """
@@ -257,7 +257,7 @@ async def logout(
 # ---------------------------------------------------------------------------
 
 @router.get("/me", response_model=MeResponse)
-async def get_me(
+def get_me(
     user: Annotated[AuthenticatedUser, Depends(get_authenticated_user)],
 ) -> MeResponse:
     """
