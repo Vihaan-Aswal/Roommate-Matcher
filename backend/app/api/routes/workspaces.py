@@ -319,20 +319,6 @@ def list_workspace_segments(
     )
 
 
-@router.get("/{workspace_id}/segments/{segment_key}", response_model=SegmentStatusResponse)
-def get_workspace_segment_status(
-    workspace_id: uuid.UUID,
-    segment_key: str,
-    db: Session = Depends(get_db),
-    workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_access),
-) -> SegmentStatusResponse:
-    user, tenant, workspace = workspace_ctx
-    try:
-        status = compute_segment_status(db, segment_key, workspace_id)
-    except KeyError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
-
-    return SegmentStatusResponse(**status.as_dict())
 
 
 @router.get("/{workspace_id}/segments/{segment_key}/students", response_model=SegmentStudentsResponse)

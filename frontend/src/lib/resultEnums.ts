@@ -32,6 +32,3 @@ export const FACTOR_CLAIM_SCOPES: FactorClaimScope[] = [
   "student_specific_claim",
 ];
 
-export function isSatisfactionLabel(value: string): value is SatisfactionLabel {
-  return SATISFACTION_LABELS.includes(value as SatisfactionLabel);
-}

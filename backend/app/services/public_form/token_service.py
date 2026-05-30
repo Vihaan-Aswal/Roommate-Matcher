@@ -16,22 +16,6 @@ def get_active_token(db: Session, workspace_id: uuid.UUID) -> WorkspaceFormLink 
     ).first()
 
 
-def create_token(db: Session, workspace_id: uuid.UUID, tenant_id: uuid.UUID) -> WorkspaceFormLink:
-    existing = get_active_token(db, workspace_id)
-    if existing is not None:
-        raise ValueError("An active token already exists for this workspace")
-
-    new_token = WorkspaceFormLink(
-        tenant_id=tenant_id,
-        workspace_id=workspace_id,
-        public_form_token=secrets.token_urlsafe(32),
-        is_active=True,
-    )
-    db.add(new_token)
-    db.commit()
-    db.refresh(new_token)
-    return new_token
-
 
 def regenerate_token(db: Session, workspace_id: uuid.UUID, tenant_id: uuid.UUID) -> WorkspaceFormLink:
     try:

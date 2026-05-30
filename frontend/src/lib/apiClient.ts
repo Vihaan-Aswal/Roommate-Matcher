@@ -42,14 +42,6 @@ export interface InvalidRow {
   raw_value: string | null;
 }
 
-export interface UploadSummaryResponse {
-  total_rows: number;
-  accepted_rows: number;
-  rejected_rows: number;
-  duplicate_rows: number;
-  invalid_rows: InvalidRow[];
-  error_report_name: string | null;
-}
 
 // -- Student Diff --
 
@@ -477,17 +469,6 @@ async function uploadCsv(
   });
 }
 
-export async function submitStudentForm(
-  payload: FormSubmissionPayload,
-): Promise<FormSubmissionResult> {
-  return requestJson<FormSubmissionResult>("/api/form/submit", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
-}
 
 // -- Public Form API --
 
@@ -518,9 +499,6 @@ export async function submitPublicForm(
   return data as FormSubmissionResult;
 }
 
-export async function getDashboardSummary(): Promise<DashboardResponse> {
-  return requestJson<DashboardResponse>("/api/dashboard");
-}
 
 export async function getWorkspaces(): Promise<WorkspaceListResponse> {
   return requestJson<WorkspaceListResponse>("/api/workspaces");
@@ -538,13 +516,6 @@ export async function createWorkspace(
   });
 }
 
-export async function getWorkspace(
-  workspaceId: string,
-): Promise<WorkspaceResponse> {
-  return requestJson<WorkspaceResponse>(
-    `/api/workspaces/${encodeURIComponent(workspaceId)}`,
-  );
-}
 
 export async function getWorkspaceDashboard(
   workspaceId: string,
@@ -762,13 +733,6 @@ export async function exportAssignmentsCsv(
   };
 }
 
-// DEPRECATED: Error reports are no longer written to disk.
-// Validation errors are returned inline in the diff preview response.
-export function getErrorReportDownloadUrl(reportName: string): string {
-  return buildUrl(
-    `/api/upload/error-reports/${encodeURIComponent(reportName)}`,
-  );
-}
 
 export async function magicFillWorkspace(
   workspaceId: string,

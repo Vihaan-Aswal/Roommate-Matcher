@@ -4,13 +4,10 @@ import {
   type StudentImportApplyResponse,
   type RoomImportDiffResponse,
   type RoomImportApplyResponse,
-  type UploadSummaryResponse,
   previewStudentUpload,
   applyStudentUpload,
   previewRoomUpload,
   applyRoomUpload,
-  uploadStudentsCsv,
-  uploadRoomsCsv,
 } from "../lib/apiClient";
 import { adminQueryKeys } from "./adminQueryKeys";
 
@@ -68,36 +65,3 @@ export function useApplyRoomUploadMutation(workspaceId: string) {
   });
 }
 
-// DEPRECATED: Keep legacy hooks for backward compat until all references are removed.
-export function useUploadStudentsMutation() {
-  const queryClient = useQueryClient();
-
-  return useMutation<UploadSummaryResponse, Error, File>({
-    mutationFn: (file) => uploadStudentsCsv(file),
-    onSuccess: async () => {
-      // Legacy hooks might use old dashboard key, we just invalidate commonly used keys to be safe
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: adminQueryKeys.dashboard("legacy") }),
-        queryClient.invalidateQueries({ queryKey: adminQueryKeys.segments("legacy") }),
-        queryClient.invalidateQueries({ queryKey: adminQueryKeys.formStatus("legacy") }),
-        queryClient.invalidateQueries({ queryKey: adminQueryKeys.nonSubmitters("legacy") }),
-      ]);
-    },
-  });
-}
-
-export function useUploadRoomsMutation() {
-  const queryClient = useQueryClient();
-
-  return useMutation<UploadSummaryResponse, Error, File>({
-    mutationFn: (file) => uploadRoomsCsv(file),
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: adminQueryKeys.dashboard("legacy") }),
-        queryClient.invalidateQueries({ queryKey: adminQueryKeys.segments("legacy") }),
-        queryClient.invalidateQueries({ queryKey: adminQueryKeys.formStatus("legacy") }),
-        queryClient.invalidateQueries({ queryKey: adminQueryKeys.nonSubmitters("legacy") }),
-      ]);
-    },
-  });
-}

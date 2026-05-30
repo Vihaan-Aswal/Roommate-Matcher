@@ -126,5 +126,3 @@ def classify_factor_breakdown(factor_breakdown: dict[str, FactorScore]) -> list[
     ]
 
 
-def classify_pair_result(pair_result: PairResult) -> list[ClassifiedFactor]:
-    return classify_factor_breakdown(pair_result.factor_breakdown)

@@ -2,8 +2,11 @@ from __future__ import annotations
 
 from typing import Any
 from pydantic import BaseModel
-from app.schemas.upload import InvalidRowSchema
-
+class InvalidRowSchema(BaseModel):
+    row_number: int
+    field: str
+    reason: str
+    raw_value: str | None
 # -- Student Diff --
 
 class StudentDiffEntry(BaseModel):
