@@ -1,4 +1,5 @@
 import { fireEvent, screen } from "@testing-library/react";
+import { Route, Routes } from "react-router-dom";
 import { vi } from "vitest";
 
 import { AdminManualChecker } from "../../pages/AdminManualChecker";
@@ -116,9 +117,17 @@ describe("ManualCheckerPage", () => {
   });
 
   function renderPage() {
-    renderWithProviders(<AdminManualChecker />, {
-      initialEntries: ["/admin/manual-checker?segment=M_1st_year_AC_3"],
-    });
+    renderWithProviders(
+      <Routes>
+        <Route
+          path="/app/:workspaceId/manual-checker"
+          element={<AdminManualChecker />}
+        />
+      </Routes>,
+      {
+        initialEntries: ["/app/ws_test/manual-checker?segment=M_1st_year_AC_3"],
+      },
+    );
   }
 
   it("shows advisory disclaimer in both selection and result panels", () => {

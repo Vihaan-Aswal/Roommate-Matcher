@@ -9,11 +9,11 @@ import { WorkspaceContext } from "../../providers/WorkspaceProvider";
 const {
   useAdminSegmentsQueryMock,
   useRunStudentsQueryMock,
-  useRunStudentsAcrossSegmentsQueryMock,
+  useRunStudentsAllSegmentsQueryMock,
 } = vi.hoisted(() => ({
   useAdminSegmentsQueryMock: vi.fn(),
   useRunStudentsQueryMock: vi.fn(),
-  useRunStudentsAcrossSegmentsQueryMock: vi.fn(),
+  useRunStudentsAllSegmentsQueryMock: vi.fn(),
 }));
 
 vi.mock("../../hooks/useAdminSegments", () => ({
@@ -24,8 +24,8 @@ vi.mock("../../hooks/useRunStudentsQuery", () => ({
   useRunStudentsQuery: useRunStudentsQueryMock,
 }));
 
-vi.mock("../../hooks/useRunStudentsAcrossSegmentsQuery", () => ({
-  useRunStudentsAcrossSegmentsQuery: useRunStudentsAcrossSegmentsQueryMock,
+vi.mock("../../hooks/useRunStudentsAllSegmentsQuery", () => ({
+  useRunStudentsAllSegmentsQuery: useRunStudentsAllSegmentsQueryMock,
 }));
 
 vi.mock("../../providers/WorkspaceProvider", () => ({
@@ -118,7 +118,7 @@ describe("phase 7 deep links", () => {
       refetch: vi.fn(),
     });
 
-    useRunStudentsAcrossSegmentsQueryMock.mockReturnValue({
+    useRunStudentsAllSegmentsQueryMock.mockReturnValue({
       students: [
         {
           admission_number: "MR010",
@@ -158,12 +158,16 @@ describe("phase 7 deep links", () => {
       },
     });
 
+    const normalizedEntry = initialEntry.startsWith("/admin/")
+      ? initialEntry.replace("/admin/", "/app/ws_test/")
+      : initialEntry;
+
     return render(
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={[initialEntry]}>
+        <MemoryRouter initialEntries={[normalizedEntry]}>
           <Routes>
             <Route
-              path="/admin/matching-runs/:runId/students"
+              path="/app/:workspaceId/matching-runs/:runId/students"
               element={
                 <>
                   <StudentResultsPage />
@@ -179,7 +183,7 @@ describe("phase 7 deep links", () => {
 
   it("opens direct deep link with prefiltered at-risk student and panel selection", () => {
     renderStudentRoute(
-      "/admin/matching-runs/run-200/students?segment=M_1st_year_AC_2&label=Poor&atRisk=1&student=MR010",
+      "/app/ws_test/matching-runs/run-200/students?segment=M_1st_year_AC_2&label=Poor&atRisk=1&student=MR010",
     );
 
     expect(screen.getByText("MR010")).toBeInTheDocument();
@@ -189,7 +193,7 @@ describe("phase 7 deep links", () => {
 
   it("normalizes invalid query values on load", async () => {
     renderStudentRoute(
-      "/admin/matching-runs/run-200/students?segment=BAD_SEG&label=Invalid&atRisk=7",
+      "/app/ws_test/matching-runs/run-200/students?segment=BAD_SEG&label=Invalid&atRisk=7",
     );
 
     await waitFor(() => {
@@ -201,7 +205,7 @@ describe("phase 7 deep links", () => {
 
   it("renders stable ordering for identical unsorted data", () => {
     renderStudentRoute(
-      "/admin/matching-runs/run-200/students?segment=all&label=all&atRisk=0",
+      "/app/ws_test/matching-runs/run-200/students?segment=all&label=all&atRisk=0",
     );
 
     const rows = screen.getAllByTestId(/student-row-/);

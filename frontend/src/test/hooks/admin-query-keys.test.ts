@@ -5,7 +5,7 @@ describe("adminQueryKeys", () => {
 
   it("builds run and segment scoped keys", () => {
     expect(adminQueryKeys.roomsByRunSegment(workspaceId, "run-1", "SEG_A")).toEqual([
-      "admin",
+      "workspace",
       workspaceId,
       "matching-rooms",
       "run-1",
@@ -13,7 +13,7 @@ describe("adminQueryKeys", () => {
     ]);
 
     expect(adminQueryKeys.studentsByRunSegment(workspaceId, "run-1", "SEG_A")).toEqual([
-      "admin",
+      "workspace",
       workspaceId,
       "matching-students",
       "run-1",
@@ -21,7 +21,7 @@ describe("adminQueryKeys", () => {
     ]);
 
     expect(adminQueryKeys.fairnessByRun(workspaceId, "run-1")).toEqual([
-      "admin",
+      "workspace",
       workspaceId,
       "fairness",
       "run-1",

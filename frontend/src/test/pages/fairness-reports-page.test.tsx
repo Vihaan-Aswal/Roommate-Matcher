@@ -113,10 +113,10 @@ describe("FairnessReportsPage", () => {
 
     return render(
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={["/admin/fairness/run-100?segment=all"]}>
+        <MemoryRouter initialEntries={["/app/ws_test/fairness/run-100?segment=all"]}>
           <Routes>
             <Route
-              path="/admin/fairness/:runId"
+              path="/app/:workspaceId/fairness/:runId"
               element={
                 <>
                   <FairnessReportsPage />
@@ -125,7 +125,7 @@ describe("FairnessReportsPage", () => {
               }
             />
             <Route
-              path="/admin/matching-runs/:runId/students"
+              path="/app/:workspaceId/matching-runs/:runId/students"
               element={<LocationProbe />}
             />
           </Routes>
@@ -148,7 +148,7 @@ describe("FairnessReportsPage", () => {
     fireEvent.click(screen.getAllByRole("button", { name: /poor/i })[0]);
 
     expect(screen.getByTestId("location").textContent).toContain(
-      "/admin/matching-runs/run-100/students?segment=all&label=Poor&atRisk=0",
+      "/app/ws_test/matching-runs/run-100/students?segment=all&label=Poor&atRisk=0",
     );
   });
 });

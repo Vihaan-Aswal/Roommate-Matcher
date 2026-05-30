@@ -128,8 +128,8 @@ describe("result route contracts", () => {
 
   it("binds runId for room results route", () => {
     renderWithRoute(
-      "/admin/matching-runs/run-101/rooms?segment=M_1st_year_AC_2",
-      "/admin/matching-runs/:runId/rooms",
+      "/app/ws_test/matching-runs/run-101/rooms?segment=M_1st_year_AC_2",
+      "/app/:workspaceId/matching-runs/:runId/rooms",
       <RoomResultsPage />,
     );
 
@@ -141,8 +141,8 @@ describe("result route contracts", () => {
 
   it("binds runId for student results route", () => {
     renderWithRoute(
-      "/admin/matching-runs/run-101/students?segment=all",
-      "/admin/matching-runs/:runId/students",
+      "/app/ws_test/matching-runs/run-101/students?segment=all",
+      "/app/:workspaceId/matching-runs/:runId/students",
       <StudentResultsPage />,
     );
 

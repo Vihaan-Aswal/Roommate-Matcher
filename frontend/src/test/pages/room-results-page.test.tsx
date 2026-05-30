@@ -154,12 +154,12 @@ describe("RoomResultsPage", () => {
   });
 
   function renderPage(
-    initialEntry = "/admin/matching-runs/run-100/rooms?segment=M_1st_year_AC_2&needsReview=0",
+    initialEntry = "/app/ws_test/matching-runs/run-100/rooms?segment=M_1st_year_AC_2&needsReview=0",
   ) {
     renderWithProviders(
       <Routes>
         <Route
-          path="/admin/matching-runs/:runId/rooms"
+          path="/app/:workspaceId/matching-runs/:runId/rooms"
           element={<RoomResultsPage />}
         />
       </Routes>,

@@ -8,11 +8,11 @@ import { renderWithProviders } from "../renderWithProviders";
 const {
   useAdminSegmentsQueryMock,
   useRunStudentsQueryMock,
-  useRunStudentsAcrossSegmentsQueryMock,
+  useRunStudentsAllSegmentsQueryMock,
 } = vi.hoisted(() => ({
   useAdminSegmentsQueryMock: vi.fn(),
   useRunStudentsQueryMock: vi.fn(),
-  useRunStudentsAcrossSegmentsQueryMock: vi.fn(),
+  useRunStudentsAllSegmentsQueryMock: vi.fn(),
 }));
 
 vi.mock("../../hooks/useAdminSegments", () => ({
@@ -23,8 +23,8 @@ vi.mock("../../hooks/useRunStudentsQuery", () => ({
   useRunStudentsQuery: useRunStudentsQueryMock,
 }));
 
-vi.mock("../../hooks/useRunStudentsAcrossSegmentsQuery", () => ({
-  useRunStudentsAcrossSegmentsQuery: useRunStudentsAcrossSegmentsQueryMock,
+vi.mock("../../hooks/useRunStudentsAllSegmentsQuery", () => ({
+  useRunStudentsAllSegmentsQuery: useRunStudentsAllSegmentsQueryMock,
 }));
 
 describe("StudentResultsPage", () => {
@@ -105,7 +105,7 @@ describe("StudentResultsPage", () => {
       error: null,
     });
 
-    useRunStudentsAcrossSegmentsQueryMock.mockReturnValue({
+    useRunStudentsAllSegmentsQueryMock.mockReturnValue({
       students: [],
       isLoading: false,
       isError: false,
@@ -115,12 +115,12 @@ describe("StudentResultsPage", () => {
   });
 
   function renderPage(
-    initialEntry = "/admin/matching-runs/run-100/students?segment=M_1st_year_AC_2&label=all&atRisk=0",
+    initialEntry = "/app/ws_test/matching-runs/run-100/students?segment=M_1st_year_AC_2&label=all&atRisk=0",
   ) {
     renderWithProviders(
       <Routes>
         <Route
-          path="/admin/matching-runs/:runId/students"
+          path="/app/:workspaceId/matching-runs/:runId/students"
           element={<StudentResultsPage />}
         />
       </Routes>,

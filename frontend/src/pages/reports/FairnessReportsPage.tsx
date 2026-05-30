@@ -23,6 +23,7 @@ import { useRunFairnessQuery } from "../../hooks/useRunFairnessQuery";
 import type { SatisfactionLabel } from "../../lib/apiClient";
 
 function buildStudentRoute(
+  workspaceId: string,
   runId: string,
   segment: string,
   label: "all" | SatisfactionLabel,
@@ -32,7 +33,7 @@ function buildStudentRoute(
   params.set("segment", segment);
   params.set("label", label);
   params.set("atRisk", atRisk);
-  return `/admin/matching-runs/${encodeURIComponent(runId)}/students?${params.toString()}`;
+  return `/app/${encodeURIComponent(workspaceId)}/matching-runs/${encodeURIComponent(runId)}/students?${params.toString()}`;
 }
 
 export function FairnessReportsPage(): JSX.Element {
@@ -70,7 +71,7 @@ export function FairnessReportsPage(): JSX.Element {
       next.set("segment", "all");
     }
     navigate(
-      `/admin/fairness/${encodeURIComponent(resolvedRunId)}?${next.toString()}`,
+      `/app/${encodeURIComponent(workspaceId)}/fairness/${encodeURIComponent(resolvedRunId)}?${next.toString()}`,
       {
         replace: true,
       },
@@ -167,7 +168,7 @@ export function FairnessReportsPage(): JSX.Element {
               next.set("segment", "all");
             }
             navigate(
-              `/admin/fairness/${encodeURIComponent(nextRunId)}?${next.toString()}`,
+              `/app/${encodeURIComponent(workspaceId)}/fairness/${encodeURIComponent(nextRunId)}?${next.toString()}`,
             );
           }}
           onSegmentChange={(segment) => {
@@ -240,7 +241,7 @@ export function FairnessReportsPage(): JSX.Element {
                 className="rounded-md border border-border/70 px-3 py-2 text-sm hover:bg-muted/30"
                 type="button"
                 onClick={() => {
-                  navigate(buildStudentRoute(resolvedRunId, "all", "all", "1"));
+                  navigate(buildStudentRoute(workspaceId, resolvedRunId, "all", "all", "1"));
                 }}
               >
                 At risk: {fairnessQuery.data.run_at_risk_count}
@@ -257,7 +258,7 @@ export function FairnessReportsPage(): JSX.Element {
                 counts={fairnessQuery.data.run_label_counts}
                 percentages={fairnessQuery.data.run_label_percentages}
                 onLabelClick={(label) => {
-                  navigate(buildStudentRoute(resolvedRunId, "all", label, "0"));
+                  navigate(buildStudentRoute(workspaceId, resolvedRunId, "all", label, "0"));
                 }}
               />
             </CardContent>
@@ -270,12 +271,12 @@ export function FairnessReportsPage(): JSX.Element {
                 segment={segment}
                 onSegmentAtRiskClick={(segmentKey) => {
                   navigate(
-                    buildStudentRoute(resolvedRunId, segmentKey, "all", "1"),
+                    buildStudentRoute(workspaceId, resolvedRunId, segmentKey, "all", "1"),
                   );
                 }}
                 onSegmentLabelClick={(segmentKey, label) => {
                   navigate(
-                    buildStudentRoute(resolvedRunId, segmentKey, label, "0"),
+                    buildStudentRoute(workspaceId, resolvedRunId, segmentKey, label, "0"),
                   );
                 }}
               />
