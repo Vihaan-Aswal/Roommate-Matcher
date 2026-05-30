@@ -425,6 +425,27 @@ python demo-data/seed.py --reset --schema-only
 
 ---
 
+## Security & Hardening
+
+As this system processes student data, the following security measures are implemented (or planned for the refinement phase):
+- **Rate Limiting:** Protects API endpoints against brute force and DDoS attacks.
+- **Input Validation:** Strict Pydantic schemas reject malformed or unexpected data.
+- **Data Privacy:** Sensitive lifestyle choices are used for algorithm matching but only surfaced via a privacy-safe template catalog.
+- **CORS Policies:** Configured securely to only allow traffic from the deployed frontend.
+- **Authentication:** JWT-based stateless authentication.
+
+---
+
+## Contributing
+
+We welcome contributions to refine the project. If you'd like to get involved:
+1. Check the [backend README](backend/README.md) and [frontend README](frontend/README.md) for setup instructions.
+2. Ensure you add Python type hints and docstrings for any new backend features.
+3. Keep frontend components modular and use Tailwind classes consistently.
+4. Run the respective test suites before submitting a Pull Request.
+
+---
+
 ## Roadmap
 
 - PDF report export
