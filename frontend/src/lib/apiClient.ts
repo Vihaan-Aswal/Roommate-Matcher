@@ -456,18 +456,7 @@ function parseCsvFileName(
   return match[1];
 }
 
-async function uploadCsv(
-  path: string,
-  file: File,
-): Promise<UploadSummaryResponse> {
-  const formData = new FormData();
-  formData.append("file", file);
 
-  return requestJson<UploadSummaryResponse>(path, {
-    method: "POST",
-    body: formData,
-  });
-}
 
 
 // -- Public Form API --
@@ -599,19 +588,7 @@ export async function applyRoomUpload(
   );
 }
 
-// DEPRECATED: Phase 3+ uses workspace-scoped endpoints
-export async function uploadStudentsCsv(
-  file: File,
-): Promise<UploadSummaryResponse> {
-  return uploadCsv("/api/students/upload", file);
-}
 
-// DEPRECATED: Phase 3+ uses workspace-scoped endpoints
-export async function uploadRoomsCsv(
-  file: File,
-): Promise<UploadSummaryResponse> {
-  return uploadCsv("/api/rooms/upload", file);
-}
 
 export async function runMatching(
   workspaceId: string,
