@@ -81,6 +81,8 @@ def verify_supabase_jwt(token: str) -> dict[str, Any]:
     options = {"require": ["sub", "email", "exp", "iss", "aud"]}
     
     if alg == "HS256":
+        if not settings.supabase_jwt_secret or not settings.supabase_jwt_issuer:
+            raise jwt.InvalidTokenError("Supabase JWT verification is not configured")
         # Fallback to symmetric secret
         return jwt.decode(
             token,
@@ -91,6 +93,8 @@ def verify_supabase_jwt(token: str) -> dict[str, Any]:
             options=options,
         )
     else:
+        if not settings.supabase_project_url or not settings.supabase_jwt_issuer:
+            raise jwt.InvalidTokenError("Supabase JWT verification is not configured")
         # Use JWKS for asymmetric algorithms (RS256, ES256)
         jwks_client = get_jwks_client()
         signing_key = jwks_client.get_signing_key_from_jwt(token)

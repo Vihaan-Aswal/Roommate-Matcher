@@ -33,15 +33,4 @@ class UUIDPrimaryKeyMixin:
     )
 
 
-class TenantScopeMixin:
-    """Provides `tenant_id` and `workspace_id` FK columns."""
-    tenant_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        nullable=False,
-        index=True,
-    )
-    workspace_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        nullable=False,
-        index=True,
-    )
+

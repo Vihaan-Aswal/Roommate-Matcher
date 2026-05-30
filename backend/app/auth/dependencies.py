@@ -114,13 +114,10 @@ async def get_authenticated_user(
         # Not a valid Supabase token — try app JWT
         try:
             app_payload = verify_app_token(raw_token)
-        except jwt.InvalidTokenError as e:
-            import sys
-            print(f"DEBUG: verify_app_token failed: {e}")
-            sys.stdout.flush()
+        except jwt.InvalidTokenError:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail=f"Token is invalid or expired. Reason: {str(e)}",
+                detail="Token is invalid or expired.",
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
@@ -241,15 +238,10 @@ async def require_workspace_access(
         .first()
     )
     if workspace is None:
-        import sys
-        print(f"DEBUG: workspace is None for workspace_id={workspace_id} and effective_tenant_id={effective_tenant_id}")
-        print(f"DEBUG: user.tenant_id={user.tenant_id}, user.impersonated_tenant_id={user.impersonated_tenant_id}")
-        
         # Intentionally return 403 (not 404) to avoid leaking workspace existence.
-        # DEBUG MODE: Include variables in error string for Playwright to capture
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Workspace not found or access denied. ctx: WS={workspace_id} ET={effective_tenant_id} UID={user.supabase_user_id} IT={user.impersonated_tenant_id}",
+            detail="Workspace not found or access denied.",
         )
     return user, tenant, workspace
 
@@ -272,7 +264,12 @@ async def require_platform_admin(
     ------
     HTTP 403 — caller is not a platform admin or is on a demo session.
     """
-    if not user.is_platform_admin or user.is_demo:
+    if (
+        not user.is_platform_admin
+        or user.is_demo
+        or user.auth_kind != "supabase"
+        or user.impersonated_tenant_id is not None
+    ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Platform administrator access required.",

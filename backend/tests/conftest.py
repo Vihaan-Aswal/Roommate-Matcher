@@ -10,6 +10,7 @@ from sqlalchemy.pool import StaticPool
 os.environ["DATABASE_URL"] = "sqlite+pysqlite:///:memory:"
 os.environ["APP_JWT_SECRET"] = "testsecret" * 4
 os.environ["SUPABASE_JWT_SECRET"] = "testsecret" * 4
+os.environ["SUPABASE_JWT_ISSUER"] = "https://test.supabase.co/auth/v1"
 
 import app.models  # noqa: F401
 from app.database import get_db
@@ -76,6 +77,7 @@ from app.models.tenant_membership import TenantMembership
 def setup_env():
     os.environ["APP_JWT_SECRET"] = "testsecret" * 4
     os.environ["SUPABASE_JWT_SECRET"] = "testsecret" * 4
+    os.environ["SUPABASE_JWT_ISSUER"] = "https://test.supabase.co/auth/v1"
 
 @pytest.fixture
 def seed_tenant_and_user(db_session: Session) -> dict[str, Any]:
