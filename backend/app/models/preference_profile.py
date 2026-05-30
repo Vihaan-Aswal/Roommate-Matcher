@@ -29,7 +29,7 @@ class PreferenceProfile(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         UUID(as_uuid=True), ForeignKey("students.id", ondelete="CASCADE"), nullable=False, index=True
     )
     source_form_response_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("form_responses.id", ondelete="SET NULL"), nullable=True
+        UUID(as_uuid=True), ForeignKey("form_responses.id", ondelete="SET NULL"), nullable=True, index=True
     )
 
     has_preferences: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="true")

@@ -12,9 +12,7 @@ from app.api.routes.checker import router as checker_router
 from app.api.routes.dashboard import router as dashboard_router
 from app.api.routes.exports import router as exports_router
 from app.api.routes.fairness import router as fairness_router
-from app.api.routes.form import router as form_router
 from app.api.routes.matching import router as matching_router
-from app.api.routes.segments import router as segments_router
 from app.api.routes.workspaces import router as workspaces_router
 from app.api.routes.public_form import router as public_form_router
 from app.api.routes.platform import router as platform_router
@@ -89,8 +87,6 @@ def create_app(*, frontend_dist_dir: Path | None = None) -> FastAPI:
     application.include_router(workspaces_router)
     application.include_router(public_form_router, prefix="/api/public/forms", tags=["public_form"])
     application.include_router(platform_router)
-    application.include_router(form_router, prefix="/api")
-    application.include_router(segments_router)
     application.include_router(matching_router)
     application.include_router(fairness_router)
     application.include_router(checker_router)
