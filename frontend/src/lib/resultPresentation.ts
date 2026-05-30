@@ -1,5 +1,3 @@
-import type { SatisfactionLabel } from "./apiClient";
-
 export function formatScorePercent(score: number): string {
   return `${(score * 100).toFixed(1)}%`;
 }
@@ -19,12 +17,3 @@ export function summarizeReasons(reasons: string[]): {
   return { visibleReasons, overflowCount };
 }
 
-export function satisfactionSortRank(label: SatisfactionLabel): number {
-  const order: Record<SatisfactionLabel, number> = {
-    Excellent: 0,
-    Good: 1,
-    Okay: 2,
-    Poor: 3,
-  };
-  return order[label];
-}

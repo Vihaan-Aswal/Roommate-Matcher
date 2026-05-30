@@ -1,5 +1,3 @@
-const SENSITIVE_FACTOR_KEYS = new Set(["q6_enc", "q7_enc", "q8_enc"]);
-
 const BLOCKED_TERMS = [
   "smoke",
   "smoking",
@@ -12,10 +10,6 @@ const BLOCKED_TERMS = [
   "meat",
   "diet",
 ];
-
-export function isSensitiveFactor(factorKey: string): boolean {
-  return SENSITIVE_FACTOR_KEYS.has(factorKey);
-}
 
 export function sanitizeReasonText(reason: string): {
   text: string;

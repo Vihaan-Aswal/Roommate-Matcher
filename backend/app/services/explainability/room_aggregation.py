@@ -89,16 +89,3 @@ def aggregate_student_factors(
     return aggregated
 
 
-def aggregate_room_factors(
-    *,
-    room_student_ids: list[str],
-    pair_results: dict[tuple[str, str], PairResult],
-) -> dict[str, list[AggregatedFactorEvidence]]:
-    return {
-        student_id: aggregate_student_factors(
-            student_id=student_id,
-            room_student_ids=room_student_ids,
-            pair_results=pair_results,
-        )
-        for student_id in sorted(room_student_ids)
-    }

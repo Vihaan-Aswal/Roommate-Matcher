@@ -9,7 +9,6 @@ from fastapi.staticfiles import StaticFiles
 
 from app.api.routes.auth import router as auth_router
 from app.api.routes.checker import router as checker_router
-from app.api.routes.dashboard import router as dashboard_router
 from app.api.routes.exports import router as exports_router
 from app.api.routes.fairness import router as fairness_router
 from app.api.routes.matching import router as matching_router
@@ -91,7 +90,6 @@ def create_app(*, frontend_dist_dir: Path | None = None) -> FastAPI:
     application.include_router(fairness_router)
     application.include_router(checker_router)
     application.include_router(exports_router)
-    application.include_router(dashboard_router, prefix="/api")
     application.include_router(internal_router)
 
     @application.get("/health")
