@@ -7,7 +7,7 @@ from typing import Literal
 import uuid
 from uuid import uuid4
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, insert
 from sqlalchemy.orm import Session
 
 from app.models.matching_run import MatchingRun
@@ -228,22 +228,26 @@ def _persist_segment_artifacts(
         )
     )
 
+    pair_scores_data = []
     for (student_a, student_b), pair_result in sorted(pair_results.items()):
-        db.add(
-            PairScore(
-                tenant_id=segment.tenant_id,
-                workspace_id=segment.workspace_id,
-                matching_run_id=matching_run_id,
-                segment_id=segment.id,
-                student_a_id=student_uuid_map[student_a],
-                student_b_id=student_uuid_map[student_b],
-                pair_score=pair_result.pair_score,
-                factor_breakdown_json=json.dumps(
+        pair_scores_data.append(
+            {
+                "tenant_id": segment.tenant_id,
+                "workspace_id": segment.workspace_id,
+                "matching_run_id": matching_run_id,
+                "segment_id": segment.id,
+                "student_a_id": student_uuid_map[student_a],
+                "student_b_id": student_uuid_map[student_b],
+                "pair_score": pair_result.pair_score,
+                "factor_breakdown_json": json.dumps(
                     _serialize_factor_breakdown(pair_result.factor_breakdown),
                     sort_keys=True,
                 ),
-            )
+            }
         )
+    
+    if pair_scores_data:
+        db.execute(insert(PairScore), pair_scores_data)
 
     student_result_map = {item.student_id: item for item in matching_result.students}
     fairness_records: list[FairnessInputRecord] = []

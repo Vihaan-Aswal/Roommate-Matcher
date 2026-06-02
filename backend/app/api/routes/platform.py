@@ -14,6 +14,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.auth.contracts import AuthenticatedUser
@@ -95,9 +96,16 @@ def list_tenants(
         query = query.filter(Tenant.is_demo == False)  # noqa: E712
     tenants = query.order_by(Tenant.created_at.desc()).all()
 
+    counts = dict(
+        db.execute(
+            select(Workspace.tenant_id, func.count(Workspace.id))
+            .group_by(Workspace.tenant_id)
+        ).all()
+    )
+
     rows: list[TenantRow] = []
     for t in tenants:
-        wc = db.query(Workspace).filter(Workspace.tenant_id == t.id).count()
+        wc = counts.get(t.id, 0)
         rows.append(
             TenantRow(
                 id=str(t.id),
