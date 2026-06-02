@@ -440,7 +440,10 @@ def get_run_rooms_from_persisted_artifacts(
         parsed_assignments.append((assignment, [str(item) for item in assigned_students], summary))
         all_student_ids.update(str(item) for item in assigned_students)
     students = db.scalars(
-        select(Student).where(Student.admission_number.in_(sorted(all_student_ids)))
+        select(Student).where(
+            Student.admission_number.in_(sorted(all_student_ids)),
+            Student.workspace_id == workspace_id
+        )
     ).all()
     student_name_map = {student.admission_number: student.full_name for student in students}
     uuid_to_ad_map = {student.id: student.admission_number for student in students}
@@ -514,7 +517,10 @@ def get_run_students_from_persisted_artifacts(
         all_student_ids.update(str(item) for item in assigned_students)
 
     students = db.scalars(
-        select(Student).where(Student.admission_number.in_(sorted(all_student_ids)))
+        select(Student).where(
+            Student.admission_number.in_(sorted(all_student_ids)),
+            Student.workspace_id == workspace_id
+        )
     ).all()
     student_name_map = {student.admission_number: student.full_name for student in students}
 
