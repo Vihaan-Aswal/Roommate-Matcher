@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.auth.contracts import AuthenticatedUser
 from app.auth.dependencies import get_tenant_context, require_workspace_access
 from app.database import get_db
+from app.config import MAX_CSV_UPLOAD_BYTES
 from app.models.tenant import Tenant
 from app.models.workspace import Workspace
 from app.schemas.workspace import (
@@ -174,6 +175,7 @@ def get_non_submitters(
 @router.post("/{workspace_id}/students/upload/preview", response_model=StudentImportDiffResponse)
 def preview_student_upload(
     workspace_id: uuid.UUID,
+    request: Request,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_access),
@@ -183,7 +185,20 @@ def preview_student_upload(
     No database changes are made.
     """
     user, tenant, workspace = workspace_ctx
-    csv_bytes = file.file.read()
+    
+    content_length = request.headers.get("content-length")
+    if content_length and int(content_length) > MAX_CSV_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="File too large. Maximum size is 5MB.")
+
+    CHUNK_SIZE = 64 * 1024  # 64KB
+    chunks = []
+    total_bytes = 0
+    while chunk := file.file.read(CHUNK_SIZE):
+        total_bytes += len(chunk)
+        if total_bytes > MAX_CSV_UPLOAD_BYTES:
+            raise HTTPException(status_code=413, detail="File too large. Maximum size is 5MB.")
+        chunks.append(chunk)
+    csv_bytes = b"".join(chunks)
 
     try:
         diff = plan_student_import(db, workspace.id, tenant.id, csv_bytes)
@@ -209,6 +224,7 @@ def preview_student_upload(
 @router.post("/{workspace_id}/students/upload/apply", response_model=StudentImportApplyResponse)
 def apply_student_upload(
     workspace_id: uuid.UUID,
+    request: Request,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_access),
@@ -218,7 +234,20 @@ def apply_student_upload(
     This is the confirmation step after the user reviews the diff preview.
     """
     user, tenant, workspace = workspace_ctx
-    csv_bytes = file.file.read()
+    
+    content_length = request.headers.get("content-length")
+    if content_length and int(content_length) > MAX_CSV_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="File too large. Maximum size is 5MB.")
+
+    CHUNK_SIZE = 64 * 1024  # 64KB
+    chunks = []
+    total_bytes = 0
+    while chunk := file.file.read(CHUNK_SIZE):
+        total_bytes += len(chunk)
+        if total_bytes > MAX_CSV_UPLOAD_BYTES:
+            raise HTTPException(status_code=413, detail="File too large. Maximum size is 5MB.")
+        chunks.append(chunk)
+    csv_bytes = b"".join(chunks)
 
     try:
         apply_result = apply_student_import(db, workspace.id, tenant.id, csv_bytes)
@@ -239,12 +268,26 @@ def apply_student_upload(
 @router.post("/{workspace_id}/rooms/upload/preview", response_model=RoomImportDiffResponse)
 def preview_room_upload(
     workspace_id: uuid.UUID,
+    request: Request,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_access),
 ) -> RoomImportDiffResponse:
     user, tenant, workspace = workspace_ctx
-    csv_bytes = file.file.read()
+
+    content_length = request.headers.get("content-length")
+    if content_length and int(content_length) > MAX_CSV_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="File too large. Maximum size is 5MB.")
+
+    CHUNK_SIZE = 64 * 1024  # 64KB
+    chunks = []
+    total_bytes = 0
+    while chunk := file.file.read(CHUNK_SIZE):
+        total_bytes += len(chunk)
+        if total_bytes > MAX_CSV_UPLOAD_BYTES:
+            raise HTTPException(status_code=413, detail="File too large. Maximum size is 5MB.")
+        chunks.append(chunk)
+    csv_bytes = b"".join(chunks)
 
     try:
         diff = plan_room_import(db, workspace.id, tenant.id, csv_bytes)
@@ -270,12 +313,26 @@ def preview_room_upload(
 @router.post("/{workspace_id}/rooms/upload/apply", response_model=RoomImportApplyResponse)
 def apply_room_upload(
     workspace_id: uuid.UUID,
+    request: Request,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_access),
 ) -> RoomImportApplyResponse:
     user, tenant, workspace = workspace_ctx
-    csv_bytes = file.file.read()
+
+    content_length = request.headers.get("content-length")
+    if content_length and int(content_length) > MAX_CSV_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="File too large. Maximum size is 5MB.")
+
+    CHUNK_SIZE = 64 * 1024  # 64KB
+    chunks = []
+    total_bytes = 0
+    while chunk := file.file.read(CHUNK_SIZE):
+        total_bytes += len(chunk)
+        if total_bytes > MAX_CSV_UPLOAD_BYTES:
+            raise HTTPException(status_code=413, detail="File too large. Maximum size is 5MB.")
+        chunks.append(chunk)
+    csv_bytes = b"".join(chunks)
 
     try:
         apply_result = apply_room_import(db, workspace.id, tenant.id, csv_bytes)
