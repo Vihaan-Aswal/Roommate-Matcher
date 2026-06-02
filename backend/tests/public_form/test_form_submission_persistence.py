@@ -41,7 +41,7 @@ def test_cross_workspace_isolation_token_cannot_resolve_students_in_other_worksp
         }
     )
     assert resp.status_code == 200
-    assert resp.json()["error"] == "student_not_found"
+    assert resp.json()["error"] == "Verification failed"
     
     fr = db_session.scalars(select(FormResponse)).first()
     assert fr.student_id is None

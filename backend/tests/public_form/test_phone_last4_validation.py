@@ -95,12 +95,12 @@ def test_valid_student_wrong_phone_last4_persisted_student_id_set_valid_false(cl
         }
     )
     assert resp.status_code == 200
-    assert resp.json() == {"status": "recorded", "valid": False, "error": "phone_mismatch"}
+    assert resp.json() == {"status": "recorded", "valid": False, "error": "Verification failed"}
 
     fr = db_session.scalars(select(FormResponse)).first()
     assert fr.student_id == student.id
     assert fr.validation_status == "invalid"
-    assert fr.invalid_reason == "phone_mismatch"
+    assert fr.invalid_reason == "verification_failed"
 
 def test_unknown_admission_number_persisted_student_id_null_valid_false(client, test_setup, db_session):
     resp = client.post(
@@ -112,12 +112,12 @@ def test_unknown_admission_number_persisted_student_id_null_valid_false(client, 
         }
     )
     assert resp.status_code == 200
-    assert resp.json() == {"status": "recorded", "valid": False, "error": "student_not_found"}
+    assert resp.json() == {"status": "recorded", "valid": False, "error": "Verification failed"}
 
     fr = db_session.scalars(select(FormResponse)).first()
     assert fr.student_id is None
     assert fr.validation_status == "invalid"
-    assert fr.invalid_reason == "student_not_found"
+    assert fr.invalid_reason == "verification_failed"
 
 def test_inactive_token_returns_400_nothing_persisted(client, test_setup, db_session):
     token = test_setup["token"]
@@ -153,7 +153,7 @@ def test_inactive_student_behaves_as_student_not_found(client, test_setup, db_se
         }
     )
     assert resp.status_code == 200
-    assert resp.json()["error"] == "student_not_found"
+    assert resp.json()["error"] == "Verification failed"
 
 def test_resubmission_by_same_student_updates_preference_profile(client, test_setup, db_session):
     student = test_setup["student"]
