@@ -181,8 +181,6 @@ def _segment_scoring_profiles(db: Session, segment: Segment) -> tuple[list[str],
         if student_id_map[profile.student_id] in student_id_set
     }
 
-    if not active_profiles:
-        raise ValueError("Segment has zero active profiles")
 
     scoring_profiles: list[ScoringProfile] = []
     for student_id in student_ids:
