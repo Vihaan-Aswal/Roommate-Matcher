@@ -18,6 +18,7 @@ import { RoomResultsPage } from "./pages/matching/RoomResultsPage";
 import { StudentResultsPage } from "./pages/matching/StudentResultsPage";
 import { PlatformTenantsPage } from "./pages/platform/PlatformTenantsPage";
 import { PlatformTenantWorkspacesPage } from "./pages/platform/PlatformTenantWorkspacesPage";
+import { Toaster } from "./components/ui/toaster";
 
 /**
  * PlatformRoute — restricts access to platform admins only.
@@ -133,6 +134,7 @@ export default function App(): JSX.Element {
         {/* Catch-all → login */}
         <Route path="*" element={<Navigate replace to="/login" />} />
       </Routes>
+      <Toaster />
     </Router>
   );
 }

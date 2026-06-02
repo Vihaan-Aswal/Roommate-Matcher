@@ -5,6 +5,7 @@ import { getPlatformTenantWorkspaces, impersonateTenant, getPlatformTenant } fro
 import { adminQueryKeys } from "../../hooks/adminQueryKeys";
 import { setApiToken } from "../../lib/apiClient";
 import { useAuth } from "../../providers/AuthProvider";
+import { useToast } from "../../hooks/use-toast";
 
 const IMPERSONATION_TOKEN_KEY = "impersonation_token";
 const REAL_ADMIN_TOKEN_KEY = "real_admin_token";
@@ -13,6 +14,7 @@ export function PlatformTenantWorkspacesPage() {
   const { tenantId } = useParams<{ tenantId: string }>();
   const navigate = useNavigate();
   const { token: realToken } = useAuth();
+  const { toast } = useToast();
 
   const { data: tenantData } = useQuery({
     queryKey: adminQueryKeys.platformTenant(tenantId!),
@@ -38,7 +40,11 @@ export function PlatformTenantWorkspacesPage() {
       window.location.href = `/app/${response.workspace_id}/dashboard`;
     },
     onError: (err: Error) => {
-      alert(`Impersonation failed: ${err.message}`);
+      toast({
+        title: "Impersonation failed",
+        description: err.message,
+        variant: "destructive",
+      });
     },
   });
 
@@ -48,7 +54,7 @@ export function PlatformTenantWorkspacesPage() {
         &larr; Back to Tenants
       </Link>
       <header className="mb-8">
-        <h1 className="text-3xl font-serif font-bold text-gray-900 flex items-center gap-2">
+        <h1 className="text-3xl font-serif font-bold text-foreground flex items-center gap-2">
           <span className="bg-amber-100 text-amber-800 text-sm px-2 py-1 rounded-md font-sans">God Mode</span>
           Impersonate {tenantData?.display_name || "Tenant"}
         </h1>
@@ -58,20 +64,20 @@ export function PlatformTenantWorkspacesPage() {
       {isLoading ? (
         <div className="animate-pulse space-y-4">
           {[1, 2].map(i => (
-            <div key={i} className="h-32 bg-gray-200 rounded-md"></div>
+            <div key={i} className="h-32 bg-muted rounded-md"></div>
           ))}
         </div>
       ) : data?.workspaces.length === 0 ? (
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center text-gray-500">
+        <div className="bg-muted/50 border border-border rounded-lg p-8 text-center text-muted-foreground">
           This tenant has no workspaces yet.
         </div>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {data?.workspaces.map(w => (
-            <div key={w.id} className="bg-white shadow-sm rounded-lg border border-gray-200 p-6 flex flex-col">
-              <h3 className="font-semibold text-lg text-gray-900 mb-1">{w.name}</h3>
-              <p className="text-xs text-gray-500 mb-4 font-mono">{w.id}</p>
-              <div className="text-sm text-gray-600 space-y-1 mb-6 flex-grow">
+            <div key={w.id} className="bg-white shadow-sm rounded-lg border border-border p-6 flex flex-col">
+              <h3 className="font-semibold text-lg text-foreground mb-1">{w.name}</h3>
+              <p className="text-xs text-muted-foreground mb-4 font-mono">{w.id}</p>
+              <div className="text-sm text-muted-foreground space-y-1 mb-6 flex-grow">
                 <div>Status: <span className="font-medium">{w.status}</span></div>
                 <div>Source: <span className="font-medium">{w.source}</span></div>
                 {w.is_demo_seeded && <span className="inline-block mt-2 rounded-full bg-blue-100 px-2 text-xs font-semibold leading-5 text-blue-800">Demo Seeded</span>}
@@ -93,3 +99,5 @@ export function PlatformTenantWorkspacesPage() {
     </div>
   );
 }
+
+

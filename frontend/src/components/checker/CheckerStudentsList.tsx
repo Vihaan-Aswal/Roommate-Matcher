@@ -1,6 +1,6 @@
 import type { SegmentStudentPreferenceRow } from "../../lib/apiClient";
 import { Input } from "../ui/input";
-import { Select } from "../ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 
 interface CheckerStudentsListProps {
   students: SegmentStudentPreferenceRow[];
@@ -79,20 +79,23 @@ export function CheckerStudentsList({
       <label className="block space-y-1 text-sm font-medium">
         Candidate student
         <Select
-          value={selectedCandidateId ?? ""}
-          onChange={(event) =>
-            onCandidateChange(event.target.value ? event.target.value : null)
-          }
+          value={selectedCandidateId ?? "none"}
+          onValueChange={(val) => onCandidateChange(val === "none" ? null : val)}
         >
-          <option value="">Select candidate</option>
-          {candidateOptions.map((student) => (
-            <option
-              key={student.admission_number}
-              value={student.admission_number}
-            >
-              {student.admission_number} - {student.full_name}
-            </option>
-          ))}
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Select candidate" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">Select candidate</SelectItem>
+            {candidateOptions.map((student) => (
+              <SelectItem
+                key={student.admission_number}
+                value={student.admission_number}
+              >
+                {student.admission_number} - {student.full_name}
+              </SelectItem>
+            ))}
+          </SelectContent>
         </Select>
       </label>
     </div>

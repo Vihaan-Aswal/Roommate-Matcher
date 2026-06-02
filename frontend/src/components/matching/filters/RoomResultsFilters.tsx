@@ -1,4 +1,6 @@
 import type { SegmentOverview } from "../../../lib/apiClient";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
+import { Checkbox } from "../../ui/checkbox";
 
 interface RoomResultsFiltersProps {
   segments: SegmentOverview[];
@@ -21,29 +23,28 @@ export function RoomResultsFilters({
         <label htmlFor="room-segment" className="text-sm font-medium">
           Segment
         </label>
-        <select
-          id="room-segment"
-          className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-          value={selectedSegment}
-          onChange={(event) => onSegmentChange(event.target.value)}
-        >
-          {segments.map((segment) => (
-            <option key={segment.segment_key} value={segment.segment_key}>
-              {segment.segment_key}
-            </option>
-          ))}
-        </select>
+        <Select value={selectedSegment} onValueChange={onSegmentChange}>
+          <SelectTrigger id="room-segment" className="w-[180px]">
+            <SelectValue placeholder="Select segment" />
+          </SelectTrigger>
+          <SelectContent>
+            {segments.map((segment) => (
+              <SelectItem key={segment.segment_key} value={segment.segment_key}>
+                {segment.segment_key}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
-      <label className="inline-flex items-center gap-2 text-sm font-medium">
-        <input
+      <label className="inline-flex items-center gap-2 text-sm font-medium cursor-pointer">
+        <Checkbox
           checked={needsReviewOnly}
-          className="h-4 w-4 rounded border-input"
-          type="checkbox"
-          onChange={(event) => onNeedsReviewChange(event.target.checked)}
+          onCheckedChange={(checked) => onNeedsReviewChange(checked === true)}
         />
         Needs Review only
       </label>
     </div>
   );
 }
+
