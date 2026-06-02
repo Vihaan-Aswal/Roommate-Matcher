@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, ForeignKeyConstraint, String
+from sqlalchemy import DateTime, ForeignKey, ForeignKeyConstraint, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
@@ -11,6 +11,9 @@ from app.models.base import Base, UUIDPrimaryKeyMixin
 
 class TenantMembership(UUIDPrimaryKeyMixin, Base):
     __tablename__ = "tenant_memberships"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "supabase_user_id", name="uq_tenant_membership_tenant_user"),
+    )
 
     tenant_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True

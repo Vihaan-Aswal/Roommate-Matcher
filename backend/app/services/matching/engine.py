@@ -47,13 +47,8 @@ def _validate_segment_data(segment_data: SegmentData) -> None:
     if len(set(segment_data.student_ids)) != len(segment_data.student_ids):
         raise SegmentValidationError("student_ids must be unique")
 
-    if len(segment_data.student_ids) % segment_data.room_size != 0:
-        raise SegmentValidationError(
-            f"Student count {len(segment_data.student_ids)} is not divisible by room_size {segment_data.room_size}"
-        )
-
     if segment_data.room_ids is not None:
-        expected_rooms = len(segment_data.student_ids) // segment_data.room_size
+        expected_rooms = (len(segment_data.student_ids) + segment_data.room_size - 1) // segment_data.room_size
         if len(segment_data.room_ids) != expected_rooms:
             raise SegmentValidationError(
                 f"room_ids count {len(segment_data.room_ids)} does not match expected room count {expected_rooms}"
@@ -83,8 +78,23 @@ def run_matching_for_segment(segment_data: SegmentData | dict[str, object]) -> M
     ordered_students = sorted(parsed_data.student_ids)
     normalized_pair_results = normalize_and_validate_pair_results(ordered_students, parsed_data.pair_results)
 
-    raw_rooms = _dispatch_matcher(parsed_data.room_size, ordered_students, normalized_pair_results)
-    validate_room_assignments(ordered_students, raw_rooms, parsed_data.room_size)
+    leftover = len(ordered_students) % parsed_data.room_size
+    if leftover > 0:
+        main_students = ordered_students[:-leftover]
+        remainder_room = ordered_students[-leftover:]
+    else:
+        main_students = ordered_students
+        remainder_room = []
+
+    if main_students:
+        raw_rooms = _dispatch_matcher(parsed_data.room_size, main_students, normalized_pair_results)
+    else:
+        raw_rooms = []
+        
+    validate_room_assignments(main_students, raw_rooms, parsed_data.room_size)
+    
+    if remainder_room:
+        raw_rooms.append(remainder_room)
 
     initial_assignments = assign_room_ids(
         segment_key=parsed_data.segment_key,
@@ -100,7 +110,9 @@ def run_matching_for_segment(segment_data: SegmentData | dict[str, object]) -> M
     optimized_state, swap_passes_applied = optimize_swaps(room_state, normalized_pair_results, max_passes=3)
 
     optimized_rooms = [sorted(students) for students in optimized_state.values()]
-    validate_room_assignments(ordered_students, optimized_rooms, parsed_data.room_size)
+    main_optimized_rooms = [r for r in optimized_rooms if len(r) == parsed_data.room_size]
+    main_optimized_students = [s for r in main_optimized_rooms for s in r]
+    validate_room_assignments(main_optimized_students, main_optimized_rooms, parsed_data.room_size)
 
     rooms_out: list[RoomAssignmentResult] = []
     students_out: list[StudentSatisfactionRecord] = []

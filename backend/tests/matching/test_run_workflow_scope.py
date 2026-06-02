@@ -7,6 +7,7 @@ from app.models.student import Student
 from app.models.matching_run import MatchingRun
 from app.services.orchestration.run_workflow import run_matching_workflow, _segment_scoring_profiles
 from app.models.preference_profile import PreferenceProfile
+from app.models.room import Room
 
 def test_run_workflow_scope(db_session: Session, seed_tenant_and_user):
     tenant_id = seed_tenant_and_user["tenant_id"]
@@ -21,15 +22,39 @@ def test_run_workflow_scope(db_session: Session, seed_tenant_and_user):
 
     import datetime
     s1_active = Student(tenant_id=tenant_id, workspace_id=ws1.id, segment_id=seg1.id, admission_number="STU-1", full_name="Student 1", gender="M", year_group="1", ac_type="N", room_size=2, dob=datetime.date(2000, 1, 1), phone_last4="1234", is_active=True)
-    s2_inactive = Student(tenant_id=tenant_id, workspace_id=ws1.id, segment_id=seg1.id, admission_number="STU-2", full_name="Student 2", gender="M", year_group="1", ac_type="N", room_size=2, dob=datetime.date(2000, 1, 1), phone_last4="5678", is_active=False)
-    db_session.add_all([s1_active, s2_inactive])
+    s2_active = Student(tenant_id=tenant_id, workspace_id=ws1.id, segment_id=seg1.id, admission_number="STU-2", full_name="Student 2", gender="M", year_group="1", ac_type="N", room_size=2, dob=datetime.date(2000, 1, 1), phone_last4="5678", is_active=True)
+    db_session.add_all([s1_active, s2_active])
+    
+    room1 = Room(tenant_id=tenant_id, workspace_id=ws1.id, segment_id=seg1.id, room_id="R-1", capacity=2, is_active=True, source="uploaded")
+    db_session.add_all([room1])
     db_session.commit()
 
-    # Zero active profiles guard
-    with pytest.raises(ValueError, match="Segment has zero active profiles"):
-        _segment_scoring_profiles(db_session, seg1)
+    # Zero active profiles fallback
+    student_ids_fb, profiles_fb, _ = _segment_scoring_profiles(db_session, seg1)
+    assert len(student_ids_fb) == 2
+    assert len(profiles_fb) == 2
+    assert profiles_fb[0].has_preferences is False
+    assert profiles_fb[1].has_preferences is False
+
+    from unittest.mock import patch
+    with patch("app.services.orchestration.run_workflow.compute_segment_status") as mock_status:
+        from app.services.segments.status import SegmentStatusResult
+        mock_status.return_value = SegmentStatusResult(
+            segment_key="WS1-M",
+            status="Ready",
+            reason="Ready",
+            student_count=2,
+            total_capacity=2,
+            missing_preferences_count=2,
+            missing_preferences_ratio=1.0
+        )
+        # Test 3: Zero-profile matching run completion
+        run_res_fb = run_matching_workflow(db_session, ws1.id, tenant_id, "segment", "WS1-M")
+        assert run_res_fb is not None
+        assert run_res_fb.status == "completed"
 
     prof1 = PreferenceProfile(tenant_id=tenant_id, workspace_id=ws1.id, student_id=s1_active.id, has_preferences=False, is_active=True)
+    s2_active.is_active = False
     db_session.add_all([prof1])
     db_session.commit()
 
