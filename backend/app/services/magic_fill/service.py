@@ -13,7 +13,7 @@ import random
 import uuid
 from dataclasses import dataclass
 
-from sqlalchemy import select, and_, exists
+from sqlalchemy import select, and_, exists, func
 from sqlalchemy.orm import Session
 
 from app.models.preference_profile import PreferenceProfile
@@ -112,7 +112,8 @@ def magic_fill(
     """
     # Count students that already have profiles (for reporting)
     all_active_count_query = (
-        select(Student)
+        select(func.count())
+        .select_from(Student)
         .where(
             Student.workspace_id == workspace_id,
             Student.is_active == True,
@@ -122,7 +123,7 @@ def magic_fill(
         all_active_count_query = all_active_count_query.where(
             Student.segment_id == segment_id
         )
-    total_active = len(list(db.scalars(all_active_count_query).all()))
+    total_active = db.scalar(all_active_count_query) or 0
 
     students = _find_students_missing_profiles(db, workspace_id, segment_id)
     skipped = total_active - len(students)

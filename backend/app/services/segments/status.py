@@ -97,17 +97,18 @@ def compute_segment_status(db: Session, segment_key: str, workspace_id: uuid.UUI
     uploaded_capacity = db.scalar(capacity_query) or 0
     student_rows = db.scalars(student_rows_query).all()
 
+    active_profiles_query = select(PreferenceProfile.student_id, PreferenceProfile.has_preferences).where(
+        PreferenceProfile.student_id.in_(student_rows),
+        PreferenceProfile.is_active == True,
+        PreferenceProfile.workspace_id == workspace_id,
+    )
+    active_profiles = db.execute(active_profiles_query).all()
+    profile_dict = {row.student_id: row.has_preferences for row in active_profiles}
+
     missing_preferences_count = 0
     for student_id in student_rows:
-        profile_query = select(PreferenceProfile).where(
-            PreferenceProfile.student_id == student_id,
-            PreferenceProfile.is_active == True,
-            PreferenceProfile.workspace_id == workspace_id,
-        )
-            
-        active_profile = db.scalars(profile_query.limit(1)).first()
-
-        if active_profile is None or active_profile.has_preferences == 0:
+        has_pref = profile_dict.get(student_id)
+        if has_pref is None or not has_pref:
             missing_preferences_count += 1
 
     missing_ratio = (missing_preferences_count / student_count) if student_count else 0.0
@@ -168,9 +169,70 @@ def list_segment_overviews(db: Session, workspace_id: uuid.UUID) -> list[Segment
     query = select(Segment).where(Segment.workspace_id == workspace_id).order_by(Segment.segment_key)
     segments = db.scalars(query).all()
 
+    if not segments:
+        return []
+
+    segment_ids = [s.id for s in segments]
+
+    student_counts = dict(
+        db.execute(
+            select(Student.segment_id, func.count(Student.id))
+            .where(
+                Student.workspace_id == workspace_id,
+                Student.is_active == True,
+                Student.segment_id.in_(segment_ids)
+            )
+            .group_by(Student.segment_id)
+        ).all()
+    )
+
+    valid_profiles = dict(
+        db.execute(
+            select(Student.segment_id, func.count(Student.id))
+            .join(PreferenceProfile, Student.id == PreferenceProfile.student_id)
+            .where(
+                Student.workspace_id == workspace_id,
+                Student.is_active == True,
+                Student.segment_id.in_(segment_ids),
+                PreferenceProfile.workspace_id == workspace_id,
+                PreferenceProfile.is_active == True,
+                PreferenceProfile.has_preferences == True,
+            )
+            .group_by(Student.segment_id)
+        ).all()
+    )
+
+    room_stats = db.execute(
+        select(Room.segment_id, func.count(Room.room_id), func.coalesce(func.sum(Room.capacity), 0))
+        .where(
+            Room.workspace_id == workspace_id,
+            Room.segment_id.in_(segment_ids)
+        )
+        .group_by(Room.segment_id)
+    ).all()
+    room_counts = {row[0]: row[1] for row in room_stats}
+    room_capacities = {row[0]: row[2] for row in room_stats}
+
     overviews: list[SegmentOverviewResult] = []
     for segment in segments:
-        status = compute_segment_status(db, segment.segment_key, workspace_id)
+        student_count = student_counts.get(segment.id, 0)
+        valid_count = valid_profiles.get(segment.id, 0)
+        missing_count = student_count - valid_count
+        missing_ratio = (missing_count / student_count) if student_count else 0.0
+
+        uploaded_room_count = room_counts.get(segment.id, 0)
+        uploaded_capacity = room_capacities.get(segment.id, 0)
+
+        has_uploaded_rooms = uploaded_room_count > 0
+        total_capacity = uploaded_capacity if has_uploaded_rooms else student_count
+
+        if has_uploaded_rooms and student_count > total_capacity:
+            status_val = "Impossible"
+        elif missing_ratio > 0.2:
+            status_val = "Risk"
+        else:
+            status_val = "Ready"
+
         overviews.append(
             SegmentOverviewResult(
                 segment_key=segment.segment_key,
@@ -178,11 +240,11 @@ def list_segment_overviews(db: Session, workspace_id: uuid.UUID) -> list[Segment
                 year_group=segment.year_group,
                 ac_type=segment.ac_type,
                 room_size=segment.room_size,
-                status=status.status,
-                student_count=status.student_count,
-                total_capacity=status.total_capacity,
-                missing_preferences_count=status.missing_preferences_count,
-                missing_preferences_ratio=status.missing_preferences_ratio,
+                status=status_val,
+                student_count=student_count,
+                total_capacity=total_capacity,
+                missing_preferences_count=missing_count,
+                missing_preferences_ratio=missing_ratio,
             )
         )
 
@@ -205,14 +267,29 @@ def get_segment_students_preference_status(db: Session, segment_key: str, worksp
     ).order_by(Student.admission_number)
     students = db.scalars(student_query).all()
 
+    student_ids = [s.id for s in students]
+
+    profiles_query = select(PreferenceProfile).where(
+        PreferenceProfile.student_id.in_(student_ids),
+        PreferenceProfile.is_active == True,
+        PreferenceProfile.workspace_id == workspace_id,
+    )
+    profiles = db.scalars(profiles_query).all()
+    profile_map = {p.student_id: p for p in profiles}
+
+    forms_query = select(FormResponse).where(
+        FormResponse.student_id.in_(student_ids),
+        FormResponse.workspace_id == workspace_id,
+    ).order_by(FormResponse.student_id, desc(FormResponse.submitted_at), desc(FormResponse.id))
+    forms = db.scalars(forms_query).all()
+    latest_form_map = {}
+    for f in forms:
+        if f.student_id not in latest_form_map:
+            latest_form_map[f.student_id] = f
+
     status_rows: list[SegmentStudentPreferenceStatus] = []
     for student in students:
-        profile_query = select(PreferenceProfile).where(
-            PreferenceProfile.student_id == student.id,
-            PreferenceProfile.is_active == True,
-            PreferenceProfile.workspace_id == workspace_id,
-        )
-        active_profile = db.scalars(profile_query.limit(1)).first()
+        active_profile = profile_map.get(student.id)
 
         if active_profile is not None and active_profile.has_preferences is True:
             preference_status = "valid"
@@ -221,13 +298,7 @@ def get_segment_students_preference_status(db: Session, segment_key: str, worksp
             preference_status = "missing"
             has_valid_preferences = False
         else:
-            form_query = select(FormResponse).where(
-                FormResponse.student_id == student.id,
-                FormResponse.workspace_id == workspace_id,
-            )
-            latest_form = db.scalars(
-                form_query.order_by(desc(FormResponse.submitted_at), desc(FormResponse.id)).limit(1)
-            ).first()
+            latest_form = latest_form_map.get(student.id)
             if latest_form is not None and latest_form.validation_status == "invalid":
                 preference_status = "invalid"
             else:
