@@ -71,6 +71,7 @@ export function useAuth(): AuthState {
 
 const DEMO_TOKEN_KEY = "demo_token";
 const IMPERSONATION_TOKEN_KEY = "impersonation_token";
+const REAL_ADMIN_TOKEN_KEY = "real_admin_token";
 const API_BASE = (import.meta.env.VITE_API_BASE_URL as string) ?? "";
 
 // ---------------------------------------------------------------------------
@@ -246,6 +247,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(async () => {
     sessionStorage.removeItem(DEMO_TOKEN_KEY);
+    sessionStorage.removeItem(IMPERSONATION_TOKEN_KEY);
+    sessionStorage.removeItem(REAL_ADMIN_TOKEN_KEY);
     setUser(null);
     setToken(null);
     await supabase.auth.signOut();
