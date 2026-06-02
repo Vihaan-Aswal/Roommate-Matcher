@@ -2,6 +2,8 @@ import type {
   SatisfactionLabel,
   SegmentOverview,
 } from "../../../lib/apiClient";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
+import { Checkbox } from "../../ui/checkbox";
 
 interface StudentResultsFiltersProps {
   segments: SegmentOverview[];
@@ -27,47 +29,49 @@ export function StudentResultsFilters({
       <div className="grid gap-3 sm:grid-cols-2 lg:flex lg:items-center">
         <label className="flex items-center gap-2 text-sm font-medium">
           Segment
-          <select
-            className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-            value={selectedSegment}
-            onChange={(event) => onSegmentChange(event.target.value)}
-          >
-            <option value="all">All segments</option>
-            {segments.map((segment) => (
-              <option key={segment.segment_key} value={segment.segment_key}>
-                {segment.segment_key}
-              </option>
-            ))}
-          </select>
+          <Select value={selectedSegment} onValueChange={onSegmentChange}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="All segments" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All segments</SelectItem>
+              {segments.map((segment) => (
+                <SelectItem key={segment.segment_key} value={segment.segment_key}>
+                  {segment.segment_key}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </label>
 
         <label className="flex items-center gap-2 text-sm font-medium">
           Label
-          <select
-            className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+          <Select
             value={selectedLabel}
-            onChange={(event) =>
-              onLabelChange(event.target.value as "all" | SatisfactionLabel)
-            }
+            onValueChange={(value) => onLabelChange(value as "all" | SatisfactionLabel)}
           >
-            <option value="all">All labels</option>
-            <option value="Excellent">Excellent</option>
-            <option value="Good">Good</option>
-            <option value="Okay">Okay</option>
-            <option value="Poor">Poor</option>
-          </select>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="All labels" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All labels</SelectItem>
+              <SelectItem value="Excellent">Excellent</SelectItem>
+              <SelectItem value="Good">Good</SelectItem>
+              <SelectItem value="Okay">Okay</SelectItem>
+              <SelectItem value="Poor">Poor</SelectItem>
+            </SelectContent>
+          </Select>
         </label>
       </div>
 
-      <label className="inline-flex items-center gap-2 text-sm font-medium">
-        <input
+      <label className="inline-flex items-center gap-2 text-sm font-medium cursor-pointer">
+        <Checkbox
           checked={atRiskOnly}
-          className="h-4 w-4 rounded border-input"
-          type="checkbox"
-          onChange={(event) => onAtRiskChange(event.target.checked)}
+          onCheckedChange={(checked) => onAtRiskChange(checked === true)}
         />
         At risk only
       </label>
     </div>
   );
 }
+

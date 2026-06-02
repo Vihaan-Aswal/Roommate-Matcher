@@ -106,16 +106,13 @@ export function StudentDetailPanel({
           <TableHeader>
             <TableRow>
               <TableHead>Factor</TableHead>
-              <TableHead>Class</TableHead>
               <TableHead>Polarity</TableHead>
-              <TableHead>Scope</TableHead>
-              <TableHead>Template</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {student.factor_trace.length === 0 ? (
               <TableRow>
-                <TableCell className="text-muted-foreground" colSpan={5}>
+                <TableCell className="text-muted-foreground" colSpan={2}>
                   No factor trace available.
                 </TableCell>
               </TableRow>
@@ -125,12 +122,9 @@ export function StudentDetailPanel({
                   key={`${student.admission_number}-${entry.template_id}-${index}`}
                 >
                   <TableCell>{getSafeFactorLabel(entry.factor_key)}</TableCell>
-                  <TableCell>{entry.factor_class}</TableCell>
                   <TableCell>
                     {polaritySymbol(entry)} {entry.polarity}
                   </TableCell>
-                  <TableCell>{entry.claim_scope}</TableCell>
-                  <TableCell>{entry.template_id}</TableCell>
                 </TableRow>
               ))
             )}

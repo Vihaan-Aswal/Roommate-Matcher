@@ -5,6 +5,8 @@ import { AdminPageHeader } from "../components/AdminPageHeader";
 import { magicFillWorkspace } from "../lib/apiClient";
 import DataWarningBanner from "../components/DataWarningBanner";
 import { InlineAlert } from "../components/InlineAlert";
+import { useToast } from "../hooks/use-toast";
+import { Skeleton } from "../components/ui/skeleton";
 import { StatCard } from "../components/StatCard";
 import { StatusBadge } from "../components/StatusBadge";
 import { useWorkspaceDashboardQuery } from "../hooks/useWorkspacesQuery";
@@ -37,6 +39,7 @@ function formatRunTime(value: string | null): string {
 export function AdminDashboard(): JSX.Element {
   const { workspaceId, workspaceName } = useWorkspace();
   const dashboardQuery = useWorkspaceDashboardQuery(workspaceId || "");
+  const { toast } = useToast();
 
   const [magicFillLoading, setMagicFillLoading] = useState(false);
 
@@ -45,10 +48,17 @@ export function AdminDashboard(): JSX.Element {
     setMagicFillLoading(true);
     try {
       const result = await magicFillWorkspace(workspaceId, null);
-      alert(`Created ${result.profiles_created} profiles workspace-wide.`);
+      toast({
+        title: "Magic Fill Complete",
+        description: `Created ${result.profiles_created} profiles workspace-wide.`,
+      });
       dashboardQuery.refetch();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Magic Fill failed.");
+      toast({
+        variant: "destructive",
+        title: "Magic Fill Failed",
+        description: err instanceof Error ? err.message : "Magic Fill failed.",
+      });
     } finally {
       setMagicFillLoading(false);
     }
@@ -86,11 +96,12 @@ export function AdminDashboard(): JSX.Element {
       />
 
       {dashboardQuery.isLoading ? (
-        <InlineAlert
-          title="Loading dashboard"
-          message="Fetching setup status and latest workflow signals."
-          tone="info"
-        />
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <Skeleton className="h-[120px] rounded-xl" />
+          <Skeleton className="h-[120px] rounded-xl" />
+          <Skeleton className="h-[120px] rounded-xl" />
+          <Skeleton className="h-[120px] rounded-xl" />
+        </div>
       ) : null}
 
       {dashboardQuery.isError ? (

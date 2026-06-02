@@ -22,7 +22,7 @@ export function PlatformTenantsPage() {
   return (
     <div className="mx-auto max-w-5xl">
       <header className="mb-8">
-        <h1 className="text-3xl font-serif font-bold text-gray-900 flex items-center gap-2">
+        <h1 className="text-3xl font-serif font-bold text-foreground flex items-center gap-2">
           <span className="bg-amber-100 text-amber-800 text-sm px-2 py-1 rounded-md font-sans">God Mode</span>
           Platform Console — All Tenants
         </h1>
@@ -35,14 +35,14 @@ export function PlatformTenantsPage() {
           placeholder="Filter by name or slug..."
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
-          className="rounded-md border border-gray-300 px-3 py-2 w-64 shadow-sm focus:border-primary focus:ring-1 focus:ring-primary"
+          className="rounded-md border border-input px-3 py-2 w-64 shadow-sm focus:border-primary focus:ring-1 focus:ring-primary"
         />
         <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
           <input
             type="checkbox"
             checked={includeDemo}
             onChange={(e) => setIncludeDemo(e.target.checked)}
-            className="rounded border-gray-300 text-primary focus:ring-primary"
+            className="rounded border-input text-primary focus:ring-primary"
           />
           Show Demo Tenants
         </label>
@@ -51,7 +51,7 @@ export function PlatformTenantsPage() {
       {isLoading ? (
         <div className="animate-pulse space-y-4">
           {[1, 2, 3].map(i => (
-            <div key={i} className="h-16 bg-gray-200 rounded-md"></div>
+            <div key={i} className="h-16 bg-muted rounded-md"></div>
           ))}
         </div>
       ) : error ? (
@@ -59,27 +59,27 @@ export function PlatformTenantsPage() {
           Failed to load tenants. {(error as Error).message}
         </div>
       ) : (
-        <div className="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200 text-sm">
-            <thead className="bg-gray-50">
+        <div className="bg-white shadow-sm rounded-lg border border-border overflow-hidden">
+          <table className="min-w-full divide-y divide-border text-sm">
+            <thead className="bg-muted/50">
               <tr>
-                <th className="px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Tenant</th>
-                <th className="px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                <th className="px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                <th className="px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Workspaces</th>
-                <th className="px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Created</th>
-                <th className="px-6 py-3 text-right font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                <th className="px-6 py-3 text-left font-medium text-muted-foreground uppercase tracking-wider">Tenant</th>
+                <th className="px-6 py-3 text-left font-medium text-muted-foreground uppercase tracking-wider">Email</th>
+                <th className="px-6 py-3 text-left font-medium text-muted-foreground uppercase tracking-wider">Type</th>
+                <th className="px-6 py-3 text-left font-medium text-muted-foreground uppercase tracking-wider">Workspaces</th>
+                <th className="px-6 py-3 text-left font-medium text-muted-foreground uppercase tracking-wider">Created</th>
+                <th className="px-6 py-3 text-right font-medium text-muted-foreground uppercase tracking-wider">Action</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white divide-y divide-border">
               {filtered.map(t => (
-                <tr key={t.id} className="hover:bg-gray-50 transition-colors">
+                <tr key={t.id} className="hover:bg-muted/50 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="font-medium text-gray-900">{t.display_name}</div>
-                    <div className="text-gray-500 text-xs">{t.slug}</div>
+                    <div className="font-medium text-foreground">{t.display_name}</div>
+                    <div className="text-muted-foreground text-xs">{t.slug}</div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-gray-500">
-                    {t.contact_email || <span className="text-gray-400 italic">None</span>}
+                  <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">
+                    {t.contact_email || <span className="text-muted-foreground/70 italic">None</span>}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     {t.is_demo ? (
@@ -88,10 +88,10 @@ export function PlatformTenantsPage() {
                       <span className="inline-flex rounded-full bg-green-100 px-2 text-xs font-semibold leading-5 text-green-800">Real</span>
                     )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-gray-500">
+                  <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">
                     {t.workspace_count}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-gray-500">
+                  <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">
                     {new Date(t.created_at).toLocaleDateString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right font-medium">
@@ -106,7 +106,7 @@ export function PlatformTenantsPage() {
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">
                     No tenants found.
                   </td>
                 </tr>
@@ -118,3 +118,4 @@ export function PlatformTenantsPage() {
     </div>
   );
 }
+

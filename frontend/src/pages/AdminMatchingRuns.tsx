@@ -5,6 +5,7 @@ import { magicFillWorkspace } from "../lib/apiClient";
 import { AdminPageHeader } from "../components/AdminPageHeader";
 import { DataTable, type DataTableColumn } from "../components/DataTable";
 import { InlineAlert } from "../components/InlineAlert";
+import { useToast } from "../hooks/use-toast";
 import { StatusBadge } from "../components/StatusBadge";
 import {
   useAdminMatchingRunsQuery,
@@ -34,6 +35,7 @@ export function AdminMatchingRuns(): JSX.Element {
   const segmentsQuery = useAdminSegmentsQuery(workspaceId!);
   const runsQuery = useAdminMatchingRunsQuery(workspaceId!);
   const runMutation = useRunMatchingMutation(workspaceId!);
+  const { toast } = useToast();
 
   const [magicFillLoading, setMagicFillLoading] = useState(false);
 
@@ -42,10 +44,17 @@ export function AdminMatchingRuns(): JSX.Element {
     setMagicFillLoading(true);
     try {
       const result = await magicFillWorkspace(workspaceId, segmentKey);
-      alert(`Segment ${segmentKey}: created ${result.profiles_created} profiles.`);
+      toast({
+        title: "Magic Fill Complete",
+        description: `Segment ${segmentKey}: created ${result.profiles_created} profiles.`,
+      });
       segmentsQuery.refetch();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Magic Fill failed.");
+      toast({
+        variant: "destructive",
+        title: "Magic Fill Failed",
+        description: err instanceof Error ? err.message : "Magic Fill failed.",
+      });
     } finally {
       setMagicFillLoading(false);
     }

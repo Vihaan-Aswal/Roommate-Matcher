@@ -3,7 +3,7 @@ import type {
   SegmentStudentPreferenceRow,
 } from "../../lib/apiClient";
 import { Button } from "../ui/button";
-import { Select } from "../ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { CheckerStudentsList } from "./CheckerStudentsList";
 
 export const CHECKER_DISCLAIMER =
@@ -54,13 +54,18 @@ export function CheckerSelectionPanel({
         Segment
         <Select
           value={selectedSegment}
-          onChange={(event) => onSegmentChange(event.target.value)}
+          onValueChange={onSegmentChange}
         >
-          {segments.map((segment) => (
-            <option key={segment.segment_key} value={segment.segment_key}>
-              {segment.segment_key}
-            </option>
-          ))}
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Select segment" />
+          </SelectTrigger>
+          <SelectContent>
+            {segments.map((segment) => (
+              <SelectItem key={segment.segment_key} value={segment.segment_key}>
+                {segment.segment_key}
+              </SelectItem>
+            ))}
+          </SelectContent>
         </Select>
       </label>
 

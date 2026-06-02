@@ -40,42 +40,19 @@ export function ImpersonationBanner() {
     <div
       role="alert"
       aria-live="polite"
-      style={{
-        position: "sticky",
-        top: 0,
-        zIndex: 9999,
-        background: "linear-gradient(90deg, #92400e, #b45309)",
-        color: "#fef3c7",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "10px 24px",
-        fontFamily: "Inter, sans-serif",
-        fontSize: "0.875rem",
-        fontWeight: 600,
-        boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
-      }}
+      className="sticky top-0 z-[9999] flex items-center justify-between bg-amber-700 px-6 py-2.5 font-sans text-sm font-semibold text-amber-50 shadow-sm"
     >
-      <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <span className="flex items-center gap-2.5">
         <ShieldAlert size={18} />
         God Mode Active — Impersonating tenant{" "}
-        <strong style={{ fontWeight: 800 }}>
+        <strong className="font-extrabold">
           {user.impersonatedTenantId}
         </strong>
       </span>
       <button
         id="exit-impersonation-btn"
         onClick={exitImpersonation}
-        style={{
-          background: "#fef3c7",
-          color: "#92400e",
-          border: "none",
-          borderRadius: 6,
-          padding: "6px 16px",
-          fontWeight: 700,
-          cursor: "pointer",
-          fontSize: "0.8125rem",
-        }}
+        className="cursor-pointer rounded-md border-none bg-amber-100 px-4 py-1.5 text-[0.8125rem] font-bold text-amber-900"
       >
         Exit Impersonation
       </button>

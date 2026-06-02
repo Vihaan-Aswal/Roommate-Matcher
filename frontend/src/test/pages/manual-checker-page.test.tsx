@@ -1,3 +1,4 @@
+import * as React from "react";
 import { fireEvent, screen } from "@testing-library/react";
 import { Route, Routes } from "react-router-dom";
 import { vi } from "vitest";
@@ -28,6 +29,40 @@ vi.mock("../../hooks/useSegmentStudentsQuery", () => ({
 vi.mock("../../hooks/useManualCheckerMutation", () => ({
   useManualCheckerMutation: useManualCheckerMutationMock,
 }));
+
+vi.mock("@radix-ui/react-select", () => {
+  const React = require("react");
+  const Dummy = React.forwardRef(({ children }: any, ref: any) => children || null);
+  Dummy.displayName = "Dummy";
+
+  return {
+    Root: ({ children, value, onValueChange }: any) => (
+      <select
+        data-testid="mock-select"
+        value={value}
+        onChange={(e) => onValueChange?.(e.target.value)}
+      >
+        {children}
+      </select>
+    ),
+    Trigger: Dummy,
+    Value: Dummy,
+    Content: ({ children }: any) => children,
+    Item: ({ children, value }: any) => (
+      <option value={value}>{children}</option>
+    ),
+    ItemText: ({ children }: any) => children,
+    ItemIndicator: Dummy,
+    Portal: ({ children }: any) => children,
+    Viewport: ({ children }: any) => children,
+    Group: Dummy,
+    Icon: Dummy,
+    Separator: Dummy,
+    ScrollUpButton: Dummy,
+    ScrollDownButton: Dummy,
+    Label: Dummy,
+  };
+});
 
 describe("ManualCheckerPage", () => {
   beforeEach(() => {
