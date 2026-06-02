@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import select, exists
@@ -31,7 +32,7 @@ router = APIRouter(prefix="/api/workspaces/{workspace_id}/matching", tags=["matc
 
 
 @router.post("/runs", response_model=MatchingRunResponse)
-def run_matching(
+async def run_matching(
     workspace_id: uuid.UUID,
     payload: MatchingRunRequest,
     db: Session = Depends(get_db),
@@ -39,7 +40,9 @@ def run_matching(
 ) -> MatchingRunResponse:
     user, tenant, workspace = workspace_ctx
     try:
-        result = run_matching_workflow(db, workspace_id, tenant.id, payload.scope, payload.segment_key)
+        result = await asyncio.to_thread(
+            run_matching_workflow, db, workspace_id, tenant.id, payload.scope, payload.segment_key
+        )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
