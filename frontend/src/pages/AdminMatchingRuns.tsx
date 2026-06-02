@@ -170,30 +170,33 @@ export function AdminMatchingRuns(): JSX.Element {
 
         return (
           <div className="flex flex-wrap gap-2">
-            <Button
-              asChild
-              disabled={!canOpenResults || !defaultSegmentKey}
-              size="sm"
-              variant="outline"
-            >
-              <Link to={roomRoute || `/app/${workspaceId}/matching-runs`}>Room View</Link>
-            </Button>
-            <Button
-              asChild
-              disabled={!canOpenResults}
-              size="sm"
-              variant="outline"
-            >
-              <Link to={studentRoute}>Student View</Link>
-            </Button>
-            <Button
-              asChild
-              disabled={!canOpenResults}
-              size="sm"
-              variant="outline"
-            >
-              <Link to={fairnessRoute}>Fairness</Link>
-            </Button>
+            {(!canOpenResults || !defaultSegmentKey) ? (
+              <Button disabled size="sm" variant="outline">
+                Room View
+              </Button>
+            ) : (
+              <Button asChild size="sm" variant="outline">
+                <Link to={roomRoute || `/app/${workspaceId}/matching-runs`}>Room View</Link>
+              </Button>
+            )}
+            {!canOpenResults ? (
+              <Button disabled size="sm" variant="outline">
+                Student View
+              </Button>
+            ) : (
+              <Button asChild size="sm" variant="outline">
+                <Link to={studentRoute}>Student View</Link>
+              </Button>
+            )}
+            {!canOpenResults ? (
+              <Button disabled size="sm" variant="outline">
+                Fairness
+              </Button>
+            ) : (
+              <Button asChild size="sm" variant="outline">
+                <Link to={fairnessRoute}>Fairness</Link>
+              </Button>
+            )}
           </div>
         );
       },
