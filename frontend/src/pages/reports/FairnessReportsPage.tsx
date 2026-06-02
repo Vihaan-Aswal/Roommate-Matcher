@@ -215,7 +215,7 @@ export function FairnessReportsPage(): JSX.Element {
           actions={
             <Link
               className="inline-flex rounded-md border border-input px-3 py-2 text-sm hover:bg-muted"
-              to="/admin/matching-runs"
+              to={`/app/${encodeURIComponent(workspaceId)}/matching-runs`}
             >
               Open Matching Runs
             </Link>

@@ -35,7 +35,7 @@ export function AdminAtRiskReview(): JSX.Element {
     params.set("atRisk", "1");
 
     navigate(
-      `/admin/matching-runs/${encodeURIComponent(resolvedRunId)}/students?${params.toString()}`,
+      `/app/${workspaceId}/matching-runs/${encodeURIComponent(resolvedRunId)}/students?${params.toString()}`,
       { replace: true },
     );
   }, [navigate, resolvedRunId, segment]);

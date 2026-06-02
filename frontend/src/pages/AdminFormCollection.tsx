@@ -104,7 +104,7 @@ export function AdminFormCollection(): JSX.Element {
   const actions = (
     <>
       <Button asChild size="sm" variant="accent">
-        <Link to="/admin/students-data">Go to Uploads</Link>
+        <Link to={`/app/${workspaceId}/students-data`}>Go to Uploads</Link>
       </Button>
     </>
   );
