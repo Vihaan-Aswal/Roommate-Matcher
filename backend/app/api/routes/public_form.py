@@ -2,8 +2,12 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
+
+from app.main import limiter
+
+RATE_LIMIT_SUBMIT = "10/minute"
 from sqlalchemy import select, desc
 from sqlalchemy.orm import Session
 
@@ -56,7 +60,9 @@ def get_public_form(public_form_token: str, db: Session = Depends(get_db)) -> di
 
 
 @router.post("/{public_form_token}/submit")
+@limiter.limit(RATE_LIMIT_SUBMIT)
 def submit_public_form(
+    request: Request,
     public_form_token: str,
     payload: PublicFormSubmitPayload,
     db: Session = Depends(get_db),
@@ -96,12 +102,12 @@ def submit_public_form(
                 submitted_phone_last4=payload.submitted_phone_last4,
                 submitted_at=submitted_at,
                 validation_status="invalid",
-                invalid_reason="student_not_found",
+                invalid_reason="verification_failed",
                 **normalized_answers,
             )
         )
         db.commit()
-        return {"status": "recorded", "valid": False, "error": "student_not_found"}
+        return {"status": "recorded", "valid": False, "error": "Verification failed"}
 
     if student.phone_last4 != payload.submitted_phone_last4:
         db.add(
@@ -113,12 +119,12 @@ def submit_public_form(
                 submitted_phone_last4=payload.submitted_phone_last4,
                 submitted_at=submitted_at,
                 validation_status="invalid",
-                invalid_reason="phone_mismatch",
+                invalid_reason="verification_failed",
                 **normalized_answers,
             )
         )
         db.commit()
-        return {"status": "recorded", "valid": False, "error": "phone_mismatch"}
+        return {"status": "recorded", "valid": False, "error": "Verification failed"}
 
     option_validation = _validate_answer_options(normalized_answers)
     missing_answer_keys = _find_missing_answer_keys(normalized_answers)

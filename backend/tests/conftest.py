@@ -73,11 +73,19 @@ from app.auth.tokens import issue_demo_token
 from app.models.tenant import Tenant
 from app.models.tenant_membership import TenantMembership
 
+from app.main import limiter
+
 @pytest.fixture(autouse=True)
 def setup_env():
     os.environ["APP_JWT_SECRET"] = "testsecret" * 4
     os.environ["SUPABASE_JWT_SECRET"] = "testsecret" * 4
     os.environ["SUPABASE_JWT_ISSUER"] = "https://test.supabase.co/auth/v1"
+
+@pytest.fixture(autouse=True)
+def disable_rate_limiter():
+    limiter.enabled = False
+    yield
+    limiter.enabled = True
 
 @pytest.fixture
 def seed_tenant_and_user(db_session: Session) -> dict[str, Any]:

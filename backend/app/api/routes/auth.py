@@ -28,8 +28,12 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, EmailStr
+
+from app.main import limiter
+
+RATE_LIMIT_DEMO = "10/minute"
 from sqlalchemy.orm import Session
 
 from app.auth.contracts import AuthenticatedUser
@@ -145,7 +149,9 @@ def exchange_session(
 # ---------------------------------------------------------------------------
 
 @router.post("/demo", response_model=DemoResponse)
+@limiter.limit(RATE_LIMIT_DEMO)
 def create_demo_session(
+    request: Request,
     body: DemoRequest,
     db: Annotated[Session, Depends(get_db)],
 ) -> DemoResponse:

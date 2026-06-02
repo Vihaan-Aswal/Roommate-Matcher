@@ -7,6 +7,19 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from app.config import get_settings
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+
+settings = get_settings()
+
+limiter = Limiter(
+    key_func=get_remote_address,
+    storage_uri=getattr(settings, "rate_limit_storage_uri", "memory://")
+)
+
 from app.api.routes.auth import router as auth_router
 from app.api.routes.checker import router as checker_router
 from app.api.routes.exports import router as exports_router
@@ -16,9 +29,7 @@ from app.api.routes.workspaces import router as workspaces_router
 from app.api.routes.public_form import router as public_form_router
 from app.api.routes.platform import router as platform_router
 from app.api.routes.internal import router as internal_router
-from app.config import get_settings
 
-settings = get_settings()
 _SHOWCASE_EXCLUDED_PREFIXES = ("/api", "/docs", "/redoc", "/static")
 _SHOWCASE_EXCLUDED_EXACT_PATHS = {"/health", "/openapi.json"}
 
@@ -75,6 +86,11 @@ def _configure_showcase_routes(application: FastAPI, frontend_dist_dir: Path) ->
 
 def create_app(*, frontend_dist_dir: Path | None = None) -> FastAPI:
     application = FastAPI(title=settings.app_name)
+    
+    application.state.limiter = limiter
+    application.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+    application.add_middleware(SlowAPIMiddleware)
+
     application.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_allowed_origins,
