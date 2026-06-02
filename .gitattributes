@@ -1,0 +1,13 @@
+# Enforce LF line endings for all text files to avoid cross-platform CRLF conflicts
+* text=auto eol=lf
+
+# Explicitly mark binary files to prevent git from attempting line-ending conversion
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.db binary
+*.sqlite binary
+*.sqlite3 binary

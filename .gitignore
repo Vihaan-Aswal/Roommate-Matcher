@@ -66,6 +66,5 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-.github/
 .agents/
 impli_plan.md
