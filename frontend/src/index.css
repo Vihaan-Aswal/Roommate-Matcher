@@ -29,6 +29,11 @@
   @apply border-border;
 }
 
+/* Every surface is dark-framed now; a white canvas flashes on iOS overscroll. */
+html {
+  background-color: #07110b;
+}
+
 body {
   @apply min-h-screen bg-background text-foreground antialiased;
   font-family: "Source Sans 3", "Segoe UI", sans-serif;
