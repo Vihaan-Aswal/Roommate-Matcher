@@ -111,10 +111,10 @@ def get_form_link(
     workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_access),
 ) -> FormLinkResponse:
     user, tenant, workspace = workspace_ctx
-    token = get_active_token(db, workspace.id)
-    if not token:
-        token = regenerate_token(db, workspace.id)
-    return FormLinkResponse(token=token)
+    link = get_active_token(db, workspace.id) or regenerate_token(
+        db, workspace.id, tenant.id
+    )
+    return FormLinkResponse(token=link.public_form_token)
 
 
 @router.post("/{workspace_id}/form-link/regenerate", response_model=FormLinkResponse)
@@ -124,7 +124,7 @@ def regenerate_form_link(
     workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_access),
 ) -> FormLinkResponse:
     user, tenant, workspace = workspace_ctx
-    token = regenerate_token(db, workspace.id)
+    token = regenerate_token(db, workspace.id, tenant.id).public_form_token
     return FormLinkResponse(token=token)
 
 
