@@ -1,16 +1,24 @@
-import React from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { getPlatformTenantWorkspaces, impersonateTenant, getPlatformTenant } from "../../lib/apiClient";
+import { ArrowLeft } from "lucide-react";
+
+import {
+  getPlatformTenantWorkspaces,
+  impersonateTenant,
+  getPlatformTenant,
+  setApiToken,
+} from "../../lib/apiClient";
 import { adminQueryKeys } from "../../hooks/adminQueryKeys";
-import { setApiToken } from "../../lib/apiClient";
 import { useAuth } from "../../providers/AuthProvider";
 import { useToast } from "../../hooks/use-toast";
+import { InlineAlert } from "../../components/InlineAlert";
+import { EmptyState } from "../../components/EmptyState";
+import { Button } from "../../components/ui/button";
 
 const IMPERSONATION_TOKEN_KEY = "impersonation_token";
 const REAL_ADMIN_TOKEN_KEY = "real_admin_token";
 
-export function PlatformTenantWorkspacesPage() {
+export function PlatformTenantWorkspacesPage(): JSX.Element {
   const { tenantId } = useParams<{ tenantId: string }>();
   const navigate = useNavigate();
   const { token: realToken } = useAuth();
@@ -22,7 +30,7 @@ export function PlatformTenantWorkspacesPage() {
     enabled: !!tenantId,
   });
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: adminQueryKeys.platformTenantWorkspaces(tenantId!),
     queryFn: () => getPlatformTenantWorkspaces(tenantId!),
     enabled: !!tenantId,
@@ -48,56 +56,111 @@ export function PlatformTenantWorkspacesPage() {
     },
   });
 
-  return (
-    <div className="mx-auto max-w-5xl">
-      <Link to="/platform" className="text-sm font-medium text-primary hover:underline mb-4 inline-block">
-        &larr; Back to Tenants
-      </Link>
-      <header className="mb-8">
-        <h1 className="text-3xl font-serif font-bold text-foreground flex items-center gap-2">
-          <span className="bg-amber-100 text-amber-800 text-sm px-2 py-1 rounded-md font-sans">God Mode</span>
-          Impersonate {tenantData?.display_name || "Tenant"}
-        </h1>
-        <p className="text-muted-foreground mt-2">Select a workspace to enter as this tenant.</p>
-      </header>
+  const workspaces = data?.workspaces ?? [];
 
-      {isLoading ? (
-        <div className="animate-pulse space-y-4">
-          {[1, 2].map(i => (
-            <div key={i} className="h-32 bg-muted rounded-md"></div>
-          ))}
-        </div>
-      ) : data?.workspaces.length === 0 ? (
-        <div className="bg-muted/50 border border-border rounded-lg p-8 text-center text-muted-foreground">
-          This tenant has no workspaces yet.
-        </div>
-      ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {data?.workspaces.map(w => (
-            <div key={w.id} className="bg-white shadow-sm rounded-lg border border-border p-6 flex flex-col">
-              <h3 className="font-semibold text-lg text-foreground mb-1">{w.name}</h3>
-              <p className="text-xs text-muted-foreground mb-4 font-mono">{w.id}</p>
-              <div className="text-sm text-muted-foreground space-y-1 mb-6 flex-grow">
-                <div>Status: <span className="font-medium">{w.status}</span></div>
-                <div>Source: <span className="font-medium">{w.source}</span></div>
-                {w.is_demo_seeded && <span className="inline-block mt-2 rounded-full bg-blue-100 px-2 text-xs font-semibold leading-5 text-blue-800">Demo Seeded</span>}
+  return (
+    <div className="desk desk-canvas">
+      <div className="desk-canvas-inner" style={{ maxWidth: 1000 }}>
+        <header className="desk-row-between" style={{ marginBottom: 26 }}>
+          <div>
+            <Link className="desk-canvas-mark" to="/app">
+              Roommate Matcher
+            </Link>
+            <p className="desk-mono" style={{ color: "var(--ink-faint)", marginTop: 4 }}>
+              Platform console · super-admin
+            </p>
+          </div>
+          <Link className="desk-btn desk-btn-field desk-btn-sm" to="/platform">
+            <ArrowLeft size={13} strokeWidth={1.8} aria-hidden="true" />
+            All tenants
+          </Link>
+        </header>
+
+        <main className="desk-paper" style={{ minHeight: 0, margin: 0 }}>
+          <div className="desk-page">
+            <header className="desk-mast">
+              <div className="desk-mast-main">
+                <h1 className="desk-mast-title">
+                  {tenantData?.display_name ?? "Tenant workspaces"}
+                </h1>
+                <p className="desk-mast-lede">
+                  Entering a workspace replaces this session with the tenant's. The amber strip at the
+                  top of every page says whose data you are reading; exiting returns you here.
+                </p>
               </div>
-              <button
-                onClick={() => impersonateMutation.mutate({ workspaceId: w.id })}
-                disabled={impersonateMutation.isPending}
-                className="w-full bg-amber-600 hover:bg-amber-700 text-white font-medium py-2 px-4 rounded transition-colors disabled:opacity-50"
-              >
-                {impersonateMutation.isPending ? "Entering..." : "Enter as this workspace"}
-              </button>
-              {impersonateMutation.isError && (
-                <div className="mt-2 text-xs text-red-600">{impersonateMutation.error?.message}</div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+            </header>
+
+            {isLoading ? (
+              <div className="desk-stack" style={{ marginTop: 18 }} aria-busy="true">
+                <p className="desk-loading-note">Reading workspaces</p>
+                <div className="desk-skel" style={{ height: 44 }} />
+                <div className="desk-skel" style={{ height: 44 }} />
+              </div>
+            ) : null}
+
+            {error ? (
+              <div style={{ marginTop: 18 }}>
+                <InlineAlert
+                  title="Workspaces could not be read"
+                  message={(error as Error).message}
+                  tone="error"
+                />
+              </div>
+            ) : null}
+
+            {!isLoading && !error && workspaces.length === 0 ? (
+              <div style={{ marginTop: 18 }}>
+                <EmptyState
+                  title="This tenant has no workspaces"
+                  line="A tenant gets its first workspace when the institute creates one from the chooser."
+                />
+              </div>
+            ) : null}
+
+            {workspaces.length > 0 ? (
+              <div className="desk-list" style={{ marginTop: 18 }}>
+                {workspaces.map((workspace) => (
+                  <div className="desk-list-row" key={workspace.id}>
+                    <div className="desk-list-main">
+                      <p className="desk-list-title" style={{ fontSize: 15 }}>
+                        {workspace.name}
+                      </p>
+                      <p className="desk-list-meta">
+                        <span className="desk-mono">{workspace.id}</span>
+                        <span className="desk-sep"> · </span>
+                        {workspace.status}
+                        <span className="desk-sep"> · </span>
+                        {workspace.source}
+                      </p>
+                    </div>
+                    <div className="desk-list-side">
+                      {workspace.is_demo_seeded ? (
+                        <span className="desk-chip" data-tone="quiet">
+                          Demo seeded
+                        </span>
+                      ) : null}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => impersonateMutation.mutate({ workspaceId: workspace.id })}
+                        disabled={impersonateMutation.isPending}
+                      >
+                        {impersonateMutation.isPending ? "Entering…" : "Enter as this workspace"}
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+
+            {impersonateMutation.isError ? (
+              <p className="desk-error" style={{ marginTop: 12 }} role="alert">
+                {impersonateMutation.error?.message}
+              </p>
+            ) : null}
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
-
-

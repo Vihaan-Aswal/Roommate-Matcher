@@ -37,6 +37,8 @@ describe("StudentDetailPanel", () => {
     ).toBeInTheDocument();
     expect(screen.queryByText(/smoking/i)).not.toBeInTheDocument();
     expect(screen.getByText("Lifestyle alignment")).toBeInTheDocument();
-    expect(screen.getByText(/⚠ mismatch/i)).toBeInTheDocument();
+    // Polarity is carried by a word plus a mark, not by an emoji glyph.
+    expect(screen.getByText(/works against/i)).toBeInTheDocument();
+    expect(screen.getByText(/Strong Mismatch/i)).toBeInTheDocument();
   });
 });

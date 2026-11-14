@@ -1,13 +1,10 @@
 import type { CheckerResponse, FactorTraceEntry } from "../../lib/apiClient";
-import {
-  factorPolarityIndicator,
-  getSafeFactorLabel,
-} from "../../lib/factorDisplay";
+import { factorPolarityIndicator, getSafeFactorLabel } from "../../lib/factorDisplay";
 import { sanitizeReasonText } from "../../lib/privacySafeRender";
 import { formatScorePercent } from "../../lib/resultPresentation";
 import { StatusBadge } from "../StatusBadge";
 import { InlineAlert } from "../InlineAlert";
-import { CHECKER_DISCLAIMER } from "./CheckerSelectionPanel";
+import { EmptyState } from "../EmptyState";
 
 interface CheckerResultPanelProps {
   result: CheckerResponse | null;
@@ -15,15 +12,11 @@ interface CheckerResultPanelProps {
   errorMessage: string | null;
 }
 
-function indicator(entry: FactorTraceEntry): string {
+function indicatorWord(entry: FactorTraceEntry): string {
   const mapped = factorPolarityIndicator(entry);
-  if (mapped === "positive") {
-    return "✅";
-  }
-  if (mapped === "warning") {
-    return "⚠";
-  }
-  return "•";
+  if (mapped === "positive") return "Works in favour";
+  if (mapped === "warning") return "Works against";
+  return "Neutral";
 }
 
 export function CheckerResultPanel({
@@ -32,90 +25,88 @@ export function CheckerResultPanel({
   errorMessage,
 }: CheckerResultPanelProps): JSX.Element {
   return (
-    <div className="space-y-4 rounded-xl border border-border/80 bg-white/90 p-4">
-      <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-        {CHECKER_DISCLAIMER}
-      </p>
+    <section className="desk-stack-sm" aria-labelledby="checker-result-heading">
+      <div className="desk-section-head">
+        <h2 className="desk-section-title" id="checker-result-heading">
+          The reading
+        </h2>
+        {result ? <p className="desk-section-note">{result.students.length} students</p> : null}
+      </div>
 
       {isRunning ? (
-        <InlineAlert
-          title="Running checker"
-          message="Evaluating compatibility for selected students."
-          tone="info"
-        />
+        <div className="desk-stack-sm" aria-busy="true">
+          <p className="desk-loading-note">Scoring the group</p>
+          <div className="desk-skel" style={{ height: 92 }} />
+        </div>
       ) : null}
 
       {errorMessage ? (
-        <InlineAlert
-          title="Checker request failed"
-          message={errorMessage}
-          tone="error"
-        />
+        <InlineAlert title="The checker could not finish" message={errorMessage} tone="error" />
       ) : null}
 
       {!result && !isRunning && !errorMessage ? (
-        <p className="text-sm text-muted-foreground">
-          Select students and run compatibility report to view results.
-        </p>
+        <EmptyState
+          title="Nothing to read yet"
+          line="Pick the students already in the room and one candidate. The reading shows the group score, the weakest student and what drove each factor."
+        />
       ) : null}
 
       {result ? (
-        <div className="space-y-4">
-          <div className="rounded-lg border border-border/70 bg-muted/30 p-3">
-            <p className="text-sm text-muted-foreground">
-              Group compatibility score
-            </p>
-            <p className="text-xl font-semibold">
-              {formatScorePercent(result.group_score)}
-            </p>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
+        <div className="desk-stack">
+          <div className="desk-stack-sm">
+            <div>
+              <p className="desk-figure-label">Group compatibility score</p>
+              <p className="desk-figure-value" style={{ fontSize: 32 }}>
+                {formatScorePercent(result.group_score)}
+              </p>
+            </div>
+            <div className="desk-row" style={{ gap: 10 }}>
               <StatusBadge value={result.group_label} />
-              <p className="text-sm text-muted-foreground">
+              <p className="desk-help">
                 At-risk students: {result.at_risk_students.join(", ") || "None"}
               </p>
             </div>
           </div>
 
-          <div className="space-y-4">
+          <div className="desk-stack-sm">
             {result.students.map((student) => (
-              <article
-                key={student.admission_number}
-                className="space-y-3 rounded-lg border border-border/70 p-3"
-              >
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="font-medium">{student.admission_number}</p>
-                  <div className="flex items-center gap-2">
+              <article className="desk-panel desk-stack-sm" key={student.admission_number}>
+                <div className="desk-row-between">
+                  <p className="desk-mono" style={{ fontWeight: 500 }}>
+                    {student.admission_number}
+                  </p>
+                  <div className="desk-row" style={{ gap: 8 }}>
+                    <span className="desk-num">{formatScorePercent(student.satisfaction_score)}</span>
                     <StatusBadge value={student.satisfaction_label} />
-                    <StatusBadge
-                      value={student.is_at_risk ? "Risk" : "Healthy"}
-                    />
-                    <span className="text-sm text-muted-foreground">
-                      {formatScorePercent(student.satisfaction_score)}
-                    </span>
+                    {student.is_at_risk ? <StatusBadge value="At risk" /> : null}
                   </div>
                 </div>
 
-                <div className="space-y-2">
+                <ul className="desk-stack-sm" style={{ gap: 4, margin: 0, padding: 0, listStyle: "none" }}>
                   {student.reasons.map((reason, index) => {
                     const sanitized = sanitizeReasonText(reason);
                     return (
-                      <p
+                      <li
                         key={`${student.admission_number}-reason-${index}`}
-                        className="text-sm text-muted-foreground"
+                        className="desk-help"
+                        style={{ maxWidth: "62ch" }}
                       >
                         {sanitized.text}
-                      </p>
+                      </li>
                     );
                   })}
-                </div>
+                </ul>
 
-                <div className="space-y-2 text-sm">
+                <div className="desk-stack-sm" style={{ gap: 3 }}>
                   {student.factor_trace.map((entry, index) => (
                     <p
                       key={`${student.admission_number}-${entry.template_id}-${index}`}
+                      className="desk-mono"
+                      style={{ fontSize: 11.5, color: "var(--paper-mid)" }}
                     >
-                      {indicator(entry)} {getSafeFactorLabel(entry.factor_key)}{" "}
-                      - {entry.factor_class}
+                      <span style={{ color: "var(--paper-ink)" }}>{indicatorWord(entry)}</span>
+                      {" · "}
+                      {getSafeFactorLabel(entry.factor_key)} - {entry.factor_class}
                     </p>
                   ))}
                 </div>
@@ -124,6 +115,6 @@ export function CheckerResultPanel({
           </div>
         </div>
       ) : null}
-    </div>
+    </section>
   );
 }

@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
+import { ArrowRight, Check } from "lucide-react";
 
 import { FormQuestion } from "../components/FormQuestion";
 import { useFormSubmit } from "../hooks/useFormSubmit";
@@ -51,20 +52,34 @@ export function StudentForm(): JSX.Element {
 
   if (isLoading) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-[radial-gradient(circle_at_top,_#f9f4de_0%,_#f4f8fc_38%,_#ecfaf3_100%)]">
-        <p className="text-muted-foreground">Loading form...</p>
-      </main>
+      <div className="desk desk-canvas">
+        <div className="desk-canvas-inner" style={{ maxWidth: 700 }}>
+          <p className="desk-mono" style={{ color: "var(--ink-faint)" }}>
+            Loading the form
+          </p>
+          <div className="desk-skel" style={{ height: 220, marginTop: 14 }} />
+        </div>
+      </div>
     );
   }
 
   if (isError || !config || !config.token_valid) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-[radial-gradient(circle_at_top,_#f9f4de_0%,_#f4f8fc_38%,_#ecfaf3_100%)]">
-        <section className="mx-auto w-full max-w-md overflow-hidden rounded-3xl border border-border/80 bg-white/90 p-8 text-center shadow-xl backdrop-blur-sm">
-          <h1 className="font-serif text-2xl font-semibold text-foreground">Form Unavailable</h1>
-          <p className="mt-4 text-muted-foreground">This link has expired or is invalid.</p>
-        </section>
-      </main>
+      <div className="desk desk-canvas">
+        <div className="desk-canvas-inner" style={{ maxWidth: 620 }}>
+          <p className="desk-canvas-mark">Roommate Matcher</p>
+          <div className="desk-sheet" style={{ marginTop: 22, padding: "28px 26px" }}>
+            <h1 style={{ fontSize: "1.5rem", lineHeight: 1.15 }}>This link is not valid</h1>
+            <p className="desk-help" style={{ marginTop: 10 }}>
+              It may have expired, or it may have been replaced by a newer link. Ask the hostel office
+              for the current link — you do not need an account to use it.
+            </p>
+            <p className="desk-mono" style={{ marginTop: 16, color: "var(--paper-mid)" }}>
+              Nothing was submitted.
+            </p>
+          </div>
+        </div>
+      </div>
     );
   }
 
@@ -89,10 +104,7 @@ export function StudentForm(): JSX.Element {
     setStep("questions");
   };
 
-  const handleAnswerChange = (
-    id: QuestionConfig["id"],
-    value: string,
-  ): void => {
+  const handleAnswerChange = (id: QuestionConfig["id"], value: string): void => {
     setAnswers((previous) => ({ ...previous, [id]: value }));
     setQuestionErrors((previous) => ({ ...previous, [id]: undefined }));
     setStatusMessage(null);
@@ -100,9 +112,9 @@ export function StudentForm(): JSX.Element {
 
   const validateQuestions = (): boolean => {
     const nextErrors: Partial<AnswerMap> = {};
-    for (const config of QUESTION_CONFIGS) {
-      if (!answers[config.id]) {
-        nextErrors[config.id] = "Please select one option.";
+    for (const question of QUESTION_CONFIGS) {
+      if (!answers[question.id]) {
+        nextErrors[question.id] = "Please select one option.";
       }
     }
 
@@ -131,142 +143,183 @@ export function StudentForm(): JSX.Element {
         setStatusMessage(response.message || "Invalid identity verification.");
       }
     } catch {
-      // Error state is rendered via submitError from the hook.
+      // Rendered from submitError.
     }
   };
 
+  const workspaceLabel = config.workspace_name ?? null;
+
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,_#f9f4de_0%,_#f4f8fc_38%,_#ecfaf3_100%)] px-4 py-8 sm:px-6 sm:py-12">
-      <section className="mx-auto w-full max-w-4xl overflow-hidden rounded-3xl border border-border/80 bg-white/90 shadow-xl backdrop-blur-sm">
-        <header className="border-b border-border/70 bg-[linear-gradient(100deg,#fff6d8_0%,#f2f8ff_55%,#e6f8ef_100%)] px-5 py-6 sm:px-8">
-          <h1 className="font-serif text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-            {config.workspace_name ? `Submitting form for: ${config.workspace_name}` : "Student Preference Form"}
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground sm:text-base">
-            Complete identity verification and answer all 12 preference prompts.
+    <div className="desk desk-canvas desk-form">
+      <div className="desk-canvas-inner" style={{ maxWidth: 720 }}>
+        <header className="desk-stack-sm" style={{ gap: 6, marginBottom: 20 }}>
+          <p className="desk-mono" style={{ color: "var(--ink-faint)" }}>
+            {workspaceLabel ? `${workspaceLabel} · Roommate Matcher` : "Roommate Matcher"}
           </p>
-          {step !== "success" ? (
-            <p className="mt-3 text-xs font-semibold uppercase tracking-[0.14em] text-primary sm:text-sm">
-              {step === "identity"
-                ? "Step 1 of 2 Identity"
-                : `Step 2 of 2 Questions (${completedCount}/12 answered)`}
-            </p>
-          ) : null}
+          <h1
+            style={{
+              color: "var(--ink)",
+              fontSize: "clamp(1.6rem, 3vw, 2.2rem)",
+              lineHeight: 1.05,
+              fontWeight: 800,
+            }}
+          >
+            {step === "success" ? "Response recorded." : "Roommate preferences."}
+          </h1>
+          <p className="desk-canvas-lede">
+            {step === "questions"
+              ? `${completedCount} of 12 answered. Answers are saved only when you submit.`
+              : "Twelve questions, one sitting. You verify yourself against the roster first."}
+          </p>
         </header>
 
-        <div className="px-5 py-6 sm:px-8 sm:py-8">
+        <main className="desk-sheet" style={{ padding: "22px 22px 24px" }}>
           {step === "identity" ? (
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="space-y-2">
-                <span className="text-sm font-medium text-foreground">
-                  Admission Number
-                </span>
-                <input
-                  type="text"
-                  value={admissionNumber}
-                  onChange={(event) => setAdmissionNumber(event.target.value)}
-                  className="w-full rounded-xl border border-input bg-white px-4 py-2.5 text-sm text-foreground outline-none ring-0 transition focus:border-primary focus:shadow-[0_0_0_2px_rgba(227,108,27,0.18)]"
-                  placeholder="e.g. ADM0241"
-                />
-              </label>
-
-              <label className="space-y-2">
-                <span className="text-sm font-medium text-foreground">
-                  Last 4 digits of Phone Number
-                </span>
-                <input
-                  type="text"
-                  maxLength={4}
-                  value={phoneLast4}
-                  onChange={(event) => setPhoneLast4(event.target.value.replace(/\D/g, ""))}
-                  className="w-full rounded-xl border border-input bg-white px-4 py-2.5 text-sm text-foreground outline-none ring-0 transition focus:border-primary focus:shadow-[0_0_0_2px_rgba(227,108,27,0.18)]"
-                  placeholder="e.g. 1234"
-                />
-              </label>
-
-              {identityError ? (
-                <p className="sm:col-span-2 text-sm text-destructive">
-                  {identityError}
+            <div className="desk-stack">
+              <div className="desk-stack-sm" style={{ gap: 4 }}>
+                <p className="desk-overline">Step 1 of 2</p>
+                <h2 style={{ fontSize: "1.3rem" }}>Who is answering</h2>
+                <p className="desk-help">
+                  We match these two fields against the roster. They are not shared with anyone.
                 </p>
-              ) : null}
+              </div>
 
-              <div className="sm:col-span-2 flex justify-end">
-                <button
-                  type="button"
-                  onClick={goToQuestions}
-                  className="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
-                >
+              <div className="desk-stack-sm" style={{ gap: 14 }}>
+                <label className="desk-field">
+                  <span className="desk-label">Admission Number</span>
+                  <input
+                    className="desk-input"
+                    type="text"
+                    autoComplete="off"
+                    value={admissionNumber}
+                    aria-invalid={identityError ? true : undefined}
+                    onChange={(event) => setAdmissionNumber(event.target.value)}
+                    placeholder="e.g. ADM0241"
+                  />
+                </label>
+
+                <label className="desk-field">
+                  <span className="desk-label">Last 4 digits of Phone Number</span>
+                  <input
+                    className="desk-input"
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={4}
+                    autoComplete="off"
+                    value={phoneLast4}
+                    aria-invalid={identityError ? true : undefined}
+                    onChange={(event) => setPhoneLast4(event.target.value.replace(/\D/g, ""))}
+                    placeholder="e.g. 1234"
+                  />
+                </label>
+
+                <div aria-live="polite">
+                  {identityError ? (
+                    <p className="desk-error" role="alert">
+                      {identityError}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="desk-row" style={{ justifyContent: "flex-end" }}>
+                <button className="desk-btn desk-btn-lg" type="button" onClick={goToQuestions}>
                   Continue to Questions
+                  <ArrowRight size={15} strokeWidth={1.8} aria-hidden="true" />
                 </button>
               </div>
             </div>
           ) : null}
 
           {step === "questions" ? (
-            <div className="space-y-5">
-              {QUESTION_CONFIGS.map((question) => (
-                <FormQuestion
-                  key={question.id}
-                  id={question.id}
-                  title={question.title}
-                  prompt={question.prompt}
-                  options={question.options}
-                  value={answers[question.id]}
-                  error={questionErrors[question.id]}
-                  onChange={(value) => handleAnswerChange(question.id, value)}
-                />
-              ))}
-
-              {statusMessage ? (
-                <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                  {statusMessage}
+            <div className="desk-stack">
+              <div className="desk-stack-sm" style={{ gap: 4 }}>
+                <p className="desk-overline">Step 2 of 2</p>
+                <h2 style={{ fontSize: "1.3rem" }}>Twelve questions</h2>
+                <p className="desk-help">
+                  Answer every question. A missing answer is treated as “no preference”, which weakens
+                  your score.
                 </p>
-              ) : null}
+              </div>
 
-              {submitError ? (
-                <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                  {submitError}
+              <div className="desk-stack-sm" style={{ gap: 0 }}>
+                {QUESTION_CONFIGS.map((question, index) => (
+                  <FormQuestion
+                    key={question.id}
+                    id={question.id}
+                    index={index}
+                    title={question.title}
+                    prompt={question.prompt}
+                    options={question.options}
+                    value={answers[question.id]}
+                    error={questionErrors[question.id]}
+                    onChange={(value) => handleAnswerChange(question.id, value)}
+                  />
+                ))}
+              </div>
+
+              <div aria-live="polite">
+                {statusMessage ? (
+                  <p className="desk-error" role="alert">
+                    {statusMessage}
+                  </p>
+                ) : null}
+                {submitError ? (
+                  <p className="desk-error" role="alert">
+                    {submitError}
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="desk-form-bar">
+                <p className="desk-mono" style={{ color: "var(--paper-mid)" }}>
+                  {completedCount} of 12 answered
                 </p>
-              ) : null}
-
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <button
-                  type="button"
-                  onClick={() => setStep("identity")}
-                  className="rounded-xl border border-border bg-white px-4 py-2 text-sm font-semibold text-foreground transition hover:bg-muted"
-                >
-                  Back
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    void handleSubmit();
-                  }}
-                  disabled={submitting}
-                  className="rounded-xl bg-accent px-5 py-2.5 text-sm font-semibold text-accent-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
-                >
-                  {submitting ? "Submitting..." : "Submit Preferences"}
-                </button>
+                <div className="desk-row" style={{ gap: 8 }}>
+                  <button
+                    className="desk-btn desk-btn-ghost"
+                    type="button"
+                    onClick={() => setStep("identity")}
+                  >
+                    Back
+                  </button>
+                  <button
+                    className="desk-btn desk-btn-lg"
+                    type="button"
+                    onClick={() => {
+                      void handleSubmit();
+                    }}
+                    disabled={submitting}
+                  >
+                    {submitting ? "Submitting…" : "Submit Preferences"}
+                  </button>
+                </div>
               </div>
             </div>
           ) : null}
 
           {step === "success" ? (
-            <section className="rounded-2xl border border-accent/35 bg-accent/10 p-6 text-center">
-              <h2 className="font-serif text-2xl font-semibold text-foreground">
-                Thank you
-              </h2>
-              <p className="mt-2 text-sm text-foreground sm:text-base">
-                {statusMessage ??
-                  "Your response has been recorded successfully."}
+            <div className="desk-stack">
+              <div className="desk-row" style={{ gap: 8, color: "var(--wax)" }}>
+                <Check size={18} strokeWidth={2.2} aria-hidden="true" />
+                <p className="desk-overline">Submitted</p>
+              </div>
+              <h2 style={{ fontSize: "1.5rem" }}>Thank you</h2>
+              <p className="desk-body">
+                {statusMessage ?? "Your response has been recorded successfully."}
               </p>
-              <p className="mt-3 text-xs uppercase tracking-[0.12em] text-muted-foreground">
-                You may close this page now.
+              <p className="desk-help">
+                Your latest valid response is the one that counts. If you submit again, it replaces this
+                one. You can close this page.
               </p>
-            </section>
+            </div>
           ) : null}
-        </div>
-      </section>
-    </main>
+        </main>
+
+        <p className="desk-mono" style={{ marginTop: 18, color: "var(--ink-faint)", lineHeight: 1.6 }}>
+          The hostel office reads the reasons for a placement, never your raw answers.
+        </p>
+      </div>
+    </div>
   );
 }

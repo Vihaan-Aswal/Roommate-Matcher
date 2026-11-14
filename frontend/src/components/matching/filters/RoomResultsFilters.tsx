@@ -18,13 +18,13 @@ export function RoomResultsFilters({
   onNeedsReviewChange,
 }: RoomResultsFiltersProps): JSX.Element {
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-border/70 bg-white/80 p-4 md:flex-row md:items-center md:justify-between">
-      <div className="flex items-center gap-3">
-        <label htmlFor="room-segment" className="text-sm font-medium">
+    <div className="desk-filterbar">
+      <div className="desk-field" style={{ minWidth: 220 }}>
+        <label className="desk-label" htmlFor="room-segment">
           Segment
         </label>
         <Select value={selectedSegment} onValueChange={onSegmentChange}>
-          <SelectTrigger id="room-segment" className="w-[180px]">
+          <SelectTrigger id="room-segment" className="desk-input desk-select-radix">
             <SelectValue placeholder="Select segment" />
           </SelectTrigger>
           <SelectContent>
@@ -37,8 +37,9 @@ export function RoomResultsFilters({
         </Select>
       </div>
 
-      <label className="inline-flex items-center gap-2 text-sm font-medium cursor-pointer">
+      <label className="desk-check">
         <Checkbox
+          className="desk-checkbox-radix"
           checked={needsReviewOnly}
           onCheckedChange={(checked) => onNeedsReviewChange(checked === true)}
         />
@@ -47,4 +48,3 @@ export function RoomResultsFilters({
     </div>
   );
 }
-

@@ -18,11 +18,11 @@ export function RunSegmentSelector({
   segmentOptions,
 }: RunSegmentSelectorProps): JSX.Element {
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-border/70 bg-white/80 p-4 lg:flex-row lg:items-center">
-      <label className="flex items-center gap-2 text-sm font-medium">
-        Run
+    <div className="desk-filterbar">
+      <label className="desk-field" style={{ minWidth: 260 }}>
+        <span className="desk-label">Run</span>
         <select
-          className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+          className="desk-input desk-select"
           value={selectedRunId}
           onChange={(event) => onRunChange(event.target.value)}
         >
@@ -34,10 +34,10 @@ export function RunSegmentSelector({
         </select>
       </label>
 
-      <label className="flex items-center gap-2 text-sm font-medium">
-        Segment
+      <label className="desk-field" style={{ minWidth: 200 }}>
+        <span className="desk-label">Segment</span>
         <select
-          className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+          className="desk-input desk-select"
           value={selectedSegment}
           onChange={(event) => onSegmentChange(event.target.value)}
         >

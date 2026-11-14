@@ -2,24 +2,37 @@ import type { ReactNode } from "react";
 
 interface AdminPageHeaderProps {
   title: string;
-  description: string;
+  description?: string;
+  /** The workspace this page belongs to; set in mono under the title. */
+  workspace?: string;
+  /** Mono dateline under the title: the evidence a reader needs (run, segment, mode). */
+  meta?: ReactNode;
   actions?: ReactNode;
 }
 
 export function AdminPageHeader({
   title,
   description,
+  workspace,
+  meta,
   actions,
 }: AdminPageHeaderProps): JSX.Element {
+  const dateline = workspace || meta;
+
   return (
-    <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-      <div className="space-y-1">
-        <h2 className="font-serif text-3xl font-semibold tracking-tight text-foreground">
-          {title}
-        </h2>
-        <p className="max-w-3xl text-sm text-muted-foreground">{description}</p>
+    <header className="desk-mast">
+      <div className="desk-mast-main">
+        <h1 className="desk-mast-title">{title}</h1>
+        {dateline ? (
+          <p className="desk-dateline">
+            {workspace ? <span className="desk-dateline-ws">{workspace}</span> : null}
+            {workspace && meta ? <span className="desk-sep desk-dateline-ws">·</span> : null}
+            {meta}
+          </p>
+        ) : null}
+        {description ? <p className="desk-mast-lede">{description}</p> : null}
       </div>
-      {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
+      {actions ? <div className="desk-mast-actions">{actions}</div> : null}
     </header>
   );
 }

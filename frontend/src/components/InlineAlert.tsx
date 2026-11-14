@@ -1,7 +1,5 @@
 import type { ReactNode } from "react";
 
-import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
-
 interface InlineAlertProps {
   title: string;
   message: string;
@@ -9,23 +7,25 @@ interface InlineAlertProps {
   actions?: ReactNode;
 }
 
+const TONE_MAP = {
+  info: undefined,
+  success: "success",
+  error: "error",
+} as const;
+
 export function InlineAlert({
   title,
   message,
   tone = "info",
   actions,
 }: InlineAlertProps): JSX.Element {
-  const classNameByTone = {
-    info: "border-border bg-secondary/40",
-    success: "border-emerald-200 bg-emerald-50 text-emerald-900",
-    error: "border-destructive/30 bg-destructive/10",
-  };
-
   return (
-    <Alert className={classNameByTone[tone]}>
-      <AlertTitle>{title}</AlertTitle>
-      <AlertDescription>{message}</AlertDescription>
-      {actions ? <div className="mt-3">{actions}</div> : null}
-    </Alert>
+    <div className="desk-note" data-tone={TONE_MAP[tone]} role={tone === "error" ? "alert" : undefined}>
+      <div>
+        <p className="desk-note-title">{title}</p>
+        <p className="desk-note-body">{message}</p>
+        {actions ? <div className="desk-note-actions">{actions}</div> : null}
+      </div>
+    </div>
   );
 }

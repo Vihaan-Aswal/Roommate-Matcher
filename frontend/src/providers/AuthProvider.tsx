@@ -148,6 +148,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const appSessionToken = impersonationToken ?? demoToken;
 
       if (appSessionToken) {
+        // Set the API token before hydrating: child queries mount before this
+        // provider's effects run, so waiting for the effect would fire a 401 burst.
+        setApiToken(appSessionToken);
         const appUser = await hydrateFromBackend(appSessionToken);
         if (!cancelled) {
           if (appUser) {

@@ -30,9 +30,10 @@ export interface PublicFormConfig {
 }
 
 export interface FormLinkResponse {
-  form_url: string;
+  /** The public form token. The API returns only this; the URL is composed on the client. */
   token: string;
-  expires_at: string;
+  form_url?: string;
+  expires_at?: string;
 }
 
 export interface InvalidRow {

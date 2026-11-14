@@ -10,9 +10,14 @@ interface FormQuestionProps {
   options: QuestionOption[];
   value: string;
   error?: string;
+  index?: number;
   onChange: (value: string) => void;
 }
 
+/**
+ * One question, one page-ish block: a mono number, the question in serif, and
+ * options as full-width rows so a thumb can hit them.
+ */
 export function FormQuestion({
   id,
   title,
@@ -20,20 +25,29 @@ export function FormQuestion({
   options,
   value,
   error,
+  index,
   onChange,
 }: FormQuestionProps): JSX.Element {
-  return (
-    <fieldset className="rounded-2xl border border-border/80 bg-white p-5 shadow-sm">
-      <legend className="px-2 text-sm font-semibold tracking-wide text-primary">
-        {title}
-      </legend>
-      <p className="mt-1 text-sm leading-relaxed text-foreground">{prompt}</p>
+  const errorId = `${id}-error`;
 
-      <div className="mt-4 space-y-2">
+  return (
+    <fieldset
+      className="desk-question"
+      aria-invalid={error ? true : undefined}
+      aria-describedby={error ? errorId : undefined}
+    >
+      <legend className="desk-question-legend">
+        {typeof index === "number" ? <span className="desk-question-num">{String(index + 1).padStart(2, "0")}</span> : null}
+        <span className="desk-question-title">{title}</span>
+      </legend>
+      <p className="desk-question-prompt">{prompt}</p>
+
+      <div className="desk-options">
         {options.map((option) => (
           <label
+            className="desk-option"
             key={option.value}
-            className="flex cursor-pointer items-start gap-3 rounded-lg border border-transparent px-3 py-2 transition hover:border-primary/40 hover:bg-muted/50"
+            data-checked={value === option.value}
           >
             <input
               type="radio"
@@ -41,14 +55,18 @@ export function FormQuestion({
               value={option.value}
               checked={value === option.value}
               onChange={(event) => onChange(event.target.value)}
-              className="mt-1 h-4 w-4 accent-primary"
+              className="desk-radio"
             />
-            <span className="text-sm text-foreground">{option.label}</span>
+            <span>{option.label}</span>
           </label>
         ))}
       </div>
 
-      {error ? <p className="mt-2 text-sm text-destructive">{error}</p> : null}
+      {error ? (
+        <p className="desk-error" id={errorId}>
+          {error}
+        </p>
+      ) : null}
     </fieldset>
   );
 }

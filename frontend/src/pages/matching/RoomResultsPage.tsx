@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
+import { Download } from "lucide-react";
 
 import { AdminPageHeader } from "../../components/AdminPageHeader";
 import DataWarningBanner from "../../components/DataWarningBanner";
@@ -9,15 +10,16 @@ import { RoomResultsTable } from "../../components/matching/tables/RoomResultsTa
 import { DetailSidePanelShell } from "../../components/panels/DetailSidePanelShell";
 import { RoomStudentDetailPanel } from "../../components/panels/RoomStudentDetailPanel";
 import { Button } from "../../components/ui/button";
-import { Card, CardContent } from "../../components/ui/card";
 import { useAdminSegmentsQuery } from "../../hooks/useAdminSegments";
 import { useAssignmentsExportMutation } from "../../hooks/useAssignmentsExportMutation";
 import { useRunRoomsQuery } from "../../hooks/useRunRoomsQuery";
 import { useRunStudentsQuery } from "../../hooks/useRunStudentsQuery";
+import { useWorkspace } from "../../providers/WorkspaceProvider";
 
 export function RoomResultsPage(): JSX.Element {
   const { workspaceId, runId } = useParams<{ workspaceId: string; runId: string }>();
   if (!workspaceId) throw new Error("workspaceId is required");
+  const { workspaceName } = useWorkspace();
   const [searchParams, setSearchParams] = useSearchParams();
   const segmentsQuery = useAdminSegmentsQuery(workspaceId);
   const exportMutation = useAssignmentsExportMutation(workspaceId);
@@ -39,12 +41,7 @@ export function RoomResultsPage(): JSX.Element {
       next.set("needsReview", "0");
     }
     setSearchParams(next, { replace: true });
-  }, [
-    searchParams,
-    segmentsQuery.data?.segments,
-    selectedSegment,
-    setSearchParams,
-  ]);
+  }, [searchParams, segmentsQuery.data?.segments, selectedSegment, setSearchParams]);
 
   const roomsQuery = useRunRoomsQuery(workspaceId, runId ?? "", selectedSegment ?? "");
   const studentsQuery = useRunStudentsQuery(workspaceId, runId ?? "", selectedSegment ?? "");
@@ -54,6 +51,7 @@ export function RoomResultsPage(): JSX.Element {
     () => (needsReviewOnly ? rooms.filter((room) => room.needs_review) : rooms),
     [needsReviewOnly, rooms],
   );
+  const reviewCount = rooms.filter((room) => room.needs_review).length;
 
   const selectedStudentRecord = useMemo(() => {
     if (!selectedStudent) {
@@ -82,101 +80,84 @@ export function RoomResultsPage(): JSX.Element {
     const next = new URLSearchParams(searchParams);
     next.delete("student");
     setSearchParams(next, { replace: true });
-  }, [
-    searchParams,
-    selectedStudent,
-    setSearchParams,
-    studentsQuery.data,
-    studentsQuery.isLoading,
-  ]);
-
-  const actions = (
-    <Button
-      disabled={
-        exportMutation.isPending ||
-        !runId ||
-        !selectedSegment ||
-        filteredRooms.length === 0
-      }
-      size="sm"
-      variant="outline"
-      onClick={() => {
-        if (!runId || !selectedSegment) {
-          return;
-        }
-
-        void exportMutation
-          .mutateAsync({ runId, segmentKey: selectedSegment })
-          .then((result) => {
-            const downloadUrl = URL.createObjectURL(result.blob);
-            const link = document.createElement("a");
-            link.href = downloadUrl;
-            link.download = result.fileName;
-            link.click();
-            URL.revokeObjectURL(downloadUrl);
-          })
-          .catch(() => {
-            // The inline alert surfaces export failures.
-          });
-      }}
-    >
-      {exportMutation.isPending ? "Exporting..." : "Export CSV"}
-    </Button>
-  );
+  }, [searchParams, selectedStudent, setSearchParams, studentsQuery.data, studentsQuery.isLoading]);
 
   if (!runId) {
     return (
-      <section className="space-y-4">
+      <section className="desk-stack">
         <InlineAlert
           title="No run selected"
           message="Open matching runs to choose a run before viewing room results."
           tone="error"
         />
-        <Button asChild size="sm" variant="accent">
-          <Link to={`/app/${workspaceId}/matching-runs`}>Go to Matching Runs</Link>
-        </Button>
+        <div>
+          <Button asChild size="sm">
+            <Link to={`/app/${workspaceId}/matching-runs`}>Go to matching runs</Link>
+          </Button>
+        </div>
       </section>
     );
   }
 
   return (
-    <section className="space-y-4">
+    <section className="desk-stack">
       <AdminPageHeader
         title="Room Results"
+        workspace={workspaceName ?? undefined}
+        meta={
+          selectedSegment ? (
+            <span className="desk-mono">{selectedSegment}</span>
+          ) : undefined
+        }
         description={`Room-level matching output for run ${runId}.`}
-        actions={actions}
+        actions={
+          <Button
+            disabled={
+              exportMutation.isPending || !runId || !selectedSegment || filteredRooms.length === 0
+            }
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              if (!runId || !selectedSegment) return;
+              void exportMutation
+                .mutateAsync({ runId, segmentKey: selectedSegment })
+                .then((result) => {
+                  const downloadUrl = URL.createObjectURL(result.blob);
+                  const link = document.createElement("a");
+                  link.href = downloadUrl;
+                  link.download = result.fileName;
+                  link.click();
+                  URL.revokeObjectURL(downloadUrl);
+                })
+                .catch(() => {
+                  // Surfaced by the inline alert below.
+                });
+            }}
+          >
+            <Download size={13} strokeWidth={1.8} aria-hidden="true" />
+            {exportMutation.isPending ? "Exporting…" : "Export CSV"}
+          </Button>
+        }
       />
 
-      {roomsQuery.data?.has_generated_profiles && (
+      {roomsQuery.data?.has_generated_profiles ? (
         <DataWarningBanner hasGeneratedProfiles={true} context="results" />
-      )}
-
-      {segmentsQuery.isLoading ? (
-        <InlineAlert
-          title="Loading segments"
-          message="Preparing segment filters for this run."
-          tone="info"
-        />
       ) : null}
 
       {segmentsQuery.isError ? (
         <InlineAlert
-          title="Unable to load segments"
+          title="Segments are unavailable"
           message={
             segmentsQuery.error instanceof Error
               ? segmentsQuery.error.message
               : "Segment filter data is unavailable."
           }
+          tone="error"
           actions={
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => void segmentsQuery.refetch()}
-            >
-              Retry
+            <Button size="sm" variant="outline" onClick={() => void segmentsQuery.refetch()}>
+              Try again
             </Button>
           }
-          tone="error"
         />
       ) : null}
 
@@ -200,83 +181,71 @@ export function RoomResultsPage(): JSX.Element {
         />
       ) : null}
 
-      {roomsQuery.isLoading ? (
-        <InlineAlert
-          title="Loading room results"
-          message="Fetching room assignments for the selected segment."
-          tone="info"
-        />
-      ) : null}
-
       {roomsQuery.isError ? (
         <InlineAlert
-          title="Unable to load room results"
+          title="Room results could not be read"
           message={
             roomsQuery.error instanceof Error
               ? roomsQuery.error.message
               : "Room results request failed."
           }
+          tone="error"
           actions={
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => void roomsQuery.refetch()}
-            >
-              Retry
+            <Button size="sm" variant="outline" onClick={() => void roomsQuery.refetch()}>
+              Try again
             </Button>
           }
-          tone="error"
         />
       ) : null}
 
       {exportMutation.isError ? (
         <InlineAlert
-          title="CSV export failed"
+          title="The CSV was not exported"
           message={
             exportMutation.error instanceof Error
               ? exportMutation.error.message
-              : "Could not export assignment CSV."
+              : "Could not export the assignment CSV."
           }
           tone="error"
         />
       ) : null}
 
-      {selectedStudent && studentsQuery.isLoading ? (
+      {studentsQuery.isError ? (
         <InlineAlert
-          title="Loading student details"
-          message="Fetching selected student details for the side panel."
-          tone="info"
-        />
-      ) : null}
-
-      {selectedStudent && studentsQuery.isError ? (
-        <InlineAlert
-          title="Unable to load student details"
+          title="Student details are unavailable"
           message={
             studentsQuery.error instanceof Error
               ? studentsQuery.error.message
               : "Student details request failed."
           }
+          tone="error"
           actions={
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => void studentsQuery.refetch()}
-            >
-              Retry
+            <Button size="sm" variant="outline" onClick={() => void studentsQuery.refetch()}>
+              Try again
             </Button>
           }
-          tone="error"
         />
       ) : null}
 
-      <Card className="border-border/80 bg-white/90">
-        <CardContent className="space-y-3 pt-6">
-          <p className="text-sm text-muted-foreground">
-            Showing {filteredRooms.length} room
-            {filteredRooms.length === 1 ? "" : "s"}.
+      <section className="desk-stack-sm" aria-labelledby="room-register-heading">
+        <div className="desk-section-head">
+          <h2 className="desk-section-title" id="room-register-heading">
+            The register
+          </h2>
+          <p className="desk-section-note">
+            {filteredRooms.length} room{filteredRooms.length === 1 ? "" : "s"}
+            {reviewCount > 0 ? ` · ${reviewCount} need review` : " · none need review"}
           </p>
+        </div>
 
+        {roomsQuery.isLoading ? (
+          <div className="desk-stack-sm" aria-busy="true">
+            <p className="desk-loading-note">Reading rooms</p>
+            <div className="desk-skel" style={{ height: 64 }} />
+            <div className="desk-skel" style={{ height: 64 }} />
+            <div className="desk-skel" style={{ height: 64 }} />
+          </div>
+        ) : (
           <RoomResultsTable
             rows={filteredRooms}
             selectedRoomId={selectedRoomId}
@@ -287,11 +256,11 @@ export function RoomResultsPage(): JSX.Element {
               setSearchParams(next);
             }}
           />
-        </CardContent>
-      </Card>
+        )}
+      </section>
 
       <DetailSidePanelShell
-        description="Loaded from the run student results endpoint."
+        description={selectedSegment ? `Segment ${selectedSegment}` : undefined}
         open={Boolean(selectedStudentRecord)}
         title={selectedStudentRecord?.full_name ?? "Student details"}
         onClose={() => {
@@ -301,10 +270,7 @@ export function RoomResultsPage(): JSX.Element {
         }}
       >
         {selectedStudentRecord ? (
-          <RoomStudentDetailPanel
-            roomId={selectedRoomId}
-            student={selectedStudentRecord}
-          />
+          <RoomStudentDetailPanel roomId={selectedRoomId} student={selectedStudentRecord} />
         ) : null}
       </DetailSidePanelShell>
     </section>

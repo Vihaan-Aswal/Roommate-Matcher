@@ -1,12 +1,16 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { Play, Sparkles } from "lucide-react";
+
 import { magicFillWorkspace } from "../lib/apiClient";
+import type { MatchingRunHistoryRow, SegmentOverview } from "../lib/apiClient";
 
 import { AdminPageHeader } from "../components/AdminPageHeader";
 import { DataTable, type DataTableColumn } from "../components/DataTable";
 import { InlineAlert } from "../components/InlineAlert";
-import { useToast } from "../hooks/use-toast";
+import { EmptyState } from "../components/EmptyState";
 import { StatusBadge } from "../components/StatusBadge";
+import { useToast } from "../hooks/use-toast";
 import {
   useAdminMatchingRunsQuery,
   useRunMatchingMutation,
@@ -14,80 +18,80 @@ import {
 import { useAdminSegmentsQuery } from "../hooks/useAdminSegments";
 import { useWorkspace } from "../providers/WorkspaceProvider";
 import { Button } from "../components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "../components/ui/card";
 
 function formatDateTime(value: string): string {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.valueOf())) {
     return value;
   }
-  return parsed.toLocaleString();
+  return parsed.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+}
+
+/** "F_1st_year_NonAC_3" -> "Female · 1st year · Non-AC · 3-bed" using the row's own fields. */
+function describeSegment(row: {
+  gender: string;
+  year_group: string;
+  ac_type: string;
+  room_size: number;
+}): string {
+  const gender = row.gender?.toUpperCase().startsWith("F") ? "Female" : row.gender?.toUpperCase().startsWith("M") ? "Male" : row.gender;
+  const year = row.year_group?.replace(/_/g, " ");
+  return [gender, year, row.ac_type, `${row.room_size}-bed`].filter(Boolean).join(" · ");
 }
 
 export function AdminMatchingRuns(): JSX.Element {
-  const { workspaceId } = useWorkspace();
+  const { workspaceId, workspaceName } = useWorkspace();
 
   const segmentsQuery = useAdminSegmentsQuery(workspaceId!);
   const runsQuery = useAdminMatchingRunsQuery(workspaceId!);
   const runMutation = useRunMatchingMutation(workspaceId!);
   const { toast } = useToast();
 
-  const [magicFillLoading, setMagicFillLoading] = useState(false);
+  const [magicFillLoading, setMagicFillLoading] = useState<string | null>(null);
 
   async function handleSegmentMagicFill(segmentKey: string) {
     if (!workspaceId) return;
-    setMagicFillLoading(true);
+    setMagicFillLoading(segmentKey);
     try {
       const result = await magicFillWorkspace(workspaceId, segmentKey);
       toast({
-        title: "Magic Fill Complete",
-        description: `Segment ${segmentKey}: created ${result.profiles_created} profiles.`,
+        title: "Magic Fill complete",
+        description: `Segment ${segmentKey}: ${result.profiles_created} generated profiles.`,
       });
       segmentsQuery.refetch();
     } catch (err) {
       toast({
         variant: "destructive",
-        title: "Magic Fill Failed",
+        title: "Magic Fill failed",
         description: err instanceof Error ? err.message : "Magic Fill failed.",
       });
     } finally {
-      setMagicFillLoading(false);
+      setMagicFillLoading(null);
     }
   }
 
+  const segments = segmentsQuery.data?.segments ?? [];
+  const runs = runsQuery.data?.runs ?? [];
+
   const readySegments = useMemo(
-    () =>
-      (segmentsQuery.data?.segments ?? []).filter(
-        (segment) => segment.status === "Ready",
-      ),
-    [segmentsQuery.data?.segments],
+    () => segments.filter((segment) => segment.status === "Ready"),
+    [segments],
   );
 
-  const defaultSegmentKey =
-    segmentsQuery.data?.segments[0]?.segment_key ?? null;
+  const defaultSegmentKey = segments[0]?.segment_key ?? null;
 
-  const segmentColumns: DataTableColumn<
-    NonNullable<typeof segmentsQuery.data>["segments"][number]
-  >[] = [
+  const segmentColumns: DataTableColumn<SegmentOverview>[] = [
     {
       key: "segment_key",
       header: "Segment",
-      cell: (row) => row.segment_key,
-    },
-    {
-      key: "profile",
-      header: "Profile",
-      cell: (row) => `${row.gender} | ${row.year_group} | ${row.ac_type}`,
-    },
-    {
-      key: "room_size",
-      header: "Room Size",
-      cell: (row) => row.room_size,
+      cell: (row) => (
+        <div>
+          <p style={{ fontWeight: 600 }}>{describeSegment(row)}</p>
+          <p className="desk-mono" style={{ color: "var(--paper-mid)", marginTop: 2 }}>
+            {row.segment_key}
+          </p>
+        </div>
+      ),
     },
     {
       key: "status",
@@ -97,18 +101,27 @@ export function AdminMatchingRuns(): JSX.Element {
     {
       key: "students",
       header: "Students",
-      cell: (row) => row.student_count,
+      align: "right",
+      cell: (row) => <span className="desk-num">{row.student_count}</span>,
     },
     {
       key: "capacity",
-      header: "Capacity",
-      cell: (row) => row.total_capacity,
+      header: "Beds",
+      align: "right",
+      cell: (row) => (
+        <span
+          className="desk-num"
+          style={{ color: row.total_capacity < row.student_count ? "var(--wax)" : undefined }}
+        >
+          {row.total_capacity}
+        </span>
+      ),
     },
     {
       key: "actions",
-      header: "Actions",
+      header: "Action",
       cell: (row) => (
-        <div className="flex gap-2">
+        <div className="desk-row" style={{ gap: 6 }}>
           <Button
             disabled={runMutation.isPending || row.status !== "Ready"}
             size="sm"
@@ -120,35 +133,37 @@ export function AdminMatchingRuns(): JSX.Element {
               });
             }}
           >
-            Run Segment
+            Run segment
           </Button>
           <Button
             onClick={() => void handleSegmentMagicFill(row.segment_key)}
-            disabled={magicFillLoading || row.status === "Ready"}
+            disabled={magicFillLoading === row.segment_key || row.status === "Ready"}
             size="sm"
-            variant="outline"
-            className="text-amber-600 hover:text-amber-700 hover:bg-amber-50"
-            title="Generate synthetic missing data"
+            variant="ghost"
+            title="Write generated preference profiles for this segment"
           >
-            ⚡ Fill Missing
+            <Sparkles size={12} strokeWidth={1.8} aria-hidden="true" />
+            {magicFillLoading === row.segment_key ? "Filling…" : "Fill missing"}
           </Button>
         </div>
       ),
     },
   ];
 
-  const runColumns: DataTableColumn<
-    NonNullable<typeof runsQuery.data>["runs"][number]
-  >[] = [
+  const runColumns: DataTableColumn<MatchingRunHistoryRow>[] = [
     {
       key: "run_id",
-      header: "Run ID",
-      cell: (row) => row.run_id,
-    },
-    {
-      key: "scope",
-      header: "Scope",
-      cell: (row) => row.scope,
+      header: "Run",
+      cell: (row) => (
+        <div>
+          <p className="desk-mono">{row.run_id}</p>
+          <p className="desk-list-meta" style={{ marginTop: 2 }}>
+            {row.scope === "all_ready_segments" ? "All ready segments" : "Single segment"}
+            <span className="desk-sep"> · </span>
+            {row.segments_completed} completed
+          </p>
+        </div>
+      ),
     },
     {
       key: "status",
@@ -156,99 +171,111 @@ export function AdminMatchingRuns(): JSX.Element {
       cell: (row) => <StatusBadge value={row.status} />,
     },
     {
-      key: "segments_completed",
-      header: "Segments Completed",
-      cell: (row) => row.segments_completed,
-    },
-    {
       key: "created_at",
-      header: "Created At",
-      cell: (row) => formatDateTime(row.created_at),
+      header: "Created",
+      cell: (row) => <span className="desk-num">{formatDateTime(row.created_at)}</span>,
     },
     {
       key: "actions",
-      header: "Actions",
+      header: "Open",
       cell: (row) => {
-        const canOpenResults = row.status === "completed";
-
+        const canOpen = row.status === "completed";
+        if (!canOpen) {
+          return <span className="desk-help">Not ready</span>;
+        }
         const roomRoute = defaultSegmentKey
           ? `/app/${workspaceId}/matching-runs/${encodeURIComponent(row.run_id)}/rooms?segment=${encodeURIComponent(defaultSegmentKey)}&needsReview=0`
-          : "";
-        const studentRoute = `/app/${workspaceId}/matching-runs/${encodeURIComponent(row.run_id)}/students?segment=all&label=all&atRisk=0`;
-        const fairnessRoute = `/app/${workspaceId}/fairness/${encodeURIComponent(row.run_id)}?segment=all`;
-
+          : `/app/${workspaceId}/matching-runs`;
         return (
-          <div className="flex flex-wrap gap-2">
-            {(!canOpenResults || !defaultSegmentKey) ? (
-              <Button disabled size="sm" variant="outline">
-                Room View
-              </Button>
-            ) : (
-              <Button asChild size="sm" variant="outline">
-                <Link to={roomRoute || `/app/${workspaceId}/matching-runs`}>Room View</Link>
-              </Button>
-            )}
-            {!canOpenResults ? (
-              <Button disabled size="sm" variant="outline">
-                Student View
-              </Button>
-            ) : (
-              <Button asChild size="sm" variant="outline">
-                <Link to={studentRoute}>Student View</Link>
-              </Button>
-            )}
-            {!canOpenResults ? (
-              <Button disabled size="sm" variant="outline">
-                Fairness
-              </Button>
-            ) : (
-              <Button asChild size="sm" variant="outline">
-                <Link to={fairnessRoute}>Fairness</Link>
-              </Button>
-            )}
+          <div className="desk-row" style={{ gap: 12 }}>
+            <Link className="desk-link" style={{ fontSize: 13 }} to={roomRoute}>
+              Rooms
+            </Link>
+            <Link
+              className="desk-link"
+              style={{ fontSize: 13 }}
+              to={`/app/${workspaceId}/matching-runs/${encodeURIComponent(row.run_id)}/students?segment=all&label=all&atRisk=0`}
+            >
+              Students
+            </Link>
+            <Link
+              className="desk-link"
+              style={{ fontSize: 13 }}
+              to={`/app/${workspaceId}/fairness/${encodeURIComponent(row.run_id)}?segment=all`}
+            >
+              Fairness
+            </Link>
           </div>
         );
       },
     },
   ];
 
-  const actions = (
-    <div className="flex gap-2">
-      <Button
-        disabled={runMutation.isPending || readySegments.length === 0}
-        size="sm"
-        variant="accent"
-        onClick={() => {
-          void runMutation.mutateAsync({
-            scope: "all_ready_segments",
-            segment_key: null,
-          });
-        }}
-      >
-        {runMutation.isPending ? "Running..." : "Run All Ready Segments"}
-      </Button>
-    </div>
-  );
-
   return (
-    <section className="space-y-6">
+    <section className="desk-stack">
       <AdminPageHeader
         title="Matching Runs"
-        description="Trigger matching for a single ready segment or execute all ready segments in one run."
-        actions={actions}
+        workspace={workspaceName ?? undefined}
+        meta={
+          <>
+            {readySegments.length} of {segments.length} segments ready
+            <span className="desk-sep">·</span>
+            {runs.length} run{runs.length === 1 ? "" : "s"} recorded
+          </>
+        }
+        description="A run reads the responses and the room list and writes a proposal. It is append-only: an earlier run is never edited, and a new run is a new artifact."
       />
+
+      <div className="desk-directive">
+        <div>
+          <p className="desk-directive-line">
+            {readySegments.length > 0
+              ? `${readySegments.length} segment${readySegments.length === 1 ? "" : "s"} can be matched now.`
+              : "Nothing is ready to match yet."}
+          </p>
+          {readySegments.length === 0 ? (
+            <p className="desk-help" style={{ marginTop: 4, maxWidth: "58ch" }}>
+              A segment is ready when everyone in it has answered and its beds cover its students. Fix
+              the rows below, then run.
+            </p>
+          ) : null}
+        </div>
+        <Button
+          disabled={runMutation.isPending || readySegments.length === 0}
+          onClick={() => {
+            void runMutation.mutateAsync({
+              scope: "all_ready_segments",
+              segment_key: null,
+            });
+          }}
+        >
+          <Play size={13} strokeWidth={1.8} aria-hidden="true" />
+          {runMutation.isPending ? "Running…" : "Run All Ready Segments"}
+        </Button>
+      </div>
 
       {runMutation.isSuccess ? (
         <InlineAlert
-          title="Matching run started"
-          message={`Run ${runMutation.data.run_id} completed with status ${runMutation.data.status}.`}
+          title="Matching run completed"
+          message={`Run ${runMutation.data.run_id} finished with status ${runMutation.data.status}.`}
           tone="success"
+          actions={
+            <Button asChild size="sm" variant="outline">
+              <Link
+                to={`/app/${workspaceId}/matching-runs/${encodeURIComponent(runMutation.data.run_id)}/rooms${
+                  defaultSegmentKey ? `?segment=${encodeURIComponent(defaultSegmentKey)}` : ""
+                }`}
+              >
+                Open the rooms
+              </Link>
+            </Button>
+          }
         />
       ) : null}
 
       {runMutation.isError ? (
         <InlineAlert
-          title="Matching run failed"
+          title="The run did not complete"
           message={
             runMutation.error instanceof Error
               ? runMutation.error.message
@@ -260,50 +287,90 @@ export function AdminMatchingRuns(): JSX.Element {
 
       {(segmentsQuery.isError || runsQuery.isError) && (
         <InlineAlert
-          title="Unable to load matching data"
+          title="Matching data is unavailable"
           message={
-            (segmentsQuery.error instanceof Error &&
-              segmentsQuery.error.message) ||
+            (segmentsQuery.error instanceof Error && segmentsQuery.error.message) ||
             (runsQuery.error instanceof Error && runsQuery.error.message) ||
             "A matching data request failed."
           }
           tone="error"
+          actions={
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                void segmentsQuery.refetch();
+                void runsQuery.refetch();
+              }}
+            >
+              Try again
+            </Button>
+          }
         />
       )}
 
-      <Card className="border-border/80 bg-white/90">
-        <CardHeader>
-          <CardTitle className="text-lg">Segment Readiness</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <DataTable
-            columns={segmentColumns}
-            emptyText={
-              segmentsQuery.isLoading
-                ? "Loading segments..."
-                : "No segments available yet."
-            }
-            getRowId={(row) => row.segment_key}
-            rows={segmentsQuery.data?.segments ?? []}
-          />
-        </CardContent>
-      </Card>
+      <section className="desk-stack-sm" aria-labelledby="readiness-heading">
+        <div className="desk-section-head">
+          <h2 className="desk-section-title" id="readiness-heading">
+            Segment Readiness
+          </h2>
+          <p className="desk-section-note">One row per boundary combination</p>
+        </div>
 
-      <Card className="border-border/80 bg-white/90">
-        <CardHeader>
-          <CardTitle className="text-lg">Run History</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <DataTable
-            columns={runColumns}
-            emptyText={
-              runsQuery.isLoading ? "Loading runs..." : "No runs recorded yet."
+        {segmentsQuery.isLoading ? (
+          <div className="desk-stack-sm" aria-busy="true">
+            <p className="desk-loading-note">Reading segments</p>
+            <div className="desk-skel" style={{ height: 232 }} />
+          </div>
+        ) : segments.length === 0 && segmentsQuery.isSuccess ? (
+          <EmptyState
+            title="No segments yet"
+            line="Segments are created from the roster: every gender, year group, AC type and room size combination becomes one."
+            action={
+              <Button asChild size="sm" variant="outline">
+                <Link to={`/app/${workspaceId}/students-data`}>Upload the roster</Link>
+              </Button>
             }
-            getRowId={(row) => row.run_id}
-            rows={runsQuery.data?.runs ?? []}
           />
-        </CardContent>
-      </Card>
+        ) : (
+          <DataTable
+            caption="Segment readiness"
+            columns={segmentColumns}
+            emptyText={segmentsQuery.isLoading ? "Loading segments…" : "No segments available yet."}
+            getRowId={(row) => row.segment_key}
+            rows={segments}
+          />
+        )}
+      </section>
+
+      <section className="desk-stack-sm" aria-labelledby="history-heading">
+        <div className="desk-section-head">
+          <h2 className="desk-section-title" id="history-heading">
+            Run history
+          </h2>
+          <p className="desk-section-note">Newest first</p>
+        </div>
+
+        {runsQuery.isLoading ? (
+          <div className="desk-stack-sm" aria-busy="true">
+            <p className="desk-loading-note">Reading run history</p>
+            <div className="desk-skel" style={{ height: 96 }} />
+          </div>
+        ) : runs.length === 0 && runsQuery.isSuccess ? (
+          <EmptyState
+            title="No runs recorded"
+            line="The first run writes the proposal. Until then the workspace has a roster and rooms but nothing to read."
+          />
+        ) : (
+          <DataTable
+            caption="Run history"
+            columns={runColumns}
+            emptyText={runsQuery.isLoading ? "Loading runs…" : "No runs recorded yet."}
+            getRowId={(row) => row.run_id}
+            rows={[...runs].sort((a, b) => (a.created_at < b.created_at ? 1 : -1))}
+          />
+        )}
+      </section>
     </section>
   );
 }

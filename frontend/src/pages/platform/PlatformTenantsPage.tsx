@@ -1,10 +1,21 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { ArrowRight } from "lucide-react";
+
 import { getPlatformTenants } from "../../lib/apiClient";
 import { adminQueryKeys } from "../../hooks/adminQueryKeys";
+import { InlineAlert } from "../../components/InlineAlert";
+import { EmptyState } from "../../components/EmptyState";
 
-export function PlatformTenantsPage() {
+function formatDate(value: string): string {
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.valueOf())
+    ? value
+    : parsed.toLocaleDateString(undefined, { dateStyle: "medium" });
+}
+
+export function PlatformTenantsPage(): JSX.Element {
   const navigate = useNavigate();
   const [includeDemo, setIncludeDemo] = useState(false);
   const [filter, setFilter] = useState("");
@@ -14,108 +25,160 @@ export function PlatformTenantsPage() {
     queryFn: () => getPlatformTenants(includeDemo),
   });
 
-  const filtered = (data?.tenants ?? []).filter((t) =>
-    t.display_name.toLowerCase().includes(filter.toLowerCase()) ||
-    t.slug.toLowerCase().includes(filter.toLowerCase())
+  const filtered = (data?.tenants ?? []).filter(
+    (tenant) =>
+      tenant.display_name.toLowerCase().includes(filter.toLowerCase()) ||
+      tenant.slug.toLowerCase().includes(filter.toLowerCase()),
   );
 
   return (
-    <div className="mx-auto max-w-5xl">
-      <header className="mb-8">
-        <h1 className="text-3xl font-serif font-bold text-foreground flex items-center gap-2">
-          <span className="bg-amber-100 text-amber-800 text-sm px-2 py-1 rounded-md font-sans">God Mode</span>
-          Platform Console — All Tenants
-        </h1>
-        <p className="text-muted-foreground mt-2">View all tenants and assume control of any workspace.</p>
-      </header>
+    <div className="desk desk-canvas">
+      <div className="desk-canvas-inner" style={{ maxWidth: 1080 }}>
+        <header className="desk-row-between" style={{ marginBottom: 26 }}>
+          <div>
+            <Link className="desk-canvas-mark" to="/app">
+              Roommate Matcher
+            </Link>
+            <p className="desk-mono" style={{ color: "var(--ink-faint)", marginTop: 4 }}>
+              Platform console · super-admin
+            </p>
+          </div>
+          <Link className="desk-btn desk-btn-field desk-btn-sm" to="/app">
+            My workspaces
+          </Link>
+        </header>
 
-      <div className="mb-6 flex items-center justify-between">
-        <input
-          type="text"
-          placeholder="Filter by name or slug..."
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          className="rounded-md border border-input px-3 py-2 w-64 shadow-sm focus:border-primary focus:ring-1 focus:ring-primary"
-        />
-        <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
-          <input
-            type="checkbox"
-            checked={includeDemo}
-            onChange={(e) => setIncludeDemo(e.target.checked)}
-            className="rounded border-input text-primary focus:ring-primary"
-          />
-          Show Demo Tenants
-        </label>
+        <main className="desk-paper" style={{ minHeight: 0, margin: 0 }}>
+          <div className="desk-page">
+            <header className="desk-mast">
+              <div className="desk-mast-main">
+                <h1 className="desk-mast-title">All tenants</h1>
+                <p className="desk-mast-lede">
+                  Every tenant on the platform and how many workspaces each one keeps. Opening a
+                  workspace enters it as that tenant; the amber strip stays until you exit.
+                </p>
+              </div>
+            </header>
+
+            <div className="desk-filterbar" style={{ marginTop: 18 }}>
+              <label className="desk-field" style={{ flex: 1, minWidth: 220 }}>
+                <span className="desk-label">Filter</span>
+                <input
+                  className="desk-input"
+                  type="text"
+                  placeholder="Name or slug"
+                  value={filter}
+                  onChange={(event) => setFilter(event.target.value)}
+                />
+              </label>
+              <label className="desk-check" style={{ paddingBottom: 9 }}>
+                <input
+                  className="desk-checkbox"
+                  type="checkbox"
+                  checked={includeDemo}
+                  onChange={(event) => setIncludeDemo(event.target.checked)}
+                />
+                Include demo tenants
+              </label>
+              <p className="desk-section-note" style={{ paddingBottom: 9 }}>
+                {filtered.length} tenant{filtered.length === 1 ? "" : "s"}
+              </p>
+            </div>
+
+            {isLoading ? (
+              <div className="desk-stack" style={{ marginTop: 18 }} aria-busy="true">
+                <p className="desk-loading-note">Reading tenants</p>
+                <div className="desk-skel" style={{ height: 44 }} />
+                <div className="desk-skel" style={{ height: 44 }} />
+                <div className="desk-skel" style={{ height: 44 }} />
+              </div>
+            ) : null}
+
+            {error ? (
+              <div style={{ marginTop: 18 }}>
+                <InlineAlert
+                  title="Tenants could not be read"
+                  message={(error as Error).message}
+                  tone="error"
+                />
+              </div>
+            ) : null}
+
+            {!isLoading && !error && filtered.length === 0 ? (
+              <div style={{ marginTop: 18 }}>
+                <EmptyState
+                  title={filter ? "No tenant matches that filter" : "No tenants on this platform yet"}
+                  line={
+                    filter
+                      ? "Clear the filter, or include demo tenants to see the sandboxes."
+                      : "A tenant is created when an institute signs in for the first time."
+                  }
+                />
+              </div>
+            ) : null}
+
+            {!isLoading && !error && filtered.length > 0 ? (
+              <div className="desk-table-wrap" data-stack="true" style={{ marginTop: 18 }}>
+                <table className="desk-table">
+                  <caption className="sr-only">All tenants</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Tenant</th>
+                      <th scope="col">Contact</th>
+                      <th scope="col">Type</th>
+                      <th scope="col" data-align="right">
+                        Workspaces
+                      </th>
+                      <th scope="col">Created</th>
+                      <th scope="col">Open</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map((tenant) => (
+                      <tr key={tenant.id}>
+                        <td data-label="Tenant">
+                          <p style={{ fontWeight: 600 }}>{tenant.display_name}</p>
+                          <p className="desk-mono" style={{ color: "var(--paper-mid)", marginTop: 2 }}>
+                            {tenant.slug}
+                          </p>
+                        </td>
+                        <td data-label="Contact">
+                          {tenant.contact_email ? (
+                            <span className="desk-mono">{tenant.contact_email}</span>
+                          ) : (
+                            <span style={{ color: "var(--paper-mid)" }}>No contact recorded</span>
+                          )}
+                        </td>
+                        <td data-label="Type">
+                          <span className="desk-chip" data-tone={tenant.is_demo ? "quiet" : "mark"}>
+                            {tenant.is_demo ? "Demo" : "Real"}
+                          </span>
+                        </td>
+                        <td data-label="Workspaces" data-align="right">
+                          <span className="desk-num">{tenant.workspace_count}</span>
+                        </td>
+                        <td data-label="Created">
+                          <span className="desk-num">{formatDate(tenant.created_at)}</span>
+                        </td>
+                        <td data-label="Open">
+                          <button
+                            className="desk-link"
+                            style={{ fontSize: 13 }}
+                            type="button"
+                            onClick={() => navigate(`/platform/tenants/${tenant.id}/workspaces`)}
+                          >
+                            Workspaces
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : null}
+          </div>
+        </main>
       </div>
-
-      {isLoading ? (
-        <div className="animate-pulse space-y-4">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="h-16 bg-muted rounded-md"></div>
-          ))}
-        </div>
-      ) : error ? (
-        <div className="bg-red-50 text-red-700 p-4 rounded-md">
-          Failed to load tenants. {(error as Error).message}
-        </div>
-      ) : (
-        <div className="bg-white shadow-sm rounded-lg border border-border overflow-hidden">
-          <table className="min-w-full divide-y divide-border text-sm">
-            <thead className="bg-muted/50">
-              <tr>
-                <th className="px-6 py-3 text-left font-medium text-muted-foreground uppercase tracking-wider">Tenant</th>
-                <th className="px-6 py-3 text-left font-medium text-muted-foreground uppercase tracking-wider">Email</th>
-                <th className="px-6 py-3 text-left font-medium text-muted-foreground uppercase tracking-wider">Type</th>
-                <th className="px-6 py-3 text-left font-medium text-muted-foreground uppercase tracking-wider">Workspaces</th>
-                <th className="px-6 py-3 text-left font-medium text-muted-foreground uppercase tracking-wider">Created</th>
-                <th className="px-6 py-3 text-right font-medium text-muted-foreground uppercase tracking-wider">Action</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-border">
-              {filtered.map(t => (
-                <tr key={t.id} className="hover:bg-muted/50 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="font-medium text-foreground">{t.display_name}</div>
-                    <div className="text-muted-foreground text-xs">{t.slug}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">
-                    {t.contact_email || <span className="text-muted-foreground/70 italic">None</span>}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {t.is_demo ? (
-                      <span className="inline-flex rounded-full bg-blue-100 px-2 text-xs font-semibold leading-5 text-blue-800">Demo</span>
-                    ) : (
-                      <span className="inline-flex rounded-full bg-green-100 px-2 text-xs font-semibold leading-5 text-green-800">Real</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">
-                    {t.workspace_count}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">
-                    {new Date(t.created_at).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right font-medium">
-                    <button
-                      onClick={() => navigate(`/platform/tenants/${t.id}/workspaces`)}
-                      className="text-primary hover:text-primary-dark font-semibold inline-flex items-center gap-1"
-                    >
-                      Impersonate &rarr;
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {filtered.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">
-                    No tenants found.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
     </div>
   );
 }
-

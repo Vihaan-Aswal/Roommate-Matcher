@@ -1,17 +1,56 @@
-import { NavLink, Outlet, useNavigate, Link } from "react-router-dom";
+import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
+import { LogOut, Menu } from "lucide-react";
+
 import { useAuth } from "../providers/AuthProvider";
 import { useWorkspace } from "../providers/WorkspaceProvider";
 import { ImpersonationBanner } from "../components/ImpersonationBanner";
 
-const links = [
-  { to: "dashboard", label: "Dashboard" },
-  { to: "students-data", label: "Students & Data" },
-  { to: "form-collection", label: "Form & Collection" },
-  { to: "matching-runs", label: "Matching Runs" },
-  { to: "fairness", label: "Reports & Fairness" },
-  { to: "at-risk-review", label: "At-Risk Review" },
-  { to: "manual-checker", label: "Manual Checker" },
+/**
+ * The desk: a dark forest rail holding the workspace and the work sequence,
+ * and one cream ledger page for the route. Navigation is grouped by the order
+ * the job happens — set up, run, review — not by feature list.
+ */
+const groups = [
+  {
+    label: "Setup",
+    links: [
+      { to: "students-data", label: "Students & Data" },
+      { to: "form-collection", label: "Form & Collection" },
+    ],
+  },
+  {
+    label: "Run",
+    links: [{ to: "matching-runs", label: "Matching Runs" }],
+  },
+  {
+    label: "Review",
+    links: [
+      { to: "fairness", label: "Reports & Fairness" },
+      { to: "at-risk-review", label: "At-Risk Review" },
+      { to: "manual-checker", label: "Manual Checker" },
+    ],
+  },
 ];
+
+function DeskNav(): JSX.Element {
+  return (
+    <nav className="desk-nav" aria-label="Workspace">
+      <NavLink className="desk-nav-link" to="dashboard">
+        Dashboard
+      </NavLink>
+      {groups.map((group) => (
+        <div className="desk-nav-group" key={group.label}>
+          <p className="desk-nav-label">{group.label}</p>
+          {group.links.map((link) => (
+            <NavLink className="desk-nav-link" key={link.to} to={link.to}>
+              {link.label}
+            </NavLink>
+          ))}
+        </div>
+      ))}
+    </nav>
+  );
+}
 
 export function AdminLayout(): JSX.Element {
   const { user, signOut } = useAuth();
@@ -23,61 +62,83 @@ export function AdminLayout(): JSX.Element {
     navigate("/login");
   }
 
+  const workspaceLabel = workspaceName ?? "This workspace";
+
+  const userFoot = (
+    <>
+      <p className="desk-rail-role">
+        {user?.role ?? "member"}
+        {user?.isDemo ? " · demo" : ""}
+      </p>
+      <p className="desk-rail-user">{user?.email}</p>
+    </>
+  );
+
+  const signOutButton = (
+    <button className="desk-btn desk-btn-field desk-btn-sm" type="button" onClick={() => void handleSignOut()}>
+      <LogOut size={13} strokeWidth={1.8} aria-hidden="true" />
+      Sign out
+    </button>
+  );
+
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_#fdf7ef_0%,_#fff_40%,_#f3f8f6_100%)]">
+    <div className="desk">
+      <a className="desk-skip" href="#desk-main">
+        Skip to the page
+      </a>
       <ImpersonationBanner />
-      <div className="mx-auto grid min-h-screen max-w-7xl grid-cols-1 md:grid-cols-[280px_1fr]">
-        <aside className="border-r border-border/70 bg-white/80 p-6 backdrop-blur flex flex-col">
-          <h1 className="font-serif text-2xl font-bold tracking-tight">
+
+      <div className="desk-shell">
+        <aside className="desk-rail">
+          <Link className="desk-rail-mark" to="/app">
             Roommate Matcher
-          </h1>
-          <p className="mt-2 text-sm font-medium text-muted-foreground truncate">
-            {workspaceName || "Loading..."}
-          </p>
-
-          <Link to="/app" className="mt-4 text-xs font-medium text-primary hover:underline inline-block mb-2">
-            &larr; Switch Workspace
           </Link>
+          <p className="desk-rail-sub">Room allocation desk</p>
 
-          <nav className="mt-2 space-y-2">
-            {links.map((link) => (
-              <NavLink
-                key={link.to}
-                to={link.to}
-                className={({ isActive }) =>
-                  [
-                    "block rounded-lg px-3 py-2 text-sm transition",
-                    isActive
-                      ? "bg-primary text-primary-foreground"
-                      : "text-foreground hover:bg-secondary",
-                  ].join(" ")
-                }
-              >
-                {link.label}
-              </NavLink>
-            ))}
-          </nav>
+          <div className="desk-ws">
+            <p className="desk-ws-label">Workspace</p>
+            <p className="desk-ws-name">{workspaceLabel}</p>
+            <Link className="desk-ws-switch" to="/app">
+              Switch workspace
+            </Link>
+          </div>
 
-          {/* User section — add at bottom of aside */}
-          <div className="mt-auto pt-6 border-t border-border/50">
-            {user?.isDemo && (
-              <span className="mb-2 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
-                Demo Mode
-              </span>
-            )}
-            <p className="text-sm font-medium truncate">{user?.email}</p>
-            <p className="text-xs text-muted-foreground capitalize">{user?.role}</p>
-            <button
-              onClick={handleSignOut}
-              className="mt-3 w-full rounded-md border border-border px-3 py-1.5 text-xs text-muted-foreground hover:border-destructive hover:text-destructive transition-colors"
-            >
-              Sign out
-            </button>
+          <DeskNav />
+
+          <div className="desk-rail-foot">
+            {userFoot}
+            <div className="desk-rail-footrow">{signOutButton}</div>
           </div>
         </aside>
 
-        <main className="p-6 md:p-10">
-          <Outlet />
+        <div className="desk-topbar desk-on-field">
+          <div className="desk-topbar-row">
+            <div className="min-w-0">
+              <Link className="desk-rail-mark" to="/app">
+                Roommate Matcher
+              </Link>
+              <p className="desk-topbar-ws">{workspaceLabel}</p>
+            </div>
+            <details className="desk-menu">
+              <summary>
+                <Menu size={14} strokeWidth={1.8} aria-hidden="true" />
+                Menu
+              </summary>
+              <div className="desk-menu-body">
+                <DeskNav />
+                <div className="desk-menu-foot">
+                  <div>{userFoot}</div>
+                  {signOutButton}
+                </div>
+              </div>
+            </details>
+          </div>
+        </div>
+
+        <main className="desk-paper" id="desk-main" tabIndex={-1}>
+          <div className="desk-page">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

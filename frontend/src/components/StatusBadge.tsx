@@ -1,70 +1,56 @@
-import { Badge, type BadgeProps } from "./ui/badge";
-import { cn } from "../lib/utils";
-
 interface StatusBadgeProps {
   value: string;
 }
 
-function resolveTone(value: string): Pick<BadgeProps, "variant" | "className"> {
+type Tone = "mark" | "attention" | "quiet" | undefined;
+
+/**
+ * Status chip. Amber is the attention colour, so it is only used for states a
+ * person must act on (poor, at risk, needs review, failed). Settled states get
+ * the wax mark; everything in between stays quiet.
+ */
+function resolveTone(value: string): Tone {
   const normalized = value.toLowerCase();
 
   if (
     normalized === "ready" ||
     normalized === "completed" ||
     normalized === "excellent" ||
-    normalized === "valid" ||
-    normalized === "healthy"
+    normalized === "valid"
   ) {
-    return {
-      variant: "secondary",
-      className: "border-emerald-200 bg-emerald-100 text-emerald-800",
-    };
+    return "mark";
   }
 
   if (
     normalized === "risk" ||
-    normalized === "running" ||
-    normalized === "pending" ||
-    normalized === "okay" ||
-    normalized === "needs review"
-  ) {
-    return {
-      variant: "secondary",
-      className: "border-amber-200 bg-amber-100 text-amber-800",
-    };
-  }
-
-  if (
-    normalized === "impossible" ||
-    normalized === "failed" ||
+    normalized === "at risk" ||
     normalized === "poor" ||
-    normalized === "invalid"
+    normalized === "needs review" ||
+    normalized === "failed" ||
+    normalized === "invalid" ||
+    normalized === "impossible"
   ) {
-    return {
-      variant: "destructive",
-      className: "border-destructive/30 bg-destructive/20 text-destructive",
-    };
+    return "attention";
   }
 
-  if (normalized === "good") {
-    return {
-      variant: "secondary",
-      className: "border-sky-200 bg-sky-100 text-sky-800",
-    };
+  if (normalized === "healthy") {
+    return "quiet";
   }
 
-  return {
-    variant: "outline",
-    className: "border-border/90 bg-white text-foreground",
-  };
+  if (normalized === "okay" || normalized === "good") {
+    return undefined;
+  }
+
+  return undefined;
 }
 
 export function StatusBadge({ value }: StatusBadgeProps): JSX.Element {
   const tone = resolveTone(value);
 
   return (
-    <Badge variant={tone.variant} className={cn("capitalize", tone.className)}>
-      {value}
-    </Badge>
+    <span className="desk-chip" data-tone={tone}>
+      {tone === "attention" ? <span className="desk-dot" data-tone="attention" aria-hidden="true" /> : null}
+      <span className="capitalize">{value}</span>
+    </span>
   );
 }

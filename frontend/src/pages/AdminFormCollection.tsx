@@ -1,10 +1,11 @@
 import { Link } from "react-router-dom";
 import { useState } from "react";
+import { Check, Copy, ExternalLink, RefreshCw } from "lucide-react";
 
 import { AdminPageHeader } from "../components/AdminPageHeader";
 import { DataTable, type DataTableColumn } from "../components/DataTable";
 import { InlineAlert } from "../components/InlineAlert";
-import { StatCard } from "../components/StatCard";
+import { EmptyState } from "../components/EmptyState";
 import {
   useAdminFormStatusQuery,
   useAdminNonSubmittersQuery,
@@ -13,14 +14,7 @@ import {
 } from "../hooks/useAdminFormCollection";
 import { QUESTION_CONFIGS } from "../lib/formQuestions";
 import { Button } from "../components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "../components/ui/card";
 import { useWorkspace } from "../providers/WorkspaceProvider";
-import { Copy, RefreshCw, Check } from "lucide-react";
 
 function triggerCsvDownload(fileName: string, content: string): void {
   const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
@@ -32,8 +26,16 @@ function triggerCsvDownload(fileName: string, content: string): void {
   URL.revokeObjectURL(url);
 }
 
+function formatExpiry(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.valueOf())) return value;
+  return parsed.toLocaleDateString(undefined, { dateStyle: "medium" });
+}
+
+
 export function AdminFormCollection(): JSX.Element {
-  const { workspaceId } = useWorkspace();
+  const { workspaceId, workspaceName } = useWorkspace();
   const formStatusQuery = useAdminFormStatusQuery(workspaceId);
   const nonSubmittersQuery = useAdminNonSubmittersQuery(workspaceId);
   const formLinkQuery = useWorkspaceFormLinkQuery(workspaceId);
@@ -42,9 +44,16 @@ export function AdminFormCollection(): JSX.Element {
   const [copied, setCopied] = useState(false);
   const [showRegenerateConfirm, setShowRegenerateConfirm] = useState(false);
 
+  // The API issues a token, not a URL: compose the public link from the current origin.
+  const formUrl = formLinkQuery.data?.form_url
+    ? formLinkQuery.data.form_url
+    : formLinkQuery.data?.token
+      ? `${window.location.origin}/f/${formLinkQuery.data.token}`
+      : null;
+
   const handleCopy = () => {
-    if (formLinkQuery.data?.form_url) {
-      navigator.clipboard.writeText(formLinkQuery.data.form_url);
+    if (formUrl) {
+      navigator.clipboard.writeText(formUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
@@ -56,28 +65,45 @@ export function AdminFormCollection(): JSX.Element {
     });
   };
 
+  const status = formStatusQuery.data;
+  const total = status?.total_students ?? 0;
+  const valid = status?.valid_responses ?? 0;
+  const percentage = status?.percentage_valid ?? 0;
+  const pendingCount = Math.max(0, total - valid);
+
   const segmentColumns: DataTableColumn<
     NonNullable<typeof formStatusQuery.data>["by_segment"][number]
   >[] = [
     {
       key: "segment_key",
       header: "Segment",
-      cell: (row) => row.segment_key,
+      cell: (row) => <span className="desk-mono">{row.segment_key}</span>,
     },
     {
       key: "total",
-      header: "Total",
-      cell: (row) => row.total,
+      header: "Students",
+      align: "right",
+      cell: (row) => <span className="desk-num">{row.total}</span>,
     },
     {
       key: "valid",
-      header: "Valid",
-      cell: (row) => row.valid,
+      header: "Answered",
+      align: "right",
+      cell: (row) => <span className="desk-num">{row.valid}</span>,
     },
     {
       key: "percentage",
-      header: "Completion %",
-      cell: (row) => `${row.percentage}%`,
+      header: "Completion",
+      cell: (row) => (
+        <div className="desk-row" style={{ gap: 8 }}>
+          <span className="desk-meter" style={{ width: 90 }}>
+            <span style={{ width: `${Math.min(100, Math.max(0, row.percentage))}%` }} />
+          </span>
+          <span className="desk-num" style={{ color: "var(--paper-mid)" }}>
+            {row.percentage}%
+          </span>
+        </div>
+      ),
     },
   ];
 
@@ -86,8 +112,8 @@ export function AdminFormCollection(): JSX.Element {
   >[] = [
     {
       key: "admission_number",
-      header: "Admission Number",
-      cell: (row) => row.admission_number,
+      header: "Admission",
+      cell: (row) => <span className="desk-mono">{row.admission_number}</span>,
     },
     {
       key: "full_name",
@@ -97,220 +123,277 @@ export function AdminFormCollection(): JSX.Element {
     {
       key: "segment_key",
       header: "Segment",
-      cell: (row) => row.segment_key,
+      cell: (row) => <span className="desk-mono">{row.segment_key}</span>,
     },
   ];
 
-  const actions = (
-    <>
-      <Button asChild size="sm" variant="accent">
-        <Link to={`/app/${workspaceId}/students-data`}>Go to Uploads</Link>
-      </Button>
-    </>
-  );
+  const expiry = formatExpiry(formLinkQuery.data?.expires_at);
 
   return (
-    <section className="space-y-6">
+    <section className="desk-stack">
       <AdminPageHeader
         title="Form & Collection"
-        description="Monitor completion, review non-submitters, and keep the questionnaire visible for admin reference."
-        actions={actions}
+        workspace={workspaceName ?? undefined}
+        meta={<>{total} students</>}
+        description="One link per workspace. Students verify themselves against the roster, answer twelve questions once, and only their latest valid response is counted."
+        actions={
+          <Button asChild variant="outline" size="sm">
+            <Link to={`/app/${workspaceId}/students-data`}>Go to uploads</Link>
+          </Button>
+        }
       />
 
-      <Card className="border-border/80 bg-white/90">
-        <CardHeader>
-          <CardTitle className="text-lg">Public Form Link</CardTitle>
-          <p className="text-sm text-muted-foreground mt-1">
-            Share this link with your students to collect their preferences.
-          </p>
-        </CardHeader>
-        <CardContent>
-          {formLinkQuery.isLoading ? (
-            <p className="text-sm text-muted-foreground">Loading form link...</p>
-          ) : formLinkQuery.isError ? (
-            <InlineAlert
-              title="Unable to load form link"
-              message={
-                formLinkQuery.error instanceof Error
-                  ? formLinkQuery.error.message
-                  : "Request failed."
-              }
-              tone="error"
-            />
-          ) : (
-            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-              <div className="flex-1 bg-muted px-4 py-2.5 rounded-lg border border-border/80 text-sm overflow-x-auto whitespace-nowrap text-foreground font-mono">
-                {formLinkQuery.data?.form_url}
-              </div>
-              <div className="flex gap-2">
-                <Button onClick={handleCopy} variant="outline" size="sm" className="gap-2">
-                  {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                  {copied ? "Copied" : "Copy link"}
-                </Button>
-                {!showRegenerateConfirm ? (
-                  <Button onClick={() => setShowRegenerateConfirm(true)} variant="outline" size="sm" className="gap-2 text-destructive hover:text-destructive hover:bg-destructive/10">
-                    <RefreshCw className="h-4 w-4" />
-                    Regenerate link
-                  </Button>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <Button onClick={handleRegenerate} variant="destructive" size="sm" disabled={regenerateMutation.isPending}>
-                      {regenerateMutation.isPending ? "Regenerating..." : "Yes, Regenerate"}
-                    </Button>
-                    <Button onClick={() => setShowRegenerateConfirm(false)} variant="outline" size="sm" disabled={regenerateMutation.isPending}>
-                      Cancel
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-          {showRegenerateConfirm && (
-            <p className="mt-3 text-sm text-destructive font-medium">
-              Warning: Regenerating the link will immediately invalidate the current link. Any students attempting to use the old link will see an error.
+      <section className="desk-stack-sm" aria-labelledby="form-link-heading">
+        <div className="desk-section-head" style={{ borderBottom: 0, paddingBottom: 0 }}>
+          <h2 className="desk-section-title" id="form-link-heading">
+            The link
+          </h2>
+          <p className="desk-section-note">Share once · same link for every student</p>
+        </div>
+
+        {formLinkQuery.isLoading ? (
+          <div className="desk-stack-sm" aria-busy="true">
+            <p className="desk-loading-note">Reading the link</p>
+            <div className="desk-skel" style={{ height: 52 }} />
+          </div>
+        ) : formLinkQuery.isError ? (
+          <InlineAlert
+            title="The link is unavailable"
+            message={
+              formLinkQuery.error instanceof Error ? formLinkQuery.error.message : "Request failed."
+            }
+            tone="error"
+            actions={
+              <Button size="sm" variant="outline" onClick={() => void formLinkQuery.refetch()}>
+                Try again
+              </Button>
+            }
+          />
+        ) : (
+          <div className="desk-slip">
+            <p className="desk-slip-url" aria-live="polite">
+              {formUrl ?? "The link is being issued…"}
             </p>
-          )}
-          <div className="mt-4 pt-4 border-t border-border/50">
-             <Button asChild size="sm" variant="outline">
-                <a href={formLinkQuery.data?.form_url || "#"} rel="noreferrer" target="_blank">
-                  Open Student Form
+            <div className="desk-row" style={{ gap: 8 }}>
+              <Button onClick={handleCopy} size="sm" disabled={!formUrl}>
+                {copied ? (
+                  <Check size={13} strokeWidth={2} aria-hidden="true" />
+                ) : (
+                  <Copy size={13} strokeWidth={1.8} aria-hidden="true" />
+                )}
+                {copied ? "Copied" : "Copy link"}
+              </Button>
+              <Button asChild size="sm" variant="outline">
+                <a href={formUrl || "#"} rel="noreferrer" target="_blank">
+                  <ExternalLink size={13} strokeWidth={1.8} aria-hidden="true" />
+                  Open form
                 </a>
               </Button>
+            </div>
           </div>
-        </CardContent>
-      </Card>
+        )}
 
-      {formStatusQuery.isError ? (
-        <InlineAlert
-          title="Unable to load form collection stats"
-          message={
-            formStatusQuery.error instanceof Error
-              ? formStatusQuery.error.message
-              : "Form status request failed."
-          }
-          tone="error"
-        />
-      ) : null}
+        {!showRegenerateConfirm ? (
+          <div className="desk-row">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setShowRegenerateConfirm(true)}
+              disabled={formLinkQuery.isLoading}
+            >
+              <RefreshCw size={13} strokeWidth={1.8} aria-hidden="true" />
+              Regenerate link
+            </Button>
+            <p className="desk-help" style={{ color: "var(--paper-mid)" }}>
+              Invalidate the current link and issue a new one.
+            </p>
+          </div>
+        ) : (
+          <div className="desk-note" data-tone="error">
+            <div className="desk-stack-sm">
+              <p className="desk-note-title">Regenerating invalidates the link students already have</p>
+              <p className="desk-note-body">
+                Anyone who opens the old link after this will see an expired-link page. Responses already
+                submitted are kept.
+              </p>
+              <div className="desk-row" style={{ gap: 8 }}>
+                <Button size="sm" onClick={handleRegenerate} disabled={regenerateMutation.isPending}>
+                  {regenerateMutation.isPending ? "Regenerating…" : "Yes, regenerate the link"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setShowRegenerateConfirm(false)}
+                  disabled={regenerateMutation.isPending}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </section>
 
-      {nonSubmittersQuery.isError ? (
-        <InlineAlert
-          title="Unable to load non-submitters"
-          message={
-            nonSubmittersQuery.error instanceof Error
-              ? nonSubmittersQuery.error.message
-              : "Non-submitter request failed."
-          }
-          tone="error"
-        />
-      ) : null}
+      <section className="desk-stack-sm" aria-labelledby="collection-heading">
+        <div className="desk-section-head">
+          <h2 className="desk-section-title" id="collection-heading">
+            Collection
+          </h2>
+          <p className="desk-section-note">
+            {valid} of {total} answered
+          </p>
+        </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          label="Total Students"
-          value={formStatusQuery.data?.total_students ?? "-"}
-        />
-        <StatCard
-          label="Valid Responses"
-          value={formStatusQuery.data?.valid_responses ?? "-"}
-        />
-        <StatCard
-          label="Invalid Responses"
-          value={formStatusQuery.data?.invalid_responses ?? "-"}
-        />
-        <StatCard
-          label="Completion"
-          value={
-            formStatusQuery.data
-              ? `${formStatusQuery.data.percentage_valid}%`
-              : "-"
-          }
-        />
-      </div>
-
-      <Card className="border-border/80 bg-white/90">
-        <CardHeader>
-          <CardTitle className="text-lg">Completion by Segment</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <DataTable
-            columns={segmentColumns}
-            emptyText={
-              formStatusQuery.isLoading
-                ? "Loading segment completion..."
-                : "No segment-level form data available."
+        {formStatusQuery.isError ? (
+          <InlineAlert
+            title="Collection counts are unavailable"
+            message={
+              formStatusQuery.error instanceof Error
+                ? formStatusQuery.error.message
+                : "Form status request failed."
             }
-            getRowId={(row) => row.segment_key}
-            rows={formStatusQuery.data?.by_segment ?? []}
+            tone="error"
           />
-        </CardContent>
-      </Card>
+        ) : null}
 
-      <Card className="border-border/80 bg-white/90">
-        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <CardTitle className="text-lg">Non-Submitters</CardTitle>
-          <Button
-            disabled={
-              !nonSubmittersQuery.data ||
-              nonSubmittersQuery.data.total_count === 0
+        {formStatusQuery.isLoading ? (
+          <div className="desk-stack-sm" aria-busy="true">
+            <p className="desk-loading-note">Counting responses</p>
+            <div className="desk-skel" style={{ height: 76 }} />
+          </div>
+        ) : null}
+
+        {status ? (
+          <div className="desk-stack-sm">
+            <p className="desk-figure-value" style={{ fontSize: 34 }}>
+              {percentage.toFixed(percentage % 1 === 0 ? 0 : 1)}%
+            </p>
+            <span className="desk-meter">
+              <span style={{ width: `${Math.min(100, Math.max(0, percentage))}%` }} />
+            </span>
+            <div className="desk-figures">
+              <div className="desk-figure">
+                <p className="desk-figure-label">Total Students</p>
+                <p className="desk-figure-value">{total}</p>
+              </div>
+              <div className="desk-figure">
+                <p className="desk-figure-label">Valid Responses</p>
+                <p className="desk-figure-value">{valid}</p>
+              </div>
+              <div className="desk-figure">
+                <p className="desk-figure-label">Invalid Responses</p>
+                <p className="desk-figure-value">{status.invalid_responses}</p>
+              </div>
+              <div className="desk-figure">
+                <p className="desk-figure-label">Outstanding</p>
+                <p className="desk-figure-value">{pendingCount}</p>
+              </div>
+            </div>
+          </div>
+        ) : null}
+      </section>
+
+      <section className="desk-stack-sm" aria-labelledby="segment-completion-heading">
+        <div className="desk-section-head">
+          <h2 className="desk-section-title" id="segment-completion-heading">
+            Completion by Segment
+          </h2>
+          <p className="desk-section-note">A segment is ready when everyone in it has answered</p>
+        </div>
+        <DataTable
+          caption="Completion by segment"
+          columns={segmentColumns}
+          emptyText={
+            formStatusQuery.isLoading
+              ? "Loading segment completion…"
+              : "No segment-level form data available."
+          }
+          getRowId={(row) => row.segment_key}
+          rows={status?.by_segment ?? []}
+        />
+      </section>
+
+      <section className="desk-stack-sm" aria-labelledby="non-submitters-heading">
+        <div className="desk-section-head">
+          <h2 className="desk-section-title" id="non-submitters-heading">
+            Non-submitters
+          </h2>
+          <div className="desk-row" style={{ gap: 10 }}>
+            <p className="desk-section-note">
+              {nonSubmittersQuery.data?.total_count ?? 0} outstanding
+            </p>
+            <Button
+              disabled={!nonSubmittersQuery.data || nonSubmittersQuery.data.total_count === 0}
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                const rows = nonSubmittersQuery.data?.non_submitters ?? [];
+                const csv = [
+                  "admission_number,full_name,segment_key",
+                  ...rows.map(
+                    (row) => `${row.admission_number},${JSON.stringify(row.full_name)},${row.segment_key}`,
+                  ),
+                ].join("\n");
+                triggerCsvDownload("non_submitters.csv", csv);
+              }}
+            >
+              Export CSV
+            </Button>
+          </div>
+        </div>
+
+        {nonSubmittersQuery.isError ? (
+          <InlineAlert
+            title="The chase list is unavailable"
+            message={
+              nonSubmittersQuery.error instanceof Error
+                ? nonSubmittersQuery.error.message
+                : "Non-submitter request failed."
             }
-            size="sm"
-            variant="outline"
-            onClick={() => {
-              const rows = nonSubmittersQuery.data?.non_submitters ?? [];
-              const csv = [
-                "admission_number,full_name,segment_key",
-                ...rows.map(
-                  (row) =>
-                    `${row.admission_number},${JSON.stringify(row.full_name)},${row.segment_key}`,
-                ),
-              ].join("\n");
-              triggerCsvDownload("non_submitters.csv", csv);
-            }}
-          >
-            Export CSV
-          </Button>
-        </CardHeader>
-        <CardContent>
+            tone="error"
+          />
+        ) : null}
+
+        {nonSubmittersQuery.isSuccess && nonSubmittersQuery.data.total_count === 0 ? (
+          <EmptyState
+            tone="good"
+            title="Every student has answered"
+            line="Nothing to chase. New students added to the roster will appear here until they submit."
+          />
+        ) : (
           <DataTable
+            caption="Students who have not responded"
             columns={nonSubmitterColumns}
             emptyText={
-              nonSubmittersQuery.isLoading
-                ? "Loading non-submitters..."
-                : "No pending non-submitters."
+              nonSubmittersQuery.isLoading ? "Loading non-submitters…" : "No pending non-submitters."
             }
             getRowId={(row) => row.admission_number}
             rows={nonSubmittersQuery.data?.non_submitters ?? []}
           />
-        </CardContent>
-      </Card>
+        )}
+      </section>
 
-      <Card className="border-border/80 bg-white/90">
-        <CardHeader>
-          <CardTitle className="text-lg">
-            Questionnaire Preview (read-only)
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {QUESTION_CONFIGS.map((question) => (
-            <article
-              key={question.id}
-              className="rounded-lg border border-border/70 bg-background/70 p-4"
-            >
-              <h3 className="text-sm font-semibold text-foreground">
-                {question.title}
-              </h3>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {question.prompt}
-              </p>
-              <ul className="mt-3 space-y-1 text-sm text-foreground">
-                {question.options.map((option) => (
-                  <li key={option.value}>- {option.label}</li>
-                ))}
-              </ul>
+      <details className="desk-disclosure">
+        <summary>The twelve questions (read-only)</summary>
+        <div style={{ paddingBottom: 8 }}>
+          {QUESTION_CONFIGS.map((question, index) => (
+            <article className="desk-q" key={question.id}>
+              <p className="desk-q-num">{String(index + 1).padStart(2, "0")}</p>
+              <div>
+                <h3 className="desk-q-title">{question.title}</h3>
+                <p className="desk-help" style={{ marginTop: 2 }}>
+                  {question.prompt}
+                </p>
+                <ul className="desk-q-options">
+                  {question.options.map((option) => (
+                    <li key={option.value}>{option.label}</li>
+                  ))}
+                </ul>
+              </div>
             </article>
           ))}
-        </CardContent>
-      </Card>
+        </div>
+      </details>
     </section>
   );
 }

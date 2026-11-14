@@ -1,0 +1,170 @@
+# 03 — Progress
+
+**Phase:** 5 — hardening · **Branch:** `feat/homepage-motion-and-app-redesign` (no git commands run by
+this agent; the human commits from the file list below) · **Homepage commit:** `9c491bf`
+**Last updated:** 2026-11-14 (evening)
+
+## How to run
+
+```powershell
+# dev server on a private port (5173 belongs to the homepage-motion agent)
+cd frontend
+npm run dev -- --port 5175 --strictPort
+
+# production build + preview (perf + bundle)
+npm run build
+npx vite preview --port 4175 --strictPort
+
+# screenshots (creates its own demo workspace + one matching run through the API)
+node scripts/capture-redesign.mjs --out ../.impeccable/review/app/after --tag after --widths 375,768,1280,1920
+node scripts/capture-redesign.mjs --only rooms --widths 1440 --view        # viewport only
+
+# evidence helpers
+node scripts/diff-screenshots.mjs <dirA> <baseA> <dirB> <baseB> [widths]    # pixel diff, no deps
+node scripts/measure-redesign.mjs --base http://127.0.0.1:4175 --out ../.impeccable/review/app/perf.json
+node scripts/audit-redesign.mjs --base http://127.0.0.1:5175               # a11y / overflow / console
+
+# checks
+npm run test        # 20 files / 42 tests
+npm run typecheck
+npm run build       # tsc -b + vite build (use this, not typecheck alone: project refs are stricter)
+```
+
+Backend: already running on `127.0.0.1:8000` (sqlite `data/app.db`). Demo data: `POST /api/auth/demo`
+(no credentials). Platform pages need a super-admin token: `scripts/generate_e2e_admin_token.py`
+fails on a second run (fixed tenant slugs), so mint one from an existing membership with
+`AppData\Local\Temp\opencode\mm_admin_token.py` (read-only helper, written this session).
+
+## Phase status
+
+| Phase | Status |
+|---|---|
+| 0 Setup | done |
+| 1 Research | done — `00-research.md` |
+| 2 UX plan + self-review | done — `01-ux-plan.md` |
+| 3 Design system | done — `02-design-system.md` + `src/app/desk.css` |
+| 4 Pages | done — 15 surfaces rebuilt, pilot calibrated |
+| 5 Harden | done |
+
+## Pages (all rebuilt, all states implemented)
+
+| # | Page | Route | Files |
+|---|---|---|---|
+| 0 | Shell | `/app/:ws/*` | `layouts/AdminLayout.tsx` |
+| 1 | Dashboard (pilot) | `/app/:ws/dashboard` | `pages/AdminDashboard.tsx` |
+| 2 | Login | `/login` | `pages/LoginPage.tsx` |
+| 3 | Workspace chooser | `/app` | `pages/WorkspaceChooserPage.tsx` |
+| 4 | Students & Data | `/app/:ws/students-data` | `pages/AdminStudentsData.tsx`, `components/FileUploadPanel.tsx`, `components/DiffPreviewPanel.tsx` |
+| 5 | Form & Collection | `/app/:ws/form-collection` | `pages/AdminFormCollection.tsx` |
+| 6 | Matching Runs | `/app/:ws/matching-runs` | `pages/AdminMatchingRuns.tsx` |
+| 7 | Room results | `…/:runId/rooms` | `pages/matching/RoomResultsPage.tsx`, `components/matching/tables/RoomResultsTable.tsx`, `components/matching/filters/RoomResultsFilters.tsx` |
+| 8 | Student results + review mode | `…/:runId/students` | `pages/matching/StudentResultsPage.tsx`, `components/matching/tables/StudentResultsTable.tsx`, `components/matching/filters/StudentResultsFilters.tsx` |
+| 9 | At-risk review | `/app/:ws/at-risk-review` | `pages/AdminAtRiskReview.tsx` |
+| 10 | Fairness | `/app/:ws/fairness[/:runId]` | `pages/reports/FairnessReportsPage.tsx`, `components/reports/{FairnessBarChart,FairnessCountsCard,RunSegmentSelector}.tsx` |
+| 11 | Manual checker | `/app/:ws/manual-checker` | `pages/checker/ManualCheckerPage.tsx`, `components/checker/{CheckerSelectionPanel,CheckerResultsPanel,CheckerStudentsList}.tsx` |
+| 12 | Student form | `/f/:token` | `pages/StudentForm.tsx`, `components/FormQuestion.tsx` |
+| 13 | Platform console | `/platform`, `/platform/tenants/:id/workspaces` | `pages/platform/{PlatformTenantsPage,PlatformTenantWorkspacesPage}.tsx` |
+| 14 | Drawers / notes / tables / chips | shared | `components/{AdminPageHeader,StatCard,StatusBadge,DataTable,InlineAlert,DataWarningBanner,EmptyState}.tsx`, `components/panels/**`, `components/ImpersonationBanner.tsx`, `components/ui/{button,input,select,checkbox,toast}.tsx` |
+
+## Baseline (before) — kept
+
+- `.impeccable/review/app/baseline/` — 20 routes × 4 widths, `before-<route>-<width>.png`.
+- Tests: 20 files / 42 tests green. Bundle: JS 713.00 kB (208.21 gzip), CSS 77.40 kB (15.62 gzip).
+- Lighthouse CLI unavailable (no dependency may be added); perf proxy measured in production build.
+
+## After (evidence)
+
+- `.impeccable/review/app/after/` — the same 20 routes × 4 widths, `after-<route>-<width>.png`.
+- `.impeccable/review/app/page*/` — viewport captures used while judging individual pages.
+- `.impeccable/review/app/perf-after-prod.json` — LCP / CLS / bytes on the production preview:
+  home LCP 700 ms · login 340 ms · dashboard 364 ms · matching-runs 368 ms; CLS 0.0006–0.0136;
+  DOMContentLoaded ≤ 177 ms; ~91–92 kB transferred per route (gzip).
+- Bundle after: JS **734.15 kB** (213.14 gzip, +5.0 kB gzip on baseline), CSS **87.63 kB**
+  (17.67 gzip, +2.05 kB gzip). No new dependency.
+- Tests: 20 files / 42 tests green. `npm run build` (tsc -b + vite) green.
+- `scripts/audit-redesign.mjs` → **CLEAN** at 375 and 1280 (one `h1` and one `main` per route, no
+  heading-order breaks, no unnamed controls, no console errors, visible focus ring on the first
+  three tab stops, no horizontal overflow, no target under 24px).
+- Impeccable detector over `desk.css` + every page, component and layout → **no findings**.
+
+## Homepage regression
+
+`desk.css` was added to `main.tsx` only. Proof it changes nothing on `/`: the homepage was captured
+normally and again with the `desk.css` style element removed, then pixel-diffed at 375/768/1280/1920 —
+**0 differing pixels** at every width (`scripts/diff-screenshots.mjs`,
+`.impeccable/review/app/nodesk/`). The homepage files themselves were never edited; their mtimes show
+the homepage-motion agent's concurrent edits (that is why the before/after *homepage* captures differ —
+that work is theirs, not this pass).
+
+## Next action
+
+Nothing pending. Hand the file list below to the human for per-page commits; the only follow-ups are
+the proposals in `04-open-questions.md`.
+
+## Per-page file list (for splitting commits)
+
+**Design system + shell**
+`frontend/src/app/desk.css` (new), `frontend/src/main.tsx`, `frontend/src/layouts/AdminLayout.tsx`,
+`frontend/src/components/AdminPageHeader.tsx`, `StatCard.tsx`, `StatusBadge.tsx`, `DataTable.tsx`,
+`InlineAlert.tsx`, `DataWarningBanner.tsx`, `EmptyState.tsx` (new), `ImpersonationBanner.tsx`,
+`components/ui/button.tsx`, `input.tsx`, `select.tsx`, `checkbox.tsx`, `toast.tsx`,
+`providers/AuthProvider.tsx` (token ordering), `lib/apiClient.ts` (form-link type).
+
+**Deleted (unused after the rebuild)**
+`components/ui/card.tsx`, `badge.tsx`, `table.tsx`, `alert.tsx`, `skeleton.tsx`, `sheet.tsx`,
+`components/matching/tables/roomResultsColumns.tsx`, `studentResultsColumns.tsx`.
+
+**Dashboard (pilot)**
+`frontend/src/pages/AdminDashboard.tsx`, `frontend/src/test/admin-dashboard.test.tsx`.
+
+**Login**
+`frontend/src/pages/LoginPage.tsx`.
+
+**Workspace chooser**
+`frontend/src/pages/WorkspaceChooserPage.tsx`.
+
+**Students & Data**
+`frontend/src/pages/AdminStudentsData.tsx`, `frontend/src/components/FileUploadPanel.tsx`,
+`frontend/src/components/DiffPreviewPanel.tsx`.
+
+**Form & Collection**
+`frontend/src/pages/AdminFormCollection.tsx`.
+
+**Matching Runs**
+`frontend/src/pages/AdminMatchingRuns.tsx`.
+
+**Room results**
+`frontend/src/pages/matching/RoomResultsPage.tsx`,
+`frontend/src/components/matching/tables/RoomResultsTable.tsx`,
+`frontend/src/components/matching/filters/RoomResultsFilters.tsx`.
+
+**Student results + at-risk review**
+`frontend/src/pages/matching/StudentResultsPage.tsx`, `frontend/src/pages/AdminAtRiskReview.tsx`,
+`frontend/src/components/matching/tables/StudentResultsTable.tsx`,
+`frontend/src/components/matching/filters/StudentResultsFilters.tsx`,
+`frontend/src/components/panels/DetailSidePanelShell.tsx`, `StudentDetailPanel.tsx`,
+`RoomStudentDetailPanel.tsx`, `frontend/src/test/components/student-detail-panel.test.tsx`.
+
+**Fairness**
+`frontend/src/pages/reports/FairnessReportsPage.tsx`,
+`frontend/src/components/reports/{FairnessBarChart,FairnessCountsCard,RunSegmentSelector}.tsx`.
+
+**Manual checker**
+`frontend/src/pages/checker/ManualCheckerPage.tsx`,
+`frontend/src/components/checker/{CheckerSelectionPanel,CheckerResultPanel,CheckerStudentsList}.tsx`,
+`frontend/src/test/pages/manual-checker-page.test.tsx`.
+
+**Student form**
+`frontend/src/pages/StudentForm.tsx`, `frontend/src/components/FormQuestion.tsx`.
+
+**Platform console**
+`frontend/src/pages/platform/PlatformTenantsPage.tsx`, `PlatformTenantWorkspacesPage.tsx`.
+
+**Evidence tooling (not part of the product; commit separately or drop)**
+`frontend/scripts/capture-redesign.mjs`, `diff-screenshots.mjs`, `measure-redesign.mjs`,
+`audit-redesign.mjs`.
+
+**Docs**
+`docs/redesign/00-brief.md` (pre-existing), `00-research.md`, `01-ux-plan.md`, `02-design-system.md`,
+`03-progress.md`, `decisions.md`, `deviations.md`, `placeholders.md`, `04-open-questions.md`,
+`docs/redesign/design-language.md` (merged into `02-design-system.md` §1–3).

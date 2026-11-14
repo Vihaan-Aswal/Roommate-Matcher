@@ -1,21 +1,17 @@
 /**
- * LoginPage.tsx
+ * LoginPage.tsx — the door.
  *
- * Shown to unauthenticated users at the root "/" path.
- *
- * Two flows:
- *   1. Email + password sign-in via Supabase Auth.
- *   2. Demo session — enter just an email (display only), click "Try Demo",
- *      and the backend creates an isolated sandbox.
- *
- * On success, both flows update the AuthProvider state and the ProtectedRoute
- * in App.tsx redirects to /app/dashboard.
+ * Two routes in: a seeded demo workspace (the fast way to see the product) and
+ * a real account. The demo is primary because a first-time visitor has no
+ * credentials and nothing to lose; sign-in is the returning user's path.
  */
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { ArrowLeft, ArrowRight } from "lucide-react";
+
 import { useAuth } from "../providers/AuthProvider";
 
-export function LoginPage() {
+export function LoginPage(): JSX.Element {
   const { signInWithEmail, startDemoSession, user } = useAuth();
   const navigate = useNavigate();
 
@@ -27,7 +23,6 @@ export function LoginPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [demoEmail, setDemoEmail] = useState("");
 
   const [loginError, setLoginError] = useState<string | null>(null);
   const [demoError, setDemoError] = useState<string | null>(null);
@@ -40,114 +35,163 @@ export function LoginPage() {
     setLoginLoading(true);
     try {
       await signInWithEmail(email, password);
-      // AuthProvider onAuthStateChange handles redirect via ProtectedRoute
     } catch (err: unknown) {
-      setLoginError(err instanceof Error ? err.message : "Login failed.");
+      setLoginError(err instanceof Error ? err.message : "Sign-in failed.");
     } finally {
       setLoginLoading(false);
     }
   }
 
-  async function handleDemo(e: React.FormEvent) {
-    e.preventDefault();
-    console.log("handleDemo called!");
+  async function handleDemo() {
     setDemoError(null);
     setDemoLoading(true);
     try {
-      console.log("Starting demo session...");
-      await startDemoSession(demoEmail || "demo@example.com");
+      await startDemoSession("demo@example.com");
       const wsId = sessionStorage.getItem("demo_workspace_id");
-      console.log("Demo session started, navigating to /app");
       navigate(wsId ? `/app/${wsId}/dashboard` : "/app");
     } catch (err) {
-      console.error("Demo failed:", err);
-      setDemoError(err instanceof Error ? err.message : "Failed to start demo.");
+      setDemoError(err instanceof Error ? err.message : "The demo workspace could not be created.");
     } finally {
       setDemoLoading(false);
     }
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md space-y-8">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold tracking-tight">Roommate Matcher</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Sign in to your account or try a live demo.
-          </p>
+    <div className="desk desk-canvas">
+      <div className="desk-canvas-inner desk-canvas-page">
+        <header className="desk-row-between">
+          <Link className="desk-canvas-mark" to="/">
+            Roommate Matcher
+          </Link>
+          <Link className="desk-btn desk-btn-field desk-btn-sm" to="/">
+            <ArrowLeft size={13} strokeWidth={1.8} aria-hidden="true" />
+            The argument
+          </Link>
+        </header>
+
+        <div className="desk-canvas-body">
+          <main className="desk-cols desk-cols-wide-left" style={{ gap: 44, alignItems: "center", width: "100%" }}>
+          <div>
+            <h1
+              className="desk-mast-title"
+              style={{ color: "var(--ink)", fontSize: "clamp(2rem, 3.4vw, 2.9rem)", lineHeight: 1.02 }}
+            >
+              Open the desk.
+            </h1>
+            <p className="desk-canvas-lede" style={{ marginTop: 14, maxWidth: "46ch" }}>
+              Room-allocation work for hostel offices: a roster, a room list, a preference form, and a
+              proposal with a written reason for every student.
+            </p>
+            <dl className="desk-kv" style={{ marginTop: 26, color: "var(--ink-dim)" }}>
+              <dt style={{ color: "var(--ink-faint)" }}>Boundaries</dt>
+              <dd>Gender, year group, AC type, room size — nothing crosses them.</dd>
+              <dt style={{ color: "var(--ink-faint)" }}>Score</dt>
+              <dd>Ten weighted factors per eligible pair, missing answers renormalised.</dd>
+              <dt style={{ color: "var(--ink-faint)" }}>Output</dt>
+              <dd>A proposal, the reasons, the fairness floor. A person signs.</dd>
+            </dl>
+          </div>
+
+          <div className="desk-sheet" style={{ padding: "24px 24px 22px" }}>
+            <h2 style={{ fontSize: "1.35rem", lineHeight: 1.15 }}>
+              A workspace you can throw away.
+            </h2>
+            <p className="desk-help" style={{ marginTop: 8 }}>
+              Creates a seeded workspace with illustrative students, rooms and responses. No account,
+              no email confirmation, nothing kept after you leave it.
+            </p>
+
+            {demoError ? (
+              <p className="desk-note" data-tone="error" role="alert" style={{ marginTop: 14 }}>
+                <span className="desk-note-body">
+                  <strong className="desk-note-title">The demo could not start.</strong> {demoError}
+                </span>
+              </p>
+            ) : null}
+
+            <button
+              className="desk-btn desk-btn-lg desk-btn-block"
+              style={{ marginTop: 16 }}
+              type="button"
+              onClick={() => void handleDemo()}
+              disabled={demoLoading}
+            >
+              {demoLoading ? (
+                "Creating the workspace…"
+              ) : (
+                <>
+                  Open the demo workspace
+                  <ArrowRight size={15} strokeWidth={1.8} aria-hidden="true" />
+                </>
+              )}
+            </button>
+
+            <hr className="desk-rule" style={{ margin: "22px 0 18px" }} />
+
+            <form onSubmit={handleLogin} className="desk-stack-sm" noValidate>
+              <div>
+                <p className="desk-overline">Sign in</p>
+                <p className="desk-help" style={{ marginTop: 4 }}>
+                  For an account your institute already administers.
+                </p>
+              </div>
+
+              <div className="desk-field">
+                <label className="desk-label" htmlFor="email">
+                  Email
+                </label>
+                <input
+                  id="email"
+                  className="desk-input"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={email}
+                  aria-invalid={loginError ? true : undefined}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                />
+              </div>
+
+              <div className="desk-field">
+                <label className="desk-label" htmlFor="password">
+                  Password
+                </label>
+                <input
+                  id="password"
+                  className="desk-input"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  value={password}
+                  aria-invalid={loginError ? true : undefined}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                />
+              </div>
+
+              <div aria-live="polite">
+                {loginError ? (
+                  <p className="desk-error" role="alert">
+                    {loginError}
+                  </p>
+                ) : null}
+              </div>
+
+              <button className="desk-btn desk-btn-ghost desk-btn-block" type="submit" disabled={loginLoading}>
+                {loginLoading ? "Signing in…" : "Sign in"}
+              </button>
+            </form>
+          </div>
+          </main>
         </div>
 
-        {/* Real login */}
-        <form onSubmit={handleLogin} className="space-y-4 rounded-xl border border-border bg-card p-6 shadow-sm">
-          <h2 className="text-lg font-semibold">Sign In</h2>
-          <div className="space-y-2">
-            <label htmlFor="email" className="block text-sm font-medium">Email</label>
-            <input
-              id="email"
-              type="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              placeholder="you@example.com"
-            />
-          </div>
-          <div className="space-y-2">
-            <label htmlFor="password" className="block text-sm font-medium">Password</label>
-            <input
-              id="password"
-              type="password"
-              autoComplete="current-password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              placeholder="••••••••"
-            />
-          </div>
-          {loginError && (
-            <p className="text-sm text-destructive">{loginError}</p>
-          )}
-          <button
-            type="submit"
-            disabled={loginLoading}
-            className="w-full rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
-          >
-            {loginLoading ? "Signing in…" : "Sign In"}
-          </button>
-        </form>
-
-        {/* Demo */}
-        <form onSubmit={handleDemo} className="space-y-4 rounded-xl border border-border bg-card p-6 shadow-sm">
-          <h2 className="text-lg font-semibold">Try the Demo</h2>
-          <p className="text-sm text-muted-foreground">
-            No sign-up required. Enter an email for display purposes only.
-          </p>
-          <div className="space-y-2">
-            <label htmlFor="demo-email" className="block text-sm font-medium">
-              Your email <span className="text-muted-foreground">(optional)</span>
-            </label>
-            <input
-              id="demo-email"
-              type="email"
-              value={demoEmail}
-              onChange={(e) => setDemoEmail(e.target.value)}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              placeholder="demo@example.com"
-            />
-          </div>
-          {demoError && (
-            <p className="text-sm text-destructive">{demoError}</p>
-          )}
-          <button
-            type="submit"
-            disabled={demoLoading}
-            className="w-full rounded-md border border-primary px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/5 disabled:opacity-50"
-          >
-            {demoLoading ? "Creating sandbox…" : "Launch Demo →"}
-          </button>
-        </form>
+        <p
+          className="desk-mono"
+          style={{ color: "var(--ink-faint)", letterSpacing: "0.04em" }}
+        >
+          Roommate Matcher · room allocation desk · a proposal, not a key
+        </p>
       </div>
     </div>
   );

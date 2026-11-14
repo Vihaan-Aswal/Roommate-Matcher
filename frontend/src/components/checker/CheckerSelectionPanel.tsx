@@ -1,7 +1,4 @@
-import type {
-  SegmentOverview,
-  SegmentStudentPreferenceRow,
-} from "../../lib/apiClient";
+import type { SegmentOverview, SegmentStudentPreferenceRow } from "../../lib/apiClient";
 import { Button } from "../ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { CheckerStudentsList } from "./CheckerStudentsList";
@@ -45,18 +42,20 @@ export function CheckerSelectionPanel({
   onRun,
 }: CheckerSelectionPanelProps): JSX.Element {
   return (
-    <div className="space-y-4 rounded-xl border border-border/80 bg-white/90 p-4">
-      <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-        {CHECKER_DISCLAIMER}
-      </p>
+    <section className="desk-stack-sm" aria-labelledby="checker-selection-heading">
+      <div className="desk-section-head">
+        <h2 className="desk-section-title" id="checker-selection-heading">
+          Build the group
+        </h2>
+        <p className="desk-section-note">
+          {roomSize === null ? "Room size unknown" : `${roomSize}-bed room`}
+        </p>
+      </div>
 
-      <label className="block space-y-1 text-sm font-medium">
-        Segment
-        <Select
-          value={selectedSegment}
-          onValueChange={onSegmentChange}
-        >
-          <SelectTrigger className="w-full">
+      <label className="desk-field">
+        <span className="desk-label">Segment</span>
+        <Select value={selectedSegment} onValueChange={onSegmentChange}>
+          <SelectTrigger className="desk-input desk-select-radix">
             <SelectValue placeholder="Select segment" />
           </SelectTrigger>
           <SelectContent>
@@ -69,10 +68,6 @@ export function CheckerSelectionPanel({
         </Select>
       </label>
 
-      <p className="text-sm text-muted-foreground">
-        Room size: {roomSize ?? "Not resolved yet"}
-      </p>
-
       <CheckerStudentsList
         searchTerm={searchTerm}
         selectedCandidateId={selectedCandidateId}
@@ -83,17 +78,14 @@ export function CheckerSelectionPanel({
         onToggleExisting={onToggleExisting}
       />
 
-      <div className="space-y-2">
-        <Button
-          className="w-full"
-          disabled={!canRun || isRunning}
-          variant="accent"
-          onClick={onRun}
-        >
-          {isRunning ? "Running..." : "Run compatibility report"}
+      <div className="desk-stack-sm" style={{ gap: 6 }}>
+        <Button className="desk-btn-block" disabled={!canRun || isRunning} onClick={onRun}>
+          {isRunning ? "Running…" : "Run compatibility report"}
         </Button>
-        <p className="text-xs text-muted-foreground">{validationMessage}</p>
+        <p className="desk-help" aria-live="polite">
+          {validationMessage}
+        </p>
       </div>
-    </div>
+    </section>
   );
 }

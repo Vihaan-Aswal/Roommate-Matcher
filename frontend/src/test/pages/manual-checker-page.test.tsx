@@ -165,14 +165,14 @@ describe("ManualCheckerPage", () => {
     );
   }
 
-  it("shows advisory disclaimer in both selection and result panels", () => {
+  it("states the advisory limit once, above the workbench", () => {
     renderPage();
 
     expect(
-      screen.getAllByText(
+      screen.getByText(
         /Manual Checker is advisory only\. Running this report does not modify saved assignments or matching runs\./i,
-      ).length,
-    ).toBe(2);
+      ),
+    ).toBeInTheDocument();
   });
 
   it("enforces selection validation and submits correct payload", () => {
@@ -206,8 +206,6 @@ describe("ManualCheckerPage", () => {
 
     expect(screen.getByText(/Group compatibility score/i)).toBeInTheDocument();
     expect(screen.getByText(/71.0%/)).toBeInTheDocument();
-    expect(
-      screen.getByText(/✅ Sleep schedule - Strong Match/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Sleep schedule - Strong Match/i)).toBeInTheDocument();
   });
 });

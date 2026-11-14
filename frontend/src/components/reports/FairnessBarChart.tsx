@@ -8,25 +8,19 @@ interface FairnessBarChartProps {
 
 const LABEL_ORDER: SatisfactionLabel[] = ["Excellent", "Good", "Okay", "Poor"];
 
-const BAR_COLORS: Record<SatisfactionLabel, string> = {
-  Excellent: "bg-emerald-500",
-  Good: "bg-sky-500",
-  Okay: "bg-amber-500",
-  Poor: "bg-rose-500",
-};
-
+/**
+ * Four rows, not four colours: a bar length carries the count, and only the
+ * below-floor label gets the attention colour.
+ */
 export function FairnessBarChart({
   counts,
   percentages,
   onLabelClick,
 }: FairnessBarChartProps): JSX.Element {
-  const maxCount = Math.max(
-    1,
-    ...LABEL_ORDER.map((label) => counts[label] ?? 0),
-  );
+  const maxCount = Math.max(1, ...LABEL_ORDER.map((label) => counts[label] ?? 0));
 
   return (
-    <div className="space-y-3">
+    <div className="desk-bars">
       {LABEL_ORDER.map((label) => {
         const count = counts[label] ?? 0;
         const percent = percentages[label] ?? 0;
@@ -34,23 +28,20 @@ export function FairnessBarChart({
 
         return (
           <button
+            className="desk-bar-row"
+            data-tone={label === "Poor" ? "attention" : undefined}
             key={label}
-            className="w-full rounded-lg border border-border/70 p-3 text-left transition hover:bg-muted/30"
             type="button"
             onClick={() => onLabelClick(label)}
+            title={`Show the ${label.toLowerCase()} students`}
           >
-            <div className="mb-2 flex items-center justify-between gap-3 text-sm">
-              <span className="font-medium">{label}</span>
-              <span className="text-muted-foreground">
-                {count} ({(percent * 100).toFixed(1)}%)
-              </span>
-            </div>
-            <div className="h-2.5 rounded-full bg-muted">
-              <div
-                className={`h-2.5 rounded-full ${BAR_COLORS[label]}`}
-                style={{ width: `${widthPercent}%` }}
-              />
-            </div>
+            <span className="desk-bar-label">{label}</span>
+            <span className="desk-bar-track" aria-hidden="true">
+              <span style={{ width: `${widthPercent}%` }} />
+            </span>
+            <span className="desk-bar-value">
+              {count} ({(percent * 100).toFixed(1)}%)
+            </span>
           </button>
         );
       })}

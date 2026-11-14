@@ -1,7 +1,4 @@
-import type {
-  SatisfactionLabel,
-  SegmentOverview,
-} from "../../../lib/apiClient";
+import type { SatisfactionLabel, SegmentOverview } from "../../../lib/apiClient";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
 import { Checkbox } from "../../ui/checkbox";
 
@@ -15,6 +12,8 @@ interface StudentResultsFiltersProps {
   onAtRiskChange: (value: boolean) => void;
 }
 
+const LABELS: Array<"all" | SatisfactionLabel> = ["all", "Excellent", "Good", "Okay", "Poor"];
+
 export function StudentResultsFilters({
   segments,
   selectedSegment,
@@ -25,47 +24,47 @@ export function StudentResultsFilters({
   onAtRiskChange,
 }: StudentResultsFiltersProps): JSX.Element {
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-border/70 bg-white/80 p-4 lg:flex-row lg:items-center lg:justify-between">
-      <div className="grid gap-3 sm:grid-cols-2 lg:flex lg:items-center">
-        <label className="flex items-center gap-2 text-sm font-medium">
+    <div className="desk-filterbar">
+      <div className="desk-field" style={{ minWidth: 220 }}>
+        <label className="desk-label" htmlFor="student-segment">
           Segment
-          <Select value={selectedSegment} onValueChange={onSegmentChange}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="All segments" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All segments</SelectItem>
-              {segments.map((segment) => (
-                <SelectItem key={segment.segment_key} value={segment.segment_key}>
-                  {segment.segment_key}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
         </label>
-
-        <label className="flex items-center gap-2 text-sm font-medium">
-          Label
-          <Select
-            value={selectedLabel}
-            onValueChange={(value) => onLabelChange(value as "all" | SatisfactionLabel)}
-          >
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="All labels" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All labels</SelectItem>
-              <SelectItem value="Excellent">Excellent</SelectItem>
-              <SelectItem value="Good">Good</SelectItem>
-              <SelectItem value="Okay">Okay</SelectItem>
-              <SelectItem value="Poor">Poor</SelectItem>
-            </SelectContent>
-          </Select>
-        </label>
+        <Select value={selectedSegment} onValueChange={onSegmentChange}>
+          <SelectTrigger id="student-segment" className="desk-input desk-select-radix">
+            <SelectValue placeholder="All segments" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All segments</SelectItem>
+            {segments.map((segment) => (
+              <SelectItem key={segment.segment_key} value={segment.segment_key}>
+                {segment.segment_key}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
-      <label className="inline-flex items-center gap-2 text-sm font-medium cursor-pointer">
+      <div className="desk-field">
+        <span className="desk-label" id="label-filter-label">
+          Satisfaction label
+        </span>
+        <div className="desk-seg" role="group" aria-labelledby="label-filter-label">
+          {LABELS.map((label) => (
+            <button
+              key={label}
+              type="button"
+              aria-pressed={selectedLabel === label}
+              onClick={() => onLabelChange(label)}
+            >
+              {label === "all" ? "All" : label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <label className="desk-check">
         <Checkbox
+          className="desk-checkbox-radix"
           checked={atRiskOnly}
           onCheckedChange={(checked) => onAtRiskChange(checked === true)}
         />
@@ -74,4 +73,3 @@ export function StudentResultsFilters({
     </div>
   );
 }
-

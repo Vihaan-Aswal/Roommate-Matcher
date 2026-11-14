@@ -26,7 +26,6 @@ export function CheckerStudentsList({
     if (!normalizedSearch) {
       return true;
     }
-
     return (
       student.admission_number.toLowerCase().includes(normalizedSearch) ||
       student.full_name.toLowerCase().includes(normalizedSearch)
@@ -38,51 +37,46 @@ export function CheckerStudentsList({
   );
 
   return (
-    <div className="space-y-4">
-      <label className="block space-y-1 text-sm font-medium">
-        Search students
+    <div className="desk-stack-sm">
+      <label className="desk-field">
+        <span className="desk-label">Search students</span>
         <Input
-          placeholder="Search by admission number or name"
+          placeholder="Admission number or name"
           value={searchTerm}
           onChange={(event) => onSearchTermChange(event.target.value)}
         />
       </label>
 
-      <div className="space-y-2">
-        <p className="text-sm font-medium">Existing students (multi-select)</p>
-        <div className="max-h-48 space-y-2 overflow-y-auto rounded-md border border-border/70 p-3">
+      <div className="desk-field">
+        <p className="desk-label">
+          Already in the room · {selectedExistingIds.length} chosen
+        </p>
+        <div className="desk-checklist">
           {filteredStudents.map((student) => (
-            <label
-              key={student.admission_number}
-              className="flex items-start gap-2 text-sm"
-            >
+            <label className="desk-check" key={student.admission_number}>
               <input
                 checked={selectedExistingIds.includes(student.admission_number)}
-                className="mt-0.5 h-4 w-4 rounded border-input"
+                className="desk-checkbox"
                 type="checkbox"
                 onChange={() => onToggleExisting(student.admission_number)}
               />
-              <span>
-                {student.admission_number} - {student.full_name}
-              </span>
+              <span>{`${student.admission_number} - ${student.full_name}`}</span>
             </label>
           ))}
 
           {filteredStudents.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No students match search.
-            </p>
+            <p className="desk-help">No student matches that search.</p>
           ) : null}
         </div>
       </div>
 
-      <label className="block space-y-1 text-sm font-medium">
-        Candidate student
+      <label className="desk-field">
+        <span className="desk-label">Candidate student</span>
         <Select
           value={selectedCandidateId ?? "none"}
           onValueChange={(val) => onCandidateChange(val === "none" ? null : val)}
         >
-          <SelectTrigger className="w-full">
+          <SelectTrigger className="desk-input desk-select-radix">
             <SelectValue placeholder="Select candidate" />
           </SelectTrigger>
           <SelectContent>
@@ -92,7 +86,7 @@ export function CheckerStudentsList({
                 key={student.admission_number}
                 value={student.admission_number}
               >
-                {student.admission_number} - {student.full_name}
+                {`${student.admission_number} - ${student.full_name}`}
               </SelectItem>
             ))}
           </SelectContent>

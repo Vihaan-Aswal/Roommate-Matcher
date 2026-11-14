@@ -2,9 +2,10 @@
  * DataWarningBanner.tsx
  *
  * Displayed when a workspace contains generated (synthetic) preference
- * profiles from Magic Fill. Warns that results may not reflect real
- * student preferences.
+ * profiles from Magic Fill. Amber, because it is a caveat on the evidence.
  */
+import { AlertTriangle } from "lucide-react";
+
 interface DataWarningBannerProps {
   hasGeneratedProfiles: boolean;
   context?: "dashboard" | "results" | "fairness";
@@ -17,23 +18,20 @@ export default function DataWarningBanner({
   if (!hasGeneratedProfiles) return null;
 
   const messages = {
-    dashboard: `This workspace contains generated preference profiles. These were created by Magic Fill and do not represent real student responses.`,
-    results: `⚠️ These matching results include students with generated (synthetic) preference data. Results for these students may not reflect their actual preferences.`,
-    fairness: `⚠️ Fairness metrics include generated profiles. Statistical measures may be skewed by synthetic data.`,
+    dashboard:
+      "This workspace contains generated preference profiles. They were created by Magic Fill and are not real student responses.",
+    results:
+      "These results include students with generated preference data, so their placements may not reflect real preferences.",
+    fairness:
+      "These fairness figures include generated profiles, so the distribution may be skewed by synthetic answers.",
   };
 
   return (
-    <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-4 dark:border-amber-700 dark:bg-amber-950/30">
-      <div className="flex items-start gap-3">
-        <span className="text-lg">⚠️</span>
-        <div>
-          <h4 className="text-sm font-semibold text-amber-800 dark:text-amber-300">
-            Generated Data Present
-          </h4>
-          <p className="mt-1 text-sm text-amber-700 dark:text-amber-400">
-            {messages[context]}
-          </p>
-        </div>
+    <div className="desk-note" data-tone="attention" role="note">
+      <AlertTriangle size={16} strokeWidth={1.8} aria-hidden="true" className="mt-0.5 shrink-0" />
+      <div>
+        <p className="desk-note-title">Generated data present</p>
+        <p className="desk-note-body">{messages[context]}</p>
       </div>
     </div>
   );

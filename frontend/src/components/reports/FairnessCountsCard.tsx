@@ -1,7 +1,4 @@
-import type {
-  SatisfactionLabel,
-  SegmentFairnessRow,
-} from "../../lib/apiClient";
+import type { SatisfactionLabel, SegmentFairnessRow } from "../../lib/apiClient";
 
 interface FairnessCountsCardProps {
   segment: SegmentFairnessRow;
@@ -11,49 +8,77 @@ interface FairnessCountsCardProps {
 
 const LABEL_ORDER: SatisfactionLabel[] = ["Excellent", "Good", "Okay", "Poor"];
 
+const FILL: Record<SatisfactionLabel, string> = {
+  Excellent: "var(--paper-ink)",
+  Good: "rgba(29,37,25,0.62)",
+  Okay: "rgba(29,37,25,0.32)",
+  Poor: "var(--amber)",
+};
+
+/** One segment's floor: distribution, the at-risk count, and the weakest score. */
 export function FairnessCountsCard({
   segment,
   onSegmentLabelClick,
   onSegmentAtRiskClick,
 }: FairnessCountsCardProps): JSX.Element {
+  const total = segment.total_students;
+
   return (
-    <article className="space-y-3 rounded-lg border border-border/70 bg-white/80 p-4">
-      <div className="flex items-center justify-between gap-3">
-        <h4 className="font-medium">{segment.segment_key}</h4>
-        <p className="text-xs text-muted-foreground">
-          {segment.total_students} students
-        </p>
+    <article className="desk-panel desk-stack-sm">
+      <div className="desk-row-between">
+        <h3 className="desk-mono" style={{ fontSize: 13, fontWeight: 500 }}>
+          {segment.segment_key}
+        </h3>
+        <p className="desk-section-note">{total} students</p>
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-2">
+      <span className="desk-stackbar" role="img" aria-label={LABEL_ORDER.map((l) => `${l} ${segment.label_counts[l] ?? 0}`).join(", ")}>
+        {LABEL_ORDER.map((label) => {
+          const count = segment.label_counts[label] ?? 0;
+          if (count === 0 || total === 0) return null;
+          return <span key={label} style={{ width: `${(count / total) * 100}%`, background: FILL[label] }} />;
+        })}
+      </span>
+
+      <div className="desk-stackbar-legend">
         {LABEL_ORDER.map((label) => (
           <button
             key={`${segment.segment_key}-${label}`}
-            className="rounded-md border border-border/70 px-3 py-2 text-left text-sm hover:bg-muted/30"
             type="button"
             onClick={() => onSegmentLabelClick(segment.segment_key, label)}
+            style={{
+              background: "none",
+              border: 0,
+              padding: 0,
+              font: "inherit",
+              color: "inherit",
+              cursor: "pointer",
+            }}
           >
-            <p className="font-medium">{label}</p>
-            <p className="text-xs text-muted-foreground">
-              {segment.label_counts[label] ?? 0} (
-              {((segment.label_percentages[label] ?? 0) * 100).toFixed(1)}%)
-            </p>
+            {label} <b>{segment.label_counts[label] ?? 0}</b>{" "}
+            <span style={{ color: "var(--paper-mid)" }}>
+              ({(segment.label_percentages[label] ?? 0) * 100 > 0 ? ((segment.label_percentages[label] ?? 0) * 100).toFixed(1) : "0.0"}%)
+            </span>
           </button>
         ))}
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 text-sm">
+      <div className="desk-row-between" style={{ borderTop: "1px solid rgba(29,37,25,0.14)", paddingTop: 8 }}>
+        <div>
+          <p className="desk-figure-label">Minimum satisfaction</p>
+          <p className="desk-num" style={{ fontSize: 16 }}>
+            {(segment.minimum_satisfaction * 100).toFixed(1)}%
+          </p>
+        </div>
         <button
-          className="rounded-md border border-border/70 px-3 py-2 hover:bg-muted/30"
           type="button"
+          className="desk-chip"
+          data-tone={segment.at_risk_count > 0 ? "attention" : undefined}
           onClick={() => onSegmentAtRiskClick(segment.segment_key)}
+          style={{ cursor: "pointer" }}
         >
-          At risk: {segment.at_risk_count}
+          {segment.at_risk_count} at risk
         </button>
-        <span className="text-muted-foreground">
-          Minimum satisfaction:{" "}
-          {(segment.minimum_satisfaction * 100).toFixed(1)}%
-        </span>
       </div>
     </article>
   );
