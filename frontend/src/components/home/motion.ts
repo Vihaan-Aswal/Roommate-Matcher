@@ -34,9 +34,12 @@ export function useInView<T extends HTMLElement>(): {
     const node = ref.current;
     if (!node) return;
 
+    const onLite = () => setInView(true);
+    window.addEventListener("mm-motion-lite", onLite);
+
     if (typeof IntersectionObserver === "undefined") {
       setInView(true);
-      return;
+      return () => window.removeEventListener("mm-motion-lite", onLite);
     }
 
     const observer = new IntersectionObserver(
@@ -49,12 +52,19 @@ export function useInView<T extends HTMLElement>(): {
       { threshold: 0.16, rootMargin: "0px 0px -6% 0px" },
     );
     observer.observe(node);
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("mm-motion-lite", onLite);
+    };
   }, [inView]);
 
   return { ref, inView };
 }
 
+/**
+ * The margin thread follows scroll with weight. The header rule is direct;
+ * the wax tick eases toward it. The loop is finite and pauses when hidden.
+ */
 export function useScrollThread(): {
   progressRef: React.RefObject<HTMLSpanElement>;
   railRef: React.RefObject<HTMLDivElement>;
@@ -64,29 +74,89 @@ export function useScrollThread(): {
 
   useEffect(() => {
     let frame = 0;
+    let target = 0;
+    let current = 0;
+    let lastTime = 0;
+    const reduced = prefersReducedMotion();
 
-    const update = () => {
-      frame = 0;
+    const readTarget = () => {
       const doc = document.documentElement;
       const max = doc.scrollHeight - window.innerHeight;
-      const progress = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
+      target = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
+    };
+
+    const write = () => {
       if (progressRef.current) {
-        progressRef.current.style.transform = `scaleX(${progress})`;
+        progressRef.current.style.transform = `scaleX(${target})`;
       }
-      railRef.current?.style.setProperty("--thread", String(progress));
+      railRef.current?.style.setProperty("--thread", String(current));
+    };
+
+    const tick = (time: number) => {
+      const delta = lastTime === 0 ? 16 : Math.min(64, time - lastTime);
+      lastTime = time;
+      current += (target - current) * (1 - Math.exp(-delta / 90));
+
+      if (Math.abs(target - current) < 0.0005) {
+        current = target;
+        write();
+        frame = 0;
+        return;
+      }
+
+      write();
+      frame = window.requestAnimationFrame(tick);
+    };
+
+    const start = () => {
+      if (reduced || document.visibilityState === "hidden") {
+        current = target;
+        write();
+        return;
+      }
+      if (frame === 0) {
+        lastTime = 0;
+        frame = window.requestAnimationFrame(tick);
+      }
+    };
+
+    const update = () => {
+      readTarget();
+      if (reduced) {
+        current = target;
+        write();
+        return;
+      }
+      start();
     };
 
     const onScroll = () => {
-      if (frame === 0) frame = window.requestAnimationFrame(update);
+      readTarget();
+      // The header rule stays crisp; only the wax tick carries weight.
+      if (progressRef.current) {
+        progressRef.current.style.transform = `scaleX(${target})`;
+      }
+      start();
+    };
+
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") {
+        window.cancelAnimationFrame(frame);
+        frame = 0;
+      } else {
+        update();
+      }
     };
 
     update();
     window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
+    window.addEventListener("resize", update);
+    document.addEventListener("visibilitychange", onVisibility);
     return () => {
       window.cancelAnimationFrame(frame);
       window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
+      window.removeEventListener("resize", update);
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, []);
 

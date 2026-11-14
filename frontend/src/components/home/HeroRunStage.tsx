@@ -4,7 +4,7 @@ import { RotateCcw } from "lucide-react";
 import { formatScore, type Run } from "./simulate";
 import { usePrefersReducedMotion } from "./motion";
 
-const STAGE_AT = [0, 500, 1150, 2050, 3000, 3900];
+const STAGE_AT = [0, 500, 1150, 3600, 4500, 5400];
 const MARKS = 96;
 
 type Stage = 0 | 1 | 2 | 3 | 4 | 5;
@@ -166,20 +166,101 @@ interface HeroRunStageProps {
 export function HeroRunStage({ run, playKey, onReplay }: HeroRunStageProps): JSX.Element {
   const reduced = usePrefersReducedMotion();
   const [stage, setStage] = useState<Stage>(reduced ? 5 : 0);
+  const [lite, setLite] = useState(false);
   const hostRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 600, height: 560 });
 
   useEffect(() => {
-    if (reduced) {
+    if (!lite) return;
+    const root = hostRef.current?.closest(".mm-home");
+    root?.classList.add("mm-motion-lite");
+    window.dispatchEvent(new Event("mm-motion-lite"));
+    return () => root?.classList.remove("mm-motion-lite");
+  }, [lite]);
+
+  useEffect(() => {
+    if (reduced || lite) {
       setStage(5);
       return;
     }
+
     setStage(0);
-    const timers = STAGE_AT.map((at, index) =>
-      window.setTimeout(() => setStage(index as Stage), at + 60),
-    );
-    return () => timers.forEach((timer) => window.clearTimeout(timer));
-  }, [playKey, reduced]);
+    let currentStage: Stage = 0;
+    let timer: number | undefined;
+    let probeFrame = 0;
+    let cancelled = false;
+
+    const stopProbe = () => {
+      if (probeFrame !== 0) window.cancelAnimationFrame(probeFrame);
+      probeFrame = 0;
+    };
+
+    const startProbe = () => {
+      let firstFrame = 0;
+      let frames = 0;
+      const probe = (time: number) => {
+        if (cancelled) return;
+        if (firstFrame === 0) firstFrame = time;
+        frames += 1;
+        if (frames >= 10) {
+          const average = (time - firstFrame) / (frames - 1);
+          // A deliberate fallback for low-end devices: if the boundary beat
+          // cannot hold a useful frame rate, resolve to the finished run.
+          if (average > 28) {
+            cancelled = true;
+            setLite(true);
+            return;
+          }
+          return;
+        }
+        probeFrame = window.requestAnimationFrame(probe);
+      };
+      probeFrame = window.requestAnimationFrame(probe);
+    };
+
+    const schedule = (from: Stage) => {
+      if (from >= 5) return;
+      const delay = STAGE_AT[from + 1] - STAGE_AT[from];
+      timer = window.setTimeout(() => {
+        if (cancelled) return;
+        const next = (from + 1) as Stage;
+        currentStage = next;
+        setStage(next);
+        if (next === 2) startProbe();
+        schedule(next);
+      }, delay);
+    };
+
+    if (document.visibilityState !== "hidden") schedule(0);
+
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") {
+        if (timer !== undefined) window.clearTimeout(timer);
+        timer = undefined;
+        stopProbe();
+        return;
+      }
+      if (!cancelled && timer === undefined && currentStage < 5) {
+        if (currentStage === 2 && probeFrame === 0) startProbe();
+        timer = window.setTimeout(() => {
+          if (cancelled) return;
+          const next = (currentStage + 1) as Stage;
+          currentStage = next;
+          setStage(next);
+          if (next === 2) startProbe();
+          schedule(next);
+        }, 350);
+      }
+    };
+
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      cancelled = true;
+      if (timer !== undefined) window.clearTimeout(timer);
+      stopProbe();
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [playKey, reduced, lite]);
 
   useEffect(() => {
     const node = hostRef.current;
@@ -240,6 +321,7 @@ export function HeroRunStage({ run, playKey, onReplay }: HeroRunStageProps): JSX
         className={[
           "mm-stage",
           stage === 0 ? "is-arrival" : "",
+          lite ? "is-lite" : "",
           scored ? "is-scored" : "",
           paired ? "is-paired" : "",
           documented ? "is-documented" : "",
@@ -258,7 +340,7 @@ export function HeroRunStage({ run, playKey, onReplay }: HeroRunStageProps): JSX
         </div>
 
         <div className="mm-stage-field">
-          <div className="mm-lanes">
+          <div className="mm-lanes" key={`lanes-${playKey}`}>
             {layout.lanes.map((lane, index) => {
               const segment = run.segments[index];
               return (
@@ -274,6 +356,11 @@ export function HeroRunStage({ run, playKey, onReplay }: HeroRunStageProps): JSX
                     transitionDelay: `${index * 60}ms`,
                   }}
                 >
+                  <span
+                    className="mm-shelf-cut"
+                    style={{ transitionDelay: `${index * 120}ms` }}
+                    aria-hidden="true"
+                  />
                   <span className="mm-shelf-label">
                     <span>
                       {segment.gender} ·{" "}
@@ -287,7 +374,7 @@ export function HeroRunStage({ run, playKey, onReplay }: HeroRunStageProps): JSX
               );
             })}
 
-            {layout.rooms.map((room, index) => (
+            {layout.rooms.map((room) => (
               <div
                 key={`room-${room.roomId}`}
                 className={`mm-room-box ${room.risk ? "is-risk" : ""} ${paired ? "" : "is-ghost"}`}
@@ -298,7 +385,6 @@ export function HeroRunStage({ run, playKey, onReplay }: HeroRunStageProps): JSX
                   height: room.height,
                   opacity: paired ? 1 : lanesCut ? 0.55 : 0.32,
                   transform: paired ? "scale(1)" : "scale(0.98)",
-                  transitionDelay: `${index * 14}ms`,
                 }}
               >
                 <span className="mm-room-id">{room.roomId}</span>
@@ -325,8 +411,9 @@ export function HeroRunStage({ run, playKey, onReplay }: HeroRunStageProps): JSX
                     width: layout.markSize,
                     height: layout.markSize,
                     transform: `translate3d(${position.x}px, ${position.y}px, 0)`,
-                    transitionDelay: `${lanesCut ? (index % 24) * 12 : 0}ms`,
-                    ["--in-delay" as string]: index * 4,
+                    transitionDelay: lanesCut
+                      ? `${student.segmentIndex * 600 + (index % 24) * 3}ms`
+                      : "0ms",
                   }}
                 />
               );
@@ -340,25 +427,19 @@ export function HeroRunStage({ run, playKey, onReplay }: HeroRunStageProps): JSX
                 viewBox={`0 0 ${layout.width} ${layout.height}`}
                 focusable="false"
               >
-                {run.rooms.flatMap((room, roomIndex) =>
-                  room.edges.map((edge) => {
-                    const a = layout.slots[edge.a];
-                    const b = layout.slots[edge.b];
-                    if (!a || !b) return null;
-                    return (
-                      <line
-                        key={`edge-${room.id}-${edge.a}-${edge.b}`}
-                        className="mm-edge"
-                        x1={a.x + layout.markSize / 2}
-                        y1={a.y + layout.markSize / 2}
-                        x2={b.x + layout.markSize / 2}
-                        y2={b.y + layout.markSize / 2}
-                        pathLength={1}
-                        style={{ transitionDelay: `${roomIndex * 22}ms` }}
-                      />
-                    );
-                  }),
-                )}
+                <path
+                  className="mm-edge"
+                  d={run.rooms
+                    .flatMap((room) => room.edges)
+                    .map((edge) => {
+                      const a = layout.slots[edge.a];
+                      const b = layout.slots[edge.b];
+                      if (!a || !b) return "";
+                      return `M${a.x + layout.markSize / 2} ${a.y + layout.markSize / 2} L${b.x + layout.markSize / 2} ${b.y + layout.markSize / 2}`;
+                    })
+                    .filter(Boolean)
+                    .join(" ")}
+                />
               </svg>
             ) : null}
           </div>
@@ -376,7 +457,7 @@ export function HeroRunStage({ run, playKey, onReplay }: HeroRunStageProps): JSX
             className="mm-stage-docs"
             style={{
               opacity: documented ? 1 : 0,
-              transition: "opacity 0.5s ease",
+              transition: "opacity var(--m-dur-scene) ease",
             }}
           >
             <div className="mm-folder-back" aria-hidden="true">
@@ -422,6 +503,14 @@ export function HeroRunStage({ run, playKey, onReplay }: HeroRunStageProps): JSX
     </figure>
   );
 }
+
+
+
+
+
+
+
+
 
 
 

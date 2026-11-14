@@ -73,7 +73,7 @@ export function FairnessSection({ run }: FairnessSectionProps): JSX.Element {
             role="img"
             aria-label={`Fairness chart: four segments of 24 students each, sorted by satisfaction. ${run.labelCounts.Excellent} excellent, ${run.labelCounts.Good} good, ${run.labelCounts.Okay} okay and ${run.labelCounts.Poor} poor. S-009 and S-021 are below the 0.55 floor.`}
           >
-            {panels.map(({ segment, students, riskPositions }, panelIndex) => {
+            {panels.map(({ segment, students, riskPositions }) => {
               const riskLabel = riskPositions
                 .map(({ student }) => student.id)
                 .join(" · ");
@@ -124,7 +124,6 @@ export function FairnessSection({ run }: FairnessSectionProps): JSX.Element {
                               style={
                                 {
                                   ["--y" as string]: height,
-                                  ["--delay" as string]: panelIndex * 120,
                                 } as CSSProperties
                               }
                             />

@@ -151,13 +151,14 @@ export function CompatibilitySection({ run }: CompatibilitySectionProps): JSX.El
                 <span>Raw</span>
                 <span>Points</span>
               </div>
-              {pair.factors.map((factor) => {
+              {pair.factors.map((factor, factorIndex) => {
                 const heavy = FACTORS.find((definition) => definition.key === factor.key)?.heavy;
                 return (
                   <div
                     className="mm-factor"
                     key={factor.key}
                     role="group"
+                    style={{ ["--fi" as string]: factorIndex } as CSSProperties}
                     aria-label={`${factor.label}: weight ${Math.round(
                       factor.weight * 100,
                     )} percent, pair fit ${factor.raw.toFixed(2)}, contributes ${factor.contribution.toFixed(

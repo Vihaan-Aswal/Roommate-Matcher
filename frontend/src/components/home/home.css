@@ -54,6 +54,15 @@
   --sans: "Public Sans MM", "Segoe UI", system-ui, sans-serif;
   --mono: "IBM Plex Mono MM", "Courier New", monospace;
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --m-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --m-ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --m-dur-feedback: 160ms;
+  --m-dur-change: 320ms;
+  --m-dur-scene: 560ms;
+  --m-dur-mark: 600ms;
+  --m-dur-focal: 900ms;
+  --m-stagger: 28ms;
+  --m-stagger-cap: 280ms;
   position: relative;
   isolation: isolate;
   min-height: 100vh;
@@ -163,7 +172,7 @@ html:has(.mm-home)::-webkit-scrollbar-thumb {
   font-size: 14px;
   font-weight: 600;
   text-decoration: none;
-  transition: top 0.2s ease;
+  transition: top var(--m-dur-feedback) var(--m-ease-out);
 }
 
 .mm-skip:focus {
@@ -208,7 +217,7 @@ html:has(.mm-home)::-webkit-scrollbar-thumb {
   font-weight: 600;
   letter-spacing: 0.01em;
   text-decoration: none;
-  transition: background-color 0.3s ease, border-color 0.3s ease;
+  transition: background-color var(--m-dur-change) ease, border-color var(--m-dur-change) ease;
 }
 
 .mm-header-cta:hover {
@@ -368,10 +377,10 @@ html:has(.mm-home)::-webkit-scrollbar-thumb {
   text-decoration: none;
   cursor: pointer;
   transition:
-    transform 0.35s var(--ease),
-    background-color 0.35s ease,
-    border-color 0.35s ease,
-    box-shadow 0.35s ease;
+    transform var(--m-dur-change) var(--m-ease-out),
+    background-color var(--m-dur-change) ease,
+    border-color var(--m-dur-change) ease,
+    box-shadow var(--m-dur-change) ease;
 }
 
 .mm-btn-wax {
@@ -402,6 +411,17 @@ html:has(.mm-home)::-webkit-scrollbar-thumb {
   background: rgba(236, 226, 205, 0.07);
   border-color: rgba(236, 226, 205, 0.46);
   transform: translateY(-1px);
+}
+
+.mm-btn:active {
+  transform: translateY(0) scale(0.985);
+  transition-duration: var(--m-dur-feedback);
+}
+
+.mm-header-cta:active,
+.mm-replay:active {
+  transform: translateY(1px);
+  transition-duration: var(--m-dur-feedback);
 }
 
 .mm-btn-large {
@@ -518,16 +538,69 @@ html:has(.mm-home)::-webkit-scrollbar-thumb {
   background: rgba(29, 37, 25, 0.5);
   opacity: 1;
   transition:
-    transform 0.95s var(--ease),
-    background-color 0.6s ease,
-    opacity 0.5s ease;
-  will-change: transform;
+    transform var(--m-dur-mark) var(--m-ease-out),
+    opacity var(--m-dur-change) ease;
 }
 
-.mm-stage.is-arrival .mm-mark {
-  opacity: 0;
-  animation: mmMarkIn 0.45s ease forwards;
-  animation-delay: calc(var(--in-delay, 0) * 1ms);
+
+.mm-stage.is-arrival .mm-lanes {
+  animation: mmCohortIn var(--m-dur-scene) ease both;
+}
+
+.mm-stage.is-lite *,
+.mm-stage.is-lite *::before,
+.mm-stage.is-lite *::after {
+  animation: none !important;
+  transition: none !important;
+}
+
+.mm-home.mm-motion-lite *,
+.mm-home.mm-motion-lite *::before,
+.mm-home.mm-motion-lite *::after {
+  animation: none !important;
+  transition: none !important;
+}
+
+.mm-home.mm-motion-lite .mm-pair-sheet,
+.mm-home.mm-motion-lite .mm-room,
+.mm-home.mm-motion-lite .mm-fair-marks,
+.mm-home.mm-motion-lite .mm-fair-risk {
+  opacity: 1 !important;
+  translate: 0 0 !important;
+}
+
+.mm-home.mm-motion-lite .mm-fair-risk {
+  clip-path: inset(0 0 0 0) !important;
+}
+
+.mm-home.mm-motion-lite .mm-pair-sheet,
+.mm-home.mm-motion-lite .mm-room {
+  transform: none !important;
+}
+
+.mm-home.mm-motion-lite .mm-file {
+  opacity: 1 !important;
+  transform: translateY(0) rotate(var(--tilt, 0deg)) !important;
+}
+
+.mm-home.mm-motion-lite .mm-factor-fill {
+  transform: scaleX(var(--raw, 1)) !important;
+}
+
+.mm-home.mm-motion-lite .mm-fair-floor,
+.mm-home.mm-motion-lite .mm-sign-rule,
+.mm-home.mm-motion-lite .mm-limit-mark,
+.mm-home.mm-motion-lite .mm-shelf-cut {
+  transform: scaleX(1) !important;
+}
+
+.mm-home.mm-motion-lite .mm-shelf-cut {
+  opacity: 0.22 !important;
+}
+
+.mm-home.mm-motion-lite .mm-wax {
+  opacity: 1 !important;
+  transform: scale(1) rotate(-8deg) !important;
 }
 
 .mm-stage.is-scored .mm-mark[data-label="Excellent"] {
@@ -546,13 +619,50 @@ html:has(.mm-home)::-webkit-scrollbar-thumb {
   background: var(--wax);
 }
 
+
+
+
+
 .mm-shelf {
   position: absolute;
   border-top: 1px solid rgba(29, 37, 25, 0.16);
   background: linear-gradient(180deg, rgba(29, 37, 25, 0.025), rgba(29, 37, 25, 0) 70%);
   transition:
-    opacity 0.55s ease,
-    transform 0.7s var(--ease);
+    opacity var(--m-dur-scene) ease,
+    transform var(--m-dur-scene) var(--m-ease-out);
+}
+
+.mm-shelf-cut {
+  position: absolute;
+  top: -1px;
+  right: 0;
+  left: 0;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(111, 30, 34, 0.8), rgba(111, 30, 34, 0.28));
+  opacity: 1;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition:
+    transform var(--m-dur-scene) var(--m-ease-out),
+    opacity var(--m-dur-scene) ease 400ms;
+}
+
+.mm-stage.is-cut .mm-shelf-cut {
+  transform: scaleX(1);
+}
+
+.mm-stage.is-scored .mm-shelf-cut {
+  opacity: 0.22;
+}
+
+.mm-shelf-cut::before {
+  content: "";
+  position: absolute;
+  top: -2px;
+  left: 0;
+  width: 1px;
+  height: 5px;
+  background: var(--wax);
 }
 
 .mm-shelf-label {
@@ -597,11 +707,7 @@ html:has(.mm-home)::-webkit-scrollbar-thumb {
   border: 1px solid rgba(29, 37, 25, 0.26);
   border-radius: 5px;
   background: rgba(255, 255, 255, 0.22);
-  transition:
-    opacity 0.5s ease,
-    transform 0.6s var(--ease),
-    border-color 0.5s ease,
-    box-shadow 0.5s ease;
+  transition: opacity var(--m-dur-change) ease;
 }
 
 .mm-room-id {
@@ -615,7 +721,7 @@ html:has(.mm-home)::-webkit-scrollbar-thumb {
   color: #5d5848;
   white-space: nowrap;
   opacity: 1;
-  transition: opacity 0.35s ease;
+  transition: opacity var(--m-dur-change) ease;
 }
 
 .mm-room-box.is-ghost .mm-room-id {
@@ -639,15 +745,15 @@ html:has(.mm-home)::-webkit-scrollbar-thumb {
 }
 
 .mm-edge {
+  fill: none;
   stroke: rgba(29, 37, 25, 0.32);
   stroke-width: 0.8;
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
-  transition: stroke-dashoffset 0.75s var(--ease);
+  opacity: 0;
+  transition: opacity var(--m-dur-scene) ease;
 }
 
 .mm-stage.is-paired .mm-edge {
-  stroke-dashoffset: 0;
+  opacity: 1;
 }
 
 .mm-stage-docs {
@@ -675,7 +781,7 @@ html:has(.mm-home)::-webkit-scrollbar-thumb {
   font-size: 10px;
   letter-spacing: 0.03em;
   color: #585344;
-  transition: opacity 0.5s ease, transform 0.5s ease;
+  transition: opacity var(--m-dur-scene) ease, transform var(--m-dur-scene) var(--m-ease-out);
 }
 
 .mm-folder-back {
@@ -721,8 +827,8 @@ html:has(.mm-home)::-webkit-scrollbar-thumb {
   background: #f7edda;
   box-shadow: 0 10px 18px -13px rgba(0, 0, 0, 0.65);
   transition:
-    opacity 0.6s ease,
-    transform 0.7s var(--ease);
+    opacity var(--m-dur-change) ease,
+    transform var(--m-dur-scene) var(--m-ease-out);
 }
 
 .mm-doc-title {
@@ -808,7 +914,7 @@ html:has(.mm-home)::-webkit-scrollbar-thumb {
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.3s ease, border-color 0.3s ease;
+  transition: background-color var(--m-dur-change) ease, border-color var(--m-dur-change) ease;
 }
 
 .mm-replay:hover {
@@ -823,7 +929,7 @@ html:has(.mm-home)::-webkit-scrollbar-thumb {
   color: var(--ink-faint);
 }
 
-@keyframes mmMarkIn {
+@keyframes mmCohortIn {
   from {
     opacity: 0;
   }
@@ -949,32 +1055,10 @@ html:has(.mm-home)::-webkit-scrollbar-thumb {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  opacity: 0;
-  transform: translateY(18px);
-  transition:
-    opacity 0.7s ease,
-    transform 0.85s var(--ease);
 }
 
 .mm-segment-foot {
   margin-top: auto;
-}
-
-.mm-segments .mm-segment:nth-child(2) {
-  transition-delay: 0.08s;
-}
-
-.mm-segments .mm-segment:nth-child(3) {
-  transition-delay: 0.16s;
-}
-
-.mm-segments .mm-segment:nth-child(4) {
-  transition-delay: 0.24s;
-}
-
-.mm-boundaries.is-in .mm-segment {
-  opacity: 1;
-  transform: none;
 }
 
 .mm-segment-head {
@@ -1020,10 +1104,10 @@ html:has(.mm-home)::-webkit-scrollbar-thumb {
   opacity: 0;
   transform: translateY(6px);
   transition:
-    opacity 0.45s ease,
-    transform 0.5s var(--ease),
-    border-color 0.4s ease,
-    box-shadow 0.4s ease;
+    opacity var(--m-dur-change) ease,
+    transform var(--m-dur-scene) var(--m-ease-out),
+    border-color var(--m-dur-change) ease,
+    box-shadow var(--m-dur-change) ease;
   transition-delay: calc(180ms + var(--i, 0) * 22ms);
 }
 
@@ -1151,15 +1235,11 @@ html:has(.mm-home)::-webkit-scrollbar-thumb {
 /* Compatibility ---------------------------------------------------------- */
 
 .mm-compat .mm-pair-sheet {
-  opacity: 0;
-  transform: translateY(30px) scale(0.995);
-  transition:
-    opacity 0.8s ease,
-    transform 0.95s var(--ease);
+  transform: translateY(18px);
+  transition: transform var(--m-dur-scene) var(--m-ease-out);
 }
 
 .mm-compat.is-in .mm-pair-sheet {
-  opacity: 1;
   transform: none;
 }
 
@@ -1361,7 +1441,8 @@ html:has(.mm-home)::-webkit-scrollbar-thumb {
   background: #3a4a34;
   transform: scaleX(0);
   transform-origin: left center;
-  transition: transform 0.9s var(--ease);
+  transition: transform var(--m-dur-focal) var(--m-ease-out)
+    calc(120ms + var(--fi, 0) * var(--m-stagger));
 }
 
 .mm-compat.is-in .mm-factor-fill {
@@ -1404,7 +1485,7 @@ html:has(.mm-home)::-webkit-scrollbar-thumb {
   stroke-width: 1;
   stroke-dasharray: 1;
   stroke-dashoffset: 1;
-  transition: stroke-dashoffset 0.8s var(--ease) 0.15s;
+  transition: stroke-dashoffset var(--m-dur-focal) var(--m-ease-out) 150ms;
 }
 
 .mm-compat.is-in .mm-strategy-edge {
@@ -1418,7 +1499,7 @@ html:has(.mm-home)::-webkit-scrollbar-thumb {
   transform-box: fill-box;
   transform-origin: center;
   transform: scale(0);
-  transition: transform 0.5s var(--ease);
+  transition: transform var(--m-dur-scene) var(--m-ease-out);
 }
 
 .mm-strategy-node.is-seed {
@@ -1532,16 +1613,12 @@ html:has(.mm-home)::-webkit-scrollbar-thumb {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.65),
     0 14px 28px -20px rgba(0, 0, 0, 0.55);
-  opacity: 0;
-  transform: translateY(44px) rotate(var(--tilt, 0deg));
-  transition:
-    opacity 0.7s ease,
-    transform 0.9s var(--ease);
+  transform: translateY(10px) rotate(var(--tilt, 0deg));
+  transition: transform var(--m-dur-scene) var(--m-ease-out);
   transition-delay: calc(var(--i, 0) * 110ms);
 }
 
 .mm-artifacts.is-in .mm-file {
-  opacity: 1;
   transform: translateY(0) rotate(var(--tilt, 0deg));
 }
 
@@ -1883,7 +1960,7 @@ html:has(.mm-home)::-webkit-scrollbar-thumb {
   background: var(--amber);
   transform: scaleX(0);
   transform-origin: left center;
-  transition: transform 0.9s var(--ease) 0.2s;
+  transition: transform var(--m-dur-focal) var(--m-ease-out) 1050ms;
 }
 
 .mm-fairness.is-in .mm-fair-floor {
@@ -1907,6 +1984,16 @@ html:has(.mm-home)::-webkit-scrollbar-thumb {
   inset: 0;
   display: grid;
   grid-template-columns: repeat(24, minmax(0, 1fr));
+  opacity: 0;
+  translate: 0 8px;
+  transition:
+    opacity var(--m-dur-change) ease 200ms,
+    translate var(--m-dur-scene) var(--m-ease-out) 200ms;
+}
+
+.mm-fairness.is-in .mm-fair-marks {
+  opacity: 1;
+  translate: 0 0;
 }
 
 .mm-fair-cell {
@@ -1923,19 +2010,10 @@ html:has(.mm-home)::-webkit-scrollbar-thumb {
   height: 12px;
   border-radius: 1px;
   background: var(--ink);
-  opacity: 0;
-  transform: translateX(-50%) scaleY(0.2);
-  transform-origin: bottom center;
-  transition:
-    transform 0.7s var(--ease),
-    opacity 0.4s ease;
-  transition-delay: calc(var(--delay, 0) * 1ms);
+  transform: translateX(-50%);
 }
 
-.mm-fairness.is-in .mm-fair-mark {
-  opacity: 1;
-  transform: translateX(-50%) scaleY(1);
-}
+
 
 .mm-fair-mark[data-label="Good"] {
   background: rgba(236, 226, 205, 0.66);
@@ -1954,6 +2032,16 @@ html:has(.mm-home)::-webkit-scrollbar-thumb {
   bottom: 1px;
   transform: translateX(-50%);
   text-align: center;
+  translate: 0 6px;
+  clip-path: inset(0 0 100% 0);
+  transition:
+    translate var(--m-dur-scene) var(--m-ease-out) 1200ms,
+    clip-path var(--m-dur-scene) var(--m-ease-out) 1200ms;
+}
+
+.mm-fairness.is-in .mm-fair-risk {
+  translate: 0 0;
+  clip-path: inset(0 0 0 0);
 }
 
 .mm-fair-risk-rule {
@@ -2154,6 +2242,13 @@ html:has(.mm-home)::-webkit-scrollbar-thumb {
   width: 100%;
   height: 1px;
   background: rgba(29, 37, 25, 0.5);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform var(--m-dur-focal) var(--m-ease-out) 320ms;
+}
+
+.mm-signoff.is-in .mm-sign-rule {
+  transform: scaleX(1);
 }
 
 .mm-sign-caption {
@@ -2190,8 +2285,8 @@ html:has(.mm-home)::-webkit-scrollbar-thumb {
   opacity: 0;
   transform: scale(1.12) rotate(-8deg);
   transition:
-    opacity 0.4s ease 0.45s,
-    transform 0.7s var(--ease) 0.45s;
+    opacity var(--m-dur-change) ease 450ms,
+    transform var(--m-dur-scene) var(--m-ease-out) 450ms;
 }
 
 .mm-wax::before {
@@ -2265,17 +2360,6 @@ html:has(.mm-home)::-webkit-scrollbar-thumb {
   gap: 16px;
   padding: clamp(16px, 1.8vw, 24px) 0;
   border-bottom: 1px solid rgba(236, 226, 205, 0.13);
-  opacity: 0;
-  transform: translateY(16px);
-  transition:
-    opacity 0.6s ease,
-    transform 0.75s var(--ease);
-  transition-delay: calc(var(--i, 0) * 80ms + 100ms);
-}
-
-.mm-limits.is-in .mm-limits-list li {
-  opacity: 1;
-  transform: none;
 }
 
 .mm-limit-mark {
@@ -2284,6 +2368,14 @@ html:has(.mm-home)::-webkit-scrollbar-thumb {
   margin-top: 13px;
   border-radius: 1px;
   background: var(--wax-hi);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform var(--m-dur-scene) var(--m-ease-out)
+    calc(var(--i, 0) * 90ms + 120ms);
+}
+
+.mm-limits.is-in .mm-limit-mark {
+  transform: scaleX(1);
 }
 
 .mm-limit-claim {
@@ -2872,7 +2964,6 @@ html:has(.mm-home)::-webkit-scrollbar-thumb {
     scroll-behavior: auto !important;
   }
 
-  .mm-stage.is-arrival .mm-mark,
   .mm-boundaries .mm-segment,
   .mm-boundaries .mm-room,
   .mm-limits-list li,
@@ -2880,8 +2971,23 @@ html:has(.mm-home)::-webkit-scrollbar-thumb {
     opacity: 1;
   }
 
-  .mm-stage.is-arrival .mm-mark {
+  .mm-stage.is-arrival .mm-lanes {
     animation: none;
+  }
+
+  
+
+  .mm-shelf-cut,
+  .mm-sign-rule,
+  .mm-limit-mark {
+    transform: scaleX(1);
+  }
+
+  .mm-fair-risk,
+  .mm-fair-marks {
+    opacity: 1;
+    translate: 0 0;
+    clip-path: inset(0 0 0 0);
   }
 
   .mm-boundaries .mm-segment,
@@ -2925,6 +3031,24 @@ html:has(.mm-home)::-webkit-scrollbar-thumb {
     transform: scale(1) rotate(-8deg);
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
