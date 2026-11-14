@@ -5,6 +5,7 @@ import { useAuth } from "./providers/AuthProvider";
 import { WorkspaceProvider } from "./providers/WorkspaceProvider";
 import { AdminLayout } from "./layouts/AdminLayout";
 import { LoginPage } from "./pages/LoginPage";
+import { HomePage } from "./pages/HomePage";
 import { WorkspaceChooserPage } from "./pages/WorkspaceChooserPage";
 import { AdminAtRiskReview } from "./pages/AdminAtRiskReview";
 import { AdminDashboard } from "./pages/AdminDashboard";
@@ -67,8 +68,8 @@ export default function App(): JSX.Element {
   return (
     <Router>
       <Routes>
-        {/* Root redirect */}
-        <Route path="/" element={<Navigate replace to="/login" />} />
+        {/* Public homepage */}
+        <Route path="/" element={<HomePage />} />
 
         {/* Auth */}
         <Route path="/login" element={<LoginPage />} />

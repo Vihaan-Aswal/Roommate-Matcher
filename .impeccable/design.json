@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-14T12:10:00Z",
+  "title": "Design System: Roommate Matcher",
+  "extensions": {
+    "colorMeta": {
+      "wax": { "role": "primary", "displayName": "Wax Oxblood", "canonical": "#6f1e22" },
+      "amber": { "role": "secondary", "displayName": "Desk Amber", "canonical": "#e0aa55" },
+      "field": { "role": "neutral", "displayName": "Forest Field", "canonical": "#0e1f15" },
+      "paper": { "role": "neutral", "displayName": "Aged Paper", "canonical": "#ece0c6" }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Product name and closing line only." },
+      "headline": { "displayName": "Headline", "purpose": "Section arguments, one sentence each." },
+      "lede": { "displayName": "Lede", "purpose": "The audience sentence in the hero." },
+      "body": { "displayName": "Body", "purpose": "Explanatory prose, 66ch maximum." },
+      "label": { "displayName": "Data label", "purpose": "Mono labels, table heads and document identifiers." }
+    },
+    "shadows": [
+      {
+        "name": "sheet-rest",
+        "value": "0 2px 3px rgba(0,0,0,0.3), 0 34px 70px -24px rgba(0,0,0,0.65)",
+        "purpose": "Large paper objects on the field."
+      },
+      {
+        "name": "run-stage",
+        "value": "0 2px 3px rgba(0,0,0,0.35), 0 34px 64px -20px rgba(0,0,0,0.62), 0 70px 120px -50px rgba(0,0,0,0.55)",
+        "purpose": "The hero run sheet."
+      },
+      {
+        "name": "wax-seal",
+        "value": "inset 0 2px 3px rgba(255,255,255,0.24), inset 0 -4px 10px rgba(0,0,0,0.55), 0 12px 20px -12px rgba(0,0,0,0.75)",
+        "purpose": "Pressed wax seal at the sign-off line."
+      }
+    ],
+    "motion": [
+      { "name": "ease-out-expo", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "All entrances and state changes." },
+      { "name": "mark-travel", "value": "950ms", "purpose": "Answer marks moving from arrival scatter to segment shelves." },
+      { "name": "paper-rise", "value": "900ms", "purpose": "Documents rising into the folder fan." }
+    ],
+    "breakpoints": [
+      { "name": "mobile", "value": "430px" },
+      { "name": "tablet", "value": "767px" },
+      { "name": "stack", "value": "1023px" },
+      { "name": "rail", "value": "1320px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The single action that opens the desk; wax ground, cream text, pill.",
+      "html": "<button class=\"ds-btn-primary\">Open the desk <svg aria-hidden=\"true\" width=\"17\" height=\"17\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M5 12h14M13 6l6 6-6 6\"/></svg></button>",
+      "css": ".ds-btn-primary{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:49px;padding:0 24px;border:0;border-radius:999px;background:linear-gradient(180deg,#7c262b,#61191d);color:#f7ecda;font-family:'Public Sans',sans-serif;font-size:15px;font-weight:600;line-height:1;box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 1px 1px rgba(0,0,0,.4),0 14px 28px -14px rgba(0,0,0,.85);cursor:pointer;transition:transform .35s cubic-bezier(.16,1,.3,1),background-color .35s ease}.ds-btn-primary:hover{background:linear-gradient(180deg,#892d32,#6a1c20);transform:translateY(-1px)}.ds-btn-primary:focus-visible{outline:2px solid #e9c07a;outline-offset:3px}"
+    },
+    {
+      "name": "Ghost button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "The sample-run action; field ground with a cream hairline.",
+      "html": "<button class=\"ds-btn-ghost\"><svg aria-hidden=\"true\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"currentColor\"><path d=\"M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z\"/></svg> Play the sample run</button>",
+      "css": ".ds-btn-ghost{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:49px;padding:0 24px;border:1px solid rgba(236,226,205,.28);border-radius:999px;background:rgba(236,226,205,.025);color:#ece2cd;font-family:'Public Sans',sans-serif;font-size:15px;font-weight:600;line-height:1;cursor:pointer;transition:background-color .35s ease,border-color .35s ease,transform .35s ease}.ds-btn-ghost:hover{background:rgba(236,226,205,.07);border-color:rgba(236,226,205,.46);transform:translateY(-1px)}.ds-btn-ghost:focus-visible{outline:2px solid #e9c07a;outline-offset:3px}"
+    },
+    {
+      "name": "Paper sheet",
+      "kind": "card",
+      "refersTo": "paper-sheet",
+      "description": "The object layer for a report, a sign-off or a document excerpt.",
+      "html": "<section class=\"ds-paper\"><p class=\"ds-label\">Sample pair</p><h3 class=\"ds-title\">S-035 × S-047</h3><p class=\"ds-body\">Room R-15 · M · 2nd–4th · Non-AC · 3-bed</p></section>",
+      "css": ".ds-paper{position:relative;padding:28px;border:1px solid #d3c19d;border-radius:12px;background:radial-gradient(120% 100% at 12% 0%,rgba(255,255,255,.6),transparent 55%),repeating-linear-gradient(92deg,rgba(90,70,40,.035) 0 1px,transparent 1px 7px),linear-gradient(150deg,#f5ebd7,#e9dcc0 60%,#e2d3b2);color:#1d2519;box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 2px 3px rgba(0,0,0,.3),0 34px 70px -24px rgba(0,0,0,.65)}.ds-paper .ds-label{margin:0;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:#5b523e}.ds-paper .ds-title{margin:4px 0 0;font-family:'Besley',Georgia,serif;font-size:30px;font-weight:700;line-height:1.1}.ds-paper .ds-body{margin:4px 0 0;font-family:'Public Sans',sans-serif;font-size:13px;line-height:1.6;color:#5b523e}"
+    },
+    {
+      "name": "Risk chip",
+      "kind": "chip",
+      "refersTo": "chip-risk",
+      "description": "Amber appears only for at-risk or attention; on paper it carries dark text.",
+      "html": "<span class=\"ds-chip-risk\">At risk</span>",
+      "css": ".ds-chip-risk{display:inline-block;padding:4px 10px;border-radius:999px;background:#e0aa55;color:#1d2519;font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:500;letter-spacing:.12em;text-transform:uppercase}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Lit Desk",
+    "overview": "The public homepage is a document being made under a lamp. A near-black forest-green field holds one pool of warm light. On it sit aged cream sheets: a run sheet that fills itself, a pair report, a folder of four documents, a sign-off slip. Oxblood wax is the mark layer; amber is not a brand accent, it is an alarm. The audience is the office that runs hostel allocation, so the page behaves like the paperwork they already trust: ruled registers, numbered room cells, a signature line, a floor that is reported rather than averaged. Motion is physical and one-directional; the same page rests in a complete state when motion is unavailable.",
+    "keyCharacteristics": [
+      "Near-black green field with one warm light pool and fine engraved horizontal texture.",
+      "Aged cream paper as the object layer; oxblood wax as the mark layer; amber only for risk.",
+      "Besley variable serif for display, Public Sans for body, IBM Plex Mono for data.",
+      "Pill controls and small-radius paper with offset, soft-blur shadows.",
+      "One deterministic sample run drives every figure on the page."
+    ],
+    "rules": [
+      { "name": "The Amber Rarity Rule", "body": "Amber is reserved for at-risk or attention. If it appears on a healthy room, a decorative glow or a generic CTA, the page has misused it.", "section": "colors" },
+      { "name": "The Two Pennies Rule", "body": "Paper is an object, not a card grid. A paper surface must contain information a warden could act on or file; four identical empty cards are not paper.", "section": "colors" },
+      { "name": "The Data Gets Mono Rule", "body": "Mono is for measurements, identifiers, table values and document labels. It is never the body voice or a decorative 'technical' texture.", "section": "typography" },
+      { "name": "The Heading Stands Alone Rule", "body": "No kicker, eyebrow or micro-label sits above an h1 or h2. The heading carries its own weight.", "section": "typography" }
+    ],
+    "dos": [
+      "Do keep the field palette scoped to .mm-home; the signed-in admin app keeps its own tokens.",
+      "Do put every displayed figure through simulate.ts so pair count, rooms, labels, floor and weakest rooms agree.",
+      "Do label every sample figure as illustrative and keep the seeded fixture deterministic.",
+      "Do use the margin rail and header progress rule as the persistent thread.",
+      "Do give controls 999px radii, visible focus and at least 44px touch height.",
+      "Do let paper carry real content: a table, a reason, a floor, an audit row.",
+      "Do keep amber for at-risk only."
+    ],
+    "donts": [
+      "Don't invent an institute, hall, term, date or academic calendar.",
+      "Don't put amber text directly on cream paper; use wax or a dark/amber backing.",
+      "Don't add an eyebrow or kicker above a heading.",
+      "Don't number sections or use a repeated icon + heading + text card as the page structure.",
+      "Don't use a repeating grid as texture.",
+      "Don't use blur, glass or a zero-offset coloured halo as decoration.",
+      "Don't make the homepage depend on auth, the API, a CDN, Google Fonts or any network request."
+    ]
+  }
+}

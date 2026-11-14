@@ -6,7 +6,7 @@ import App from "../App";
 import { AuthProvider } from "../providers/AuthProvider";
 
 describe("App shell", () => {
-  it("renders the admin shell", () => {
+  it("renders the public homepage at the root", () => {
     const queryClient = new QueryClient({
       defaultOptions: {
         queries: { retry: false },
@@ -22,6 +22,9 @@ describe("App shell", () => {
       </QueryClientProvider>,
     );
 
-    expect(screen.getByText("Roommate Matcher")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 1, name: /a room list you can sign/i }),
+    ).toBeInTheDocument();
   });
 });
+
