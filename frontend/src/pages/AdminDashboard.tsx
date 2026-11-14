@@ -4,6 +4,7 @@ import { ArrowRight, Inbox, Sparkles } from "lucide-react";
 
 import { AdminPageHeader } from "../components/AdminPageHeader";
 import { magicFillWorkspace } from "../lib/apiClient";
+import { nextDashboardStep, outstandingResponses, responsesActionLabel } from "../lib/dashboardStep";
 import DataWarningBanner from "../components/DataWarningBanner";
 import { InlineAlert } from "../components/InlineAlert";
 import { useToast } from "../hooks/use-toast";
@@ -124,51 +125,55 @@ export function AdminDashboard(): JSX.Element {
             ? "Ready"
             : "In progress";
 
-  /** The one thing this page should ask for next, derived from real state only. */
-  const next = !hasRoster
-    ? {
-        line: "No student roster yet. Upload the students file to start the workspace.",
-        label: "Upload the students file",
-        to: `/app/${workspaceId}/students-data`,
-      }
-    : !hasRooms
+  /** The one thing this page should ask for next — and the page that can unblock it. */
+  const step = nextDashboardStep({
+    workspaceId: workspaceId ?? "",
+    hasRoster,
+    hasRooms,
+    collectionStarted,
+    totalStudents: stats?.total_students ?? 0,
+    validResponses: stats?.students_with_valid_preferences ?? 0,
+    readySegments,
+    totalSegments,
+    impossibleSegments,
+    riskySegments,
+    latestRunId: runId,
+    latestRunStatus: run?.status ?? null,
+  });
+
+  const outstanding = outstandingResponses({
+    totalStudents: stats?.total_students ?? 0,
+    validResponses: stats?.students_with_valid_preferences ?? 0,
+  });
+
+  /**
+   * The note carries only the blockers the directive is not already about, so a
+   * blocker never gets two actions and the page never says the same thing twice.
+   */
+  const noteBlockers = [
+    impossibleSegments > 0 && step.id !== "capacity"
       ? {
-          line: "The roster is in. Add the room list so each segment knows its capacity.",
-          label: "Add the room list",
+          key: "capacity",
+          line:
+            impossibleSegments === 1
+              ? "1 segment cannot be matched: not enough room capacity for the students in it."
+              : `${impossibleSegments} segments cannot be matched: not enough room capacity for the students in them.`,
+          label: "Fix the room list",
           to: `/app/${workspaceId}/students-data`,
         }
-      : !collectionStarted
-        ? {
-            line: "Rooms and students are in. Share the form link so responses can arrive.",
-            label: "Share the form",
-            to: `/app/${workspaceId}/form-collection`,
-          }
-        : readySegments === 0
-          ? {
-              line:
-                totalSegments === 0
-                  ? "No segments exist yet. They appear once the roster has students with year, gender and room type."
-                  : "No segment is ready to run yet. A segment is ready when it has students, rooms and no capacity gap.",
-              label: "Open matching runs",
-              to: `/app/${workspaceId}/matching-runs`,
-            }
-          : !runId
-            ? {
-                line: `${readySegments} of ${totalSegments} segments are ready. Nothing has been proposed yet.`,
-                label: "Run matching",
-                to: `/app/${workspaceId}/matching-runs`,
-              }
-            : run?.status === "completed"
-              ? {
-                  line: "A proposal exists for this workspace. Read the rooms, then the students who scored lowest.",
-                  label: "Read the proposal",
-                  to: `/app/${workspaceId}/matching-runs/${encodeURIComponent(runId)}/rooms`,
-                }
-              : {
-                  line: `The latest run is ${run?.status ?? "in progress"}. Open it for status and output.`,
-                  label: "Open the latest run",
-                  to: `/app/${workspaceId}/matching-runs`,
-                };
+      : null,
+    riskySegments > 0 && step.id !== "responses"
+      ? {
+          key: "responses",
+          line:
+            riskySegments === 1
+              ? "1 segment is at risk: more than 20% of its students have no response."
+              : `${riskySegments} segments are at risk: more than 20% of their students have no response.`,
+          label: responsesActionLabel(outstanding),
+          to: `/app/${workspaceId}/form-collection`,
+        }
+      : null,
+  ].filter((blocker): blocker is NonNullable<typeof blocker> => blocker !== null);
 
   const collectionRatio =
     typeof stats?.percentage_complete === "number" ? Math.min(100, Math.max(0, stats.percentage_complete)) : 0;
@@ -220,10 +225,10 @@ export function AdminDashboard(): JSX.Element {
           ) : null}
 
           <div className="desk-directive">
-            <p className="desk-directive-line">{next.line}</p>
+            <p className="desk-directive-line">{step.line}</p>
             <Button asChild>
-              <Link to={next.to}>
-                {next.label}
+              <Link to={step.to}>
+                {step.label}
                 <ArrowRight size={14} strokeWidth={1.8} aria-hidden="true" />
               </Link>
             </Button>
@@ -325,28 +330,19 @@ export function AdminDashboard(): JSX.Element {
             </div>
           </div>
 
-          {impossibleSegments > 0 || riskySegments > 0 ? (
+          {noteBlockers.length > 0 ? (
             <div className="desk-note" data-tone="attention">
               <div className="desk-stack-sm">
-                {impossibleSegments > 0 ? (
-                  <p className="desk-note-body">
-                    <strong>{impossibleSegments}</strong>{" "}
-                    {impossibleSegments === 1 ? "segment cannot be matched" : "segments cannot be matched"}: not
-                    enough room capacity for the students in it.
-                  </p>
-                ) : null}
-                {riskySegments > 0 ? (
-                  <p className="desk-note-body">
-                    <strong>{riskySegments}</strong>{" "}
-                    {riskySegments === 1 ? "segment is at risk" : "segments are at risk"}: more than 20% of its
-                    students have no response.
-                  </p>
-                ) : null}
-                <div>
-                  <Button asChild size="sm" variant="outline">
-                    <Link to={`/app/${workspaceId}/matching-runs`}>Open matching runs</Link>
-                  </Button>
-                </div>
+                {noteBlockers.map((blocker) => (
+                  <div className="desk-row-between" style={{ gap: 12 }} key={blocker.key}>
+                    <p className="desk-note-body" style={{ maxWidth: "58ch" }}>
+                      {blocker.line}
+                    </p>
+                    <Button asChild size="sm" variant="outline">
+                      <Link to={blocker.to}>{blocker.label}</Link>
+                    </Button>
+                  </div>
+                ))}
               </div>
             </div>
           ) : null}

@@ -253,3 +253,36 @@ assertions; the duplicated-disclaimer assertion became a single-copy assertion.
   opens `/f/:token`, fills the identity fields, picks an option for all twelve questions, submits, and
   asserts the receipt ("Your response has been recorded…"). That same run leaves the workspace at
   2 of 4 responses, which is what the partial dashboards photograph.
+
+### D29 — The directive points at the blocker, not at the screen where it shows
+- **Problem.** On a workspace blocked by missing responses the dashboard said "No segment is ready to
+  run yet" and offered **Open matching runs** twice (directive row and risk note) — a page where
+  nothing could run. A derived action that leads away from the fix is worse than no action.
+- **Rule.** `lib/dashboardStep.ts` owns the derivation, first match wins:
+
+  | Condition | Label | Target |
+  |---|---|---|
+  | no roster | Upload the students file | Students & Data |
+  | no room list | Add the room list | Students & Data |
+  | collection not started | Share the form | Form & Collection |
+  | ≥1 segment ready | Run matching · Read the proposal · Open the latest run | Matching Runs / rooms (**unchanged**) |
+  | capacity gap | Fix the room list | Students & Data |
+  | segments at risk | Chase N responses | Form & Collection |
+  | no segments at all | Check the roster file | Students & Data |
+
+  Labels name the act ("Chase 2 responses", "Fix the room list") rather than the destination. Ready
+  wins over a blocker because a desk should let runnable work run; the blockers are still listed.
+- **One action per blocker.** The note under the strip now carries only the blockers the directive is
+  *not* about, each with its own action, and disappears when the directive already carries the only
+  one. That is how the duplicate action on the partial dashboard disappeared. When both a capacity gap
+  and an at-risk segment exist and nothing is ready, the capacity gap leads, because no amount of
+  chasing unblocks a segment that has no beds; the note then offers "Chase N responses" beside it.
+- **Pinned by tests.** `test/dashboard-step.test.ts` (8 cases: missing responses, at-risk, capacity,
+  missing roster, missing rooms, ready/no-run, ready/completed, ready/running, plus "a blocked
+  workspace never points at Matching Runs"). `test/admin-dashboard-next-action.test.tsx` renders the
+  page for the mixed state (directive → Matching Runs, note → Form & Collection, exactly one link in
+  the note) and for the capacity state (directive → Students & Data, no note).
+- **Clicked, not just read.** `audit-redesign.mjs` clicks the dashboard's directive on the all-ready
+  workspace and asserts the landing path; `seed-partial-workspace.mjs` clicks it on the blocked one.
+  Verified: "Read the proposal" → `/matching-runs/<run>/rooms`; "Chase 2 responses" →
+  `/form-collection`; "Fix the room list" → `/students-data`.

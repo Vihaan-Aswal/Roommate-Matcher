@@ -43,10 +43,18 @@ const formLink = await (
 
 const ws = demo.workspace_id;
 // `activeNav` is the rail row a user should believe they are on.
+// `expectCtaPath` clicks the page's primary directive and checks where it lands.
 const routes = [
   { name: "login", url: "/login" },
   { name: "chooser", url: "/app", auth: true },
-  { name: "dashboard", url: `/app/${ws}/dashboard`, auth: true, activeNav: "Dashboard" },
+  {
+    name: "dashboard",
+    url: `/app/${ws}/dashboard`,
+    auth: true,
+    activeNav: "Dashboard",
+    // all-ready demo workspace with a completed run: the proposal is the next act
+    expectCtaPath: "/rooms",
+  },
   { name: "students-data", url: `/app/${ws}/students-data`, auth: true, activeNav: "Students & Data" },
   {
     name: "form-collection",
@@ -220,7 +228,28 @@ for (const route of routes) {
       };
     });
 
-    findings.push({ route: route.name, width, activeNav: route.activeNav, consoleErrors, focus, ...report });
+    // Click the page's primary directive: the destination must follow the blocker.
+    let cta = null;
+    if (route.expectCtaPath && width === 1280) {
+      const link = page.locator(".desk-directive .desk-btn").first();
+      const label = (await link.innerText()).trim();
+      await link.click();
+      await page.waitForLoadState("networkidle");
+      cta = { label, landed: new URL(page.url()).pathname, expected: route.expectCtaPath };
+    }
+
+    findings.push({
+      route: route.name,
+      width,
+      activeNav: route.activeNav,
+      cta,
+      consoleErrors,
+      focus,
+      ...report,
+    });
+    if (cta) {
+      console.log(`  [cta] ${route.name}: "${cta.label}" -> ${cta.landed}`);
+    }
     await context.close();
   }
 }
@@ -244,6 +273,11 @@ for (const row of findings) {
     }
   } else if (row.currentLinks.length > 0) {
     issues.push(`active nav row on a page with no rail: ${row.currentLinks.join(" + ")}`);
+  }
+  if (row.cta && !row.cta.landed.includes(row.cta.expected)) {
+    issues.push(
+      `CTA "${row.cta.label}" landed on ${row.cta.landed}, expected something under ${row.cta.expected}`,
+    );
   }
   if (row.consoleErrors.length > 0) issues.push(`console: ${row.consoleErrors.join(" | ")}`);
   const focusMissing = row.focus.filter((entry) => entry.includes("outline=none/") || entry.includes("outline=none")).length;

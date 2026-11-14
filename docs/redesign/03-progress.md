@@ -1,6 +1,6 @@
 # 03 — Progress
 
-**Phase:** complete — review round 2 (three seams) done · **Branch:**
+**Phase:** complete — review rounds 2 and 3 · **Branch:**
 `feat/homepage-motion-and-app-redesign` (no git commands run by this agent; the human commits)
 **Homepage commit:** `9c491bf` · **App redesign commit:** `eddee75` · **Last updated:** 2026-11-14
 
@@ -11,12 +11,16 @@
 | Segments had three names | `lib/segmentLabel.ts` + `<SegmentLabel showKey />`: human label primary everywhere; raw key only as the mono subline in registers. Guarded by a unit test and a runtime text scan on 12 routes. | `lib/segmentLabel.ts` (new), `components/SegmentLabel.tsx` (new), `app/desk.css` (`.desk-segname*`), `pages/AdminMatchingRuns.tsx`, `pages/AdminFormCollection.tsx`, `pages/AdminStudentsData.tsx`, `pages/matching/RoomResultsPage.tsx`, `pages/matching/StudentResultsPage.tsx`, `pages/reports/FairnessReportsPage.tsx`, `pages/checker/ManualCheckerPage.tsx`, `components/reports/FairnessCountsCard.tsx`, `components/reports/RunSegmentSelector.tsx`, `components/checker/CheckerSelectionPanel.tsx`, `components/matching/filters/RoomResultsFilters.tsx`, `components/matching/filters/StudentResultsFilters.tsx` |
 | The rail lied on at-risk | Active row derived from the review state: student register + `atRisk=1` → **At-Risk Review**, Matching Runs suppressed. No route change. | `layouts/AdminLayout.tsx` |
 | Readiness had two vocabularies | Four rules: **Missing** (quiet) · **In Progress** (plain) · **Ready** (wax) · **Risk / Impossible** (amber). "Complete"/"Pending"/"Collecting" removed; the detail line carries the count. | `pages/AdminDashboard.tsx`, `components/StatusBadge.tsx` |
+| The directive led away from the blocker | `lib/dashboardStep.ts` derives the act **and** its destination; the note carries only the blockers the directive is not about, one action each, and disappears when it would repeat the directive. | `lib/dashboardStep.ts` (new), `pages/AdminDashboard.tsx`, `test/dashboard-step.test.ts` (new), `test/admin-dashboard-next-action.test.tsx` (new) |
 | *(found while photographing)* the public form could not submit | Request/response mapping for `POST /api/public/forms/:token/submit`; config reads `workspace_display_name`. Verified through the real UI. | `lib/apiClient.ts` |
 
-Guards added to `scripts/audit-redesign.mjs`: no raw segment key outside `.desk-segname-key`, and the
-expected active rail row per route (it would have caught seam 2). New `scripts/seed-partial-workspace.mjs`
-seeds a 4-student workspace at 2 of 4 responses, drives the student form UI end to end, and photographs
-the partial dashboard at 1280/375.
+Guards added to `scripts/audit-redesign.mjs`: no raw segment key outside `.desk-segname-key`, the
+expected active rail row per route (it would have caught seam 2), and a click on the dashboard's
+directive that must land under the expected path. `scripts/seed-partial-workspace.mjs` seeds a
+4-student workspace, drives the student form UI end to end, photographs the blocked dashboard at
+1280/375, clicks its directive and asserts the landing path; `--rooms 1 --tag capacity --expect
+/students-data` photographs the capacity-gap state instead (files: `partial-dashboard-*`,
+`capacity-dashboard-*`).
 
 ## How to run
 
@@ -89,21 +93,22 @@ fails on a second run (fixed tenant slugs), so mint one from an existing members
 ## After (evidence)
 
 - `.impeccable/review/app/after/` — the same 20 routes × 4 widths, `after-<route>-<width>.png`.
-- `.impeccable/review/app/seams/` — review round 2: the nine affected pages at 1280 and 375
-  (`seams-*`), plus `partial-dashboard-{1280,375}.png` (Missing / In Progress / Risk) and
-  `student-form-receipt-390.png`.
+- `.impeccable/review/app/seams/` — the nine affected pages at 1280 and 375 (`seams-*`), the two
+  dashboard states (`seams-dashboard-*` all-ready, `partial-dashboard-*` Ready/Ready/In Progress/Risk),
+  `capacity-dashboard-*` (Impossible / capacity gap) and `student-form-receipt-390.png`.
 - `.impeccable/review/app/page*/` — viewport captures used while judging individual pages.
 - `.impeccable/review/app/perf-after-prod.json` — LCP / CLS / bytes on the production preview:
   home LCP 700 ms · login 340 ms · dashboard 364 ms · matching-runs 368 ms; CLS 0.0006–0.0136;
   DOMContentLoaded ≤ 177 ms; ~91–92 kB transferred per route (gzip).
-- Bundle after review round 2: JS **735.15 kB** (213.62 gzip), CSS **88.04 kB** (17.74 gzip).
+- Bundle after the directive fix: JS **736.93 kB** (214.08 gzip), CSS **88.04 kB** (17.74 gzip).
   No new dependency.
-- Tests: **21 files / 46 tests** green (42 + 4 for the segment formatter). `npm run build`
-  (tsc -b + vite) and `npm run typecheck` green.
+- Tests: **23 files / 57 tests** green (42 base + 4 segment formatter + 8 next-step + 3 dashboard
+  next-action). `npm run build` (tsc -b + vite) and `npm run typecheck` green.
 - `scripts/audit-redesign.mjs` → **CLEAN** at 375 and 1280 across 12 routes: one `h1` and one `main`,
   no heading-order breaks, no unnamed controls, no console errors, visible focus ring on the first
-  three tab stops, no horizontal overflow, no target under 24px, **no raw segment key in copy**, and
-  **exactly the expected active rail row**.
+  three tab stops, no horizontal overflow, no target under 24px, **no raw segment key in copy**,
+  **the expected active rail row**, and **the dashboard CTA clicked through to its asserted
+  destination** (`Read the proposal` → the run's rooms).
 - Impeccable detector over `desk.css` + every page, component and layout → **no findings**.
 
 ## Homepage regression
@@ -191,10 +196,11 @@ proposals in `04-open-questions.md`.
 **Review round 2 (three seams + the form-submit fix)**
 
 New: `frontend/src/lib/segmentLabel.ts`, `frontend/src/components/SegmentLabel.tsx`,
-`frontend/src/test/segment-label.test.ts`, `frontend/scripts/seed-partial-workspace.mjs`.
+`frontend/src/test/segment-label.test.ts`, `frontend/scripts/seed-partial-workspace.mjs`,
+`frontend/src/lib/dashboardStep.ts`, `frontend/src/test/dashboard-step.test.ts`,
+`frontend/src/test/admin-dashboard-next-action.test.tsx`.
 Changed: `frontend/src/app/desk.css` (`.desk-segname*`), `frontend/src/layouts/AdminLayout.tsx`,
-`frontend/src/pages/AdminDashboard.tsx`, `frontend/src/components/StatusBadge.tsx`,
-`frontend/src/pages/AdminMatchingRuns.tsx`, `frontend/src/pages/AdminFormCollection.tsx`,
+`frontend/src/pages/AdminDashboard.tsx`, `frontend/src/components/StatusBadge.tsx`,`frontend/src/pages/AdminMatchingRuns.tsx`, `frontend/src/pages/AdminFormCollection.tsx`,
 `frontend/src/pages/AdminStudentsData.tsx`, `frontend/src/pages/matching/RoomResultsPage.tsx`,
 `frontend/src/pages/matching/StudentResultsPage.tsx`,
 `frontend/src/pages/reports/FairnessReportsPage.tsx`,

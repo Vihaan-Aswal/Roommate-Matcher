@@ -23,6 +23,9 @@ const arg = (name, fallback) => {
 const api = arg("api", process.env.CAPTURE_API_URL ?? "http://127.0.0.1:8000");
 const app = arg("app", "http://127.0.0.1:5175");
 const outDir = path.resolve(process.cwd(), "..", ".impeccable", "review", "app", "seams");
+const tag = arg("tag", "partial");
+// Where the directive must land for this state.
+const expectPath = arg("expect", "/form-collection");
 
 const STUDENTS = [
   ["PRT001", "Partial One", "9000000001"],
@@ -71,12 +74,13 @@ const studentsCsv = [
   ),
 ].join("\n");
 
-// Two 3-bed rooms for four students: capacity is not the blocker, so the segment
-// lands in "Risk" (missing responses) rather than "Impossible".
+// Default: two 3-bed rooms for four students, so capacity is not the blocker and
+// the segment lands in "Risk" (missing responses). Pass --rooms 1 to photograph
+// the other blocker: one 3-bed room for four students is "Impossible".
+const roomCount = Number(arg("rooms", "2"));
 const roomsCsv = [
   "room_id,segment_key,capacity",
-  "P-101,F_1st_year_NonAC_3,3",
-  "P-102,F_1st_year_NonAC_3,3",
+  ...Array.from({ length: roomCount }, (_, index) => `P-10${index + 1},F_1st_year_NonAC_3,3`),
 ].join("\n");
 
 async function upload(route, csv, filename) {
@@ -151,6 +155,8 @@ if (!submit.ok || !submitBody.valid) {
 }
 
 const files = [];
+let ctaLabel = null;
+let ctaLanded = null;
 for (const width of [1280, 375]) {
   const context = await browser.newContext({
     viewport: { width, height: width === 1280 ? 900 : 812 },
@@ -166,9 +172,27 @@ for (const width of [1280, 375]) {
   });
   await page.getByRole("heading", { name: "Readiness", exact: true }).waitFor({ timeout: 20000 });
   await page.waitForTimeout(400);
-  const file = path.join(outDir, `partial-dashboard-${width}.png`);
+  const file = path.join(outDir, `${tag}-dashboard-${width}.png`);
   await page.screenshot({ path: file, fullPage: true });
   files.push(file);
+
+  if (width === 1280) {
+    // The blocker here is missing responses, so the directive must send the
+    // warden to the form, not to a runs page where nothing can run.
+    const noteActions = await page.locator(".desk-note .desk-btn").count();
+    if (noteActions !== 0) {
+      throw new Error(`expected no note action while the directive carries the blocker, saw ${noteActions}`);
+    }
+    const cta = page.locator(".desk-directive .desk-btn").first();
+    ctaLabel = (await cta.innerText()).trim();
+    await cta.click();
+    await page.waitForLoadState("networkidle");
+    ctaLanded = new URL(page.url()).pathname;
+    if (!ctaLanded.endsWith(expectPath)) {
+      throw new Error(`dashboard CTA landed on ${ctaLanded}, expected ${expectPath}`);
+    }
+  }
+
   await context.close();
 }
 
@@ -181,6 +205,7 @@ console.log(
       studentsApplied: studentsApply.inserted,
       roomsApplied: roomsApply.inserted,
       uiSubmit: uiMessage,
+      cta: { label: ctaLabel, landed: ctaLanded },
       files,
     },
     null,
