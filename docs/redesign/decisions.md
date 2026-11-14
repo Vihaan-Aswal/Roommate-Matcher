@@ -189,3 +189,67 @@ assertions; the duplicated-disclaimer assertion became a single-copy assertion.
   wax tick", so the thick edge was also a self-inconsistency. Removing the stripes made the rows
   quieter and left the chip as the single carrier of the word "at risk".
 - **Re-run:** `impeccable detect` over `desk.css`, every page, component and layout → **no findings**.
+
+## Review round 2 (three seams)
+
+### D25 — One segment name: human label primary, key as evidence only
+- **Problem.** A segment had three names in the app: "Female · 1st year · Non-AC · 3-bed" on Matching
+  Runs, the raw key on Form & Collection, Fairness, the Manual Checker and both result filters.
+- **Rule.** `lib/segmentLabel.ts` is the only place a segment is named. It prefers the API's own
+  fields (`gender`, `year_group`, `ac_type`, `room_size`) and falls back to reading the key's shape
+  `{gender}_{year_group}_{ac_type}_{room_size}`. The label is always the primary text. The raw key may
+  appear **only** as the mono subline rendered by `<SegmentLabel showKey />`, which is used in
+  registers where the key helps match a CSV or a support ticket (Matching Runs, Form & Collection's
+  completion table). Selects, options, datelines, drawers, toasts and diffs show the label alone.
+- **Guarded twice.** A unit test (`test/segment-label.test.ts`, 4 cases) proves the formatter and that
+  no known key shape leaks into a label; `scripts/audit-redesign.mjs` walks every text node on twelve
+  routes at 375 and 1280 and fails on `_1st_year|_2nd_to_4th|NonAC|Non_AC|[MF]_…` outside
+  `.desk-segname-key`. Source grep: the only non-test occurrences of a raw key are inside the
+  formatter's own comments, its AC map and its parse regex.
+
+### D26 — The rail follows the page the user believes they are on
+- **Problem.** At-Risk Review renders the student register with `atRisk=1`, so the URL's section is
+  `matching-runs` and the rail highlighted Matching Runs while the page said At-Risk Review.
+- **Fix.** `AdminLayout` derives the active row from the same URL the review state already uses: a
+  student register with `atRisk=1` activates **At-Risk Review**, and Matching Runs is explicitly not
+  active in that state. Everything else is still section-based. No route was added, removed or
+  changed; the At-Risk link still points at `/app/:ws/at-risk-review` and still redirects.
+- **Guard.** The audit carries the expected active row per route and fails if it is wrong (it would
+  have caught the original bug).
+
+### D27 — One readiness vocabulary, four rules
+- **Problem.** The dashboard's stages read "Ready, Ready, Complete, Ready". "Complete" meant what
+  "Ready" already means, and the old chips also used "Pending"/"Collecting" for the same idea.
+- **Rule.**
+  | Word | Rule | Tone |
+  |---|---|---|
+  | **Missing** | nothing for this stage exists yet | quiet, no border |
+  | **In Progress** | the input exists, the stage's condition is unmet | plain outline |
+  | **Ready** | the stage's condition is met | wax mark |
+  | **Risk** / **Impossible** | a segment-level blocker reported by the API (*>20% unanswered*, *not enough beds*) | amber + dot |
+- Applied per stage: Roster and Rooms are Ready/Missing; Responses is Missing until collection starts,
+  then Ready at 100% and In Progress in between; Segments reports the blocker first, then Ready when at
+  least one can run, then In Progress, then Missing when none exist. The detail line carries the
+  nuance every time ("2 of 4 answered", "3 of 4 ready to match"), and the note under the strip names
+  the blocker. "Complete" and "Pending" are gone from the strip; the figure label "Collection
+  Complete" became "Collection" so the word cannot mean two things.
+- **Evidence.** Three photographs: all-ready (`.impeccable/review/app/seams/seams-dashboard-1280.png`),
+  a partial workspace with Missing/In Progress/Risk (`partial-dashboard-1280.png`), and the same
+  workspace at 375. The impossible-capacity state was rendered and checked during the pass too.
+
+### D28 — The public student form could not submit at all (functional fix, outside the design seams)
+- **Found while photographing the form's states.** `POST /api/public/forms/:token/submit` expects
+  `{submitted_admission_number, submitted_phone_last4, answers:{…}}` and returns
+  `{status, valid, error}`; the client sent `{admission_number, phone_last4, q1_raw…}` and read
+  `{success, message}`. Every submission returned **422 Field required**, so no student could submit.
+- **Fix (frontend only, no API change).** `submitPublicForm` maps the request and the response, and
+  maps the endpoint's error codes to student-facing sentences (verification failed, incomplete,
+  invalid option, expired link). `getPublicFormConfig` now reads `workspace_display_name`, so the form
+  names the workspace it belongs to.
+- **Why outside the three seams.** The alternative was to ship a form that cannot record a response;
+  the brief's standing rule is that functionality wins. It is a contract mapping, not a design change,
+  and it touched two functions in `lib/apiClient.ts`.
+- **Verified end to end** in the browser, not just with curl: `scripts/seed-partial-workspace.mjs`
+  opens `/f/:token`, fills the identity fields, picks an option for all twelve questions, submits, and
+  asserts the receipt ("Your response has been recorded…"). That same run leaves the workspace at
+  2 of 4 responses, which is what the partial dashboards photograph.

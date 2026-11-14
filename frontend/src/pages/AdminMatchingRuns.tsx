@@ -4,11 +4,13 @@ import { Play, Sparkles } from "lucide-react";
 
 import { magicFillWorkspace } from "../lib/apiClient";
 import type { MatchingRunHistoryRow, SegmentOverview } from "../lib/apiClient";
+import { segmentLabel } from "../lib/segmentLabel";
 
 import { AdminPageHeader } from "../components/AdminPageHeader";
 import { DataTable, type DataTableColumn } from "../components/DataTable";
 import { InlineAlert } from "../components/InlineAlert";
 import { EmptyState } from "../components/EmptyState";
+import { SegmentLabel } from "../components/SegmentLabel";
 import { StatusBadge } from "../components/StatusBadge";
 import { useToast } from "../hooks/use-toast";
 import {
@@ -27,18 +29,6 @@ function formatDateTime(value: string): string {
   return parsed.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 }
 
-/** "F_1st_year_NonAC_3" -> "Female · 1st year · Non-AC · 3-bed" using the row's own fields. */
-function describeSegment(row: {
-  gender: string;
-  year_group: string;
-  ac_type: string;
-  room_size: number;
-}): string {
-  const gender = row.gender?.toUpperCase().startsWith("F") ? "Female" : row.gender?.toUpperCase().startsWith("M") ? "Male" : row.gender;
-  const year = row.year_group?.replace(/_/g, " ");
-  return [gender, year, row.ac_type, `${row.room_size}-bed`].filter(Boolean).join(" · ");
-}
-
 export function AdminMatchingRuns(): JSX.Element {
   const { workspaceId, workspaceName } = useWorkspace();
 
@@ -49,14 +39,14 @@ export function AdminMatchingRuns(): JSX.Element {
 
   const [magicFillLoading, setMagicFillLoading] = useState<string | null>(null);
 
-  async function handleSegmentMagicFill(segmentKey: string) {
+  async function handleSegmentMagicFill(segment: SegmentOverview) {
     if (!workspaceId) return;
-    setMagicFillLoading(segmentKey);
+    setMagicFillLoading(segment.segment_key);
     try {
-      const result = await magicFillWorkspace(workspaceId, segmentKey);
+      const result = await magicFillWorkspace(workspaceId, segment.segment_key);
       toast({
         title: "Magic Fill complete",
-        description: `Segment ${segmentKey}: ${result.profiles_created} generated profiles.`,
+        description: `${segmentLabel(segment)}: ${result.profiles_created} generated profiles.`,
       });
       segmentsQuery.refetch();
     } catch (err) {
@@ -84,14 +74,7 @@ export function AdminMatchingRuns(): JSX.Element {
     {
       key: "segment_key",
       header: "Segment",
-      cell: (row) => (
-        <div>
-          <p style={{ fontWeight: 600 }}>{describeSegment(row)}</p>
-          <p className="desk-mono" style={{ color: "var(--paper-mid)", marginTop: 2 }}>
-            {row.segment_key}
-          </p>
-        </div>
-      ),
+      cell: (row) => <SegmentLabel segment={row} showKey />,
     },
     {
       key: "status",
@@ -136,7 +119,7 @@ export function AdminMatchingRuns(): JSX.Element {
             Run segment
           </Button>
           <Button
-            onClick={() => void handleSegmentMagicFill(row.segment_key)}
+            onClick={() => void handleSegmentMagicFill(row)}
             disabled={magicFillLoading === row.segment_key || row.status === "Ready"}
             size="sm"
             variant="ghost"

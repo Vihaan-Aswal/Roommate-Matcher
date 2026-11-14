@@ -1,4 +1,5 @@
 import type { SatisfactionLabel, SegmentFairnessRow } from "../../lib/apiClient";
+import { SegmentLabel } from "../SegmentLabel";
 
 interface FairnessCountsCardProps {
   segment: SegmentFairnessRow;
@@ -25,9 +26,9 @@ export function FairnessCountsCard({
 
   return (
     <article className="desk-panel desk-stack-sm">
-      <div className="desk-row-between">
-        <h3 className="desk-mono" style={{ fontSize: 13, fontWeight: 500 }}>
-          {segment.segment_key}
+      <div className="desk-stack-sm" style={{ gap: 2 }}>
+        <h3 style={{ fontFamily: "inherit", fontSize: 13.5 }}>
+          <SegmentLabel segment={segment} showKey />
         </h3>
         <p className="desk-section-note">{total} students</p>
       </div>

@@ -12,6 +12,7 @@ import { Button } from "../../components/ui/button";
 import { useAdminMatchingRunsQuery } from "../../hooks/useAdminMatchingRuns";
 import { useRunFairnessQuery } from "../../hooks/useRunFairnessQuery";
 import type { SatisfactionLabel } from "../../lib/apiClient";
+import { segmentLabel } from "../../lib/segmentLabel";
 import { useWorkspace } from "../../providers/WorkspaceProvider";
 
 function buildStudentRoute(
@@ -137,7 +138,9 @@ export function FairnessReportsPage(): JSX.Element {
           <>
             <span className="desk-mono">{resolvedRunId}</span>
             <span className="desk-sep">·</span>
-            {selectedSegment === "all" ? "all segments" : selectedSegment}
+            {selectedSegment === "all"
+              ? "all segments"
+              : segmentLabel({ segment_key: selectedSegment })}
           </>
         }
         description="A room list can look fine and still leave one student below the floor. This page reports the floor, not the average."

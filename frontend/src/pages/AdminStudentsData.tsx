@@ -19,6 +19,7 @@ import {
   useApplyRoomUploadMutation,
 } from "../hooks/useAdminUploads";
 import { useWorkspace } from "../providers/WorkspaceProvider";
+import { segmentLabel } from "../lib/segmentLabel";
 import { Button } from "../components/ui/button";
 import { DiffPreviewPanel, type UnifiedDiffEntry } from "../components/DiffPreviewPanel";
 
@@ -220,7 +221,7 @@ export function AdminStudentsData(): JSX.Element {
               }}
               diffEntries={roomDiff.diff_entries.map((e) => ({
                 identifier: e.room_id,
-                name: e.segment_key,
+                name: segmentLabel({ segment_key: e.segment_key }),
                 action: e.action,
                 changes: e.changes,
                 warnings: e.warnings,

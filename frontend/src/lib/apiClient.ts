@@ -464,29 +464,64 @@ function parseCsvFileName(
 
 export async function getPublicFormConfig(token: string): Promise<PublicFormConfig> {
   const response = await fetch(buildUrl(`/api/public/forms/${encodeURIComponent(token)}`));
-  const data = (await response.json().catch(() => null)) as unknown;
+  const data = (await response.json().catch(() => null)) as
+    | { token_valid?: boolean; workspace_display_name?: string | null }
+    | null;
   if (!response.ok) {
     throw new Error(extractErrorMessage(data));
   }
-  return data as PublicFormConfig;
+  // The endpoint names the workspace `workspace_display_name`; keep the UI's shape.
+  return {
+    token_valid: Boolean(data?.token_valid),
+    workspace_id: null,
+    workspace_name: data?.workspace_display_name ?? null,
+    expires_at: null,
+  };
 }
+
+/** Student-facing copy for the submission errors the endpoint can return. */
+const PUBLIC_FORM_ERRORS: Record<string, string> = {
+  "Verification failed":
+    "We could not match that admission number and phone number against the roster. Check both and try again.",
+  incomplete_form_submission: "Please answer all questions, then submit again.",
+  invalid_form_option: "One answer was not recognised. Pick an option for every question.",
+  form_link_invalid: "This link has expired. Ask the hostel office for the current one.",
+};
 
 export async function submitPublicForm(
   token: string,
   payload: FormSubmissionPayload,
 ): Promise<FormSubmissionResult> {
+  // The endpoint takes the identity as `submitted_*` and the twelve answers under `answers`.
+  const { admission_number, phone_last4, ...answers } = payload;
   const response = await fetch(buildUrl(`/api/public/forms/${encodeURIComponent(token)}/submit`), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      submitted_admission_number: admission_number,
+      submitted_phone_last4: phone_last4,
+      answers,
+    }),
   });
-  const data = (await response.json().catch(() => null)) as unknown;
+  const data = (await response.json().catch(() => null)) as
+    | { status?: string; valid?: boolean; error?: string }
+    | null;
   if (!response.ok) {
     throw new Error(extractErrorMessage(data));
   }
-  return data as FormSubmissionResult;
+
+  const accepted = Boolean(data?.valid);
+  return {
+    success: accepted,
+    message: accepted
+      ? "Your response has been recorded. Your latest valid response is the one that counts."
+      : (PUBLIC_FORM_ERRORS[data?.error ?? ""] ??
+        "Your response was not accepted. Check your details and try again."),
+    code: data?.error,
+    has_preferences: accepted,
+  };
 }
 
 

@@ -1,4 +1,5 @@
 import type { MatchingRunHistoryRow } from "../../lib/apiClient";
+import { segmentLabel } from "../../lib/segmentLabel";
 
 interface RunSegmentSelectorProps {
   runs: MatchingRunHistoryRow[];
@@ -44,7 +45,7 @@ export function RunSegmentSelector({
           <option value="all">All segments</option>
           {segmentOptions.map((segmentKey) => (
             <option key={segmentKey} value={segmentKey}>
-              {segmentKey}
+              {segmentLabel({ segment_key: segmentKey })}
             </option>
           ))}
         </select>

@@ -33,7 +33,7 @@ function resolveTone(value: string): Tone {
     return "attention";
   }
 
-  if (normalized === "healthy") {
+  if (normalized === "healthy" || normalized === "missing") {
     return "quiet";
   }
 

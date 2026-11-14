@@ -100,7 +100,7 @@ async function bootstrap() {
 }
 
 function buildTargets(ctx) {
-  const ws = ctx.workspaceId;
+  const ws = args.workspace ?? ctx.workspaceId;
   const run = encodeURIComponent(ctx.runId);
   const seg = encodeURIComponent(ctx.segmentKey);
   const app = `/app/${ws}`;

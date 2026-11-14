@@ -6,6 +6,7 @@ import { AdminPageHeader } from "../components/AdminPageHeader";
 import { DataTable, type DataTableColumn } from "../components/DataTable";
 import { InlineAlert } from "../components/InlineAlert";
 import { EmptyState } from "../components/EmptyState";
+import { SegmentLabel } from "../components/SegmentLabel";
 import {
   useAdminFormStatusQuery,
   useAdminNonSubmittersQuery,
@@ -77,7 +78,7 @@ export function AdminFormCollection(): JSX.Element {
     {
       key: "segment_key",
       header: "Segment",
-      cell: (row) => <span className="desk-mono">{row.segment_key}</span>,
+      cell: (row) => <SegmentLabel segment={row} showKey />,
     },
     {
       key: "total",
@@ -123,7 +124,7 @@ export function AdminFormCollection(): JSX.Element {
     {
       key: "segment_key",
       header: "Segment",
-      cell: (row) => <span className="desk-mono">{row.segment_key}</span>,
+      cell: (row) => <SegmentLabel segment={row} />,
     },
   ];
 

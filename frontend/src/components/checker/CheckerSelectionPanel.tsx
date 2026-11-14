@@ -1,4 +1,5 @@
 import type { SegmentOverview, SegmentStudentPreferenceRow } from "../../lib/apiClient";
+import { segmentLabel } from "../../lib/segmentLabel";
 import { Button } from "../ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { CheckerStudentsList } from "./CheckerStudentsList";
@@ -61,7 +62,7 @@ export function CheckerSelectionPanel({
           <SelectContent>
             {segments.map((segment) => (
               <SelectItem key={segment.segment_key} value={segment.segment_key}>
-                {segment.segment_key}
+                {segmentLabel(segment)}
               </SelectItem>
             ))}
           </SelectContent>

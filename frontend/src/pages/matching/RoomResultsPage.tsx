@@ -14,6 +14,7 @@ import { useAdminSegmentsQuery } from "../../hooks/useAdminSegments";
 import { useAssignmentsExportMutation } from "../../hooks/useAssignmentsExportMutation";
 import { useRunRoomsQuery } from "../../hooks/useRunRoomsQuery";
 import { useRunStudentsQuery } from "../../hooks/useRunStudentsQuery";
+import { segmentLabel } from "../../lib/segmentLabel";
 import { useWorkspace } from "../../providers/WorkspaceProvider";
 
 export function RoomResultsPage(): JSX.Element {
@@ -45,6 +46,10 @@ export function RoomResultsPage(): JSX.Element {
 
   const roomsQuery = useRunRoomsQuery(workspaceId, runId ?? "", selectedSegment ?? "");
   const studentsQuery = useRunStudentsQuery(workspaceId, runId ?? "", selectedSegment ?? "");
+
+  const selectedSegmentRow = (segmentsQuery.data?.segments ?? []).find(
+    (segment) => segment.segment_key === selectedSegment,
+  ) ?? { segment_key: selectedSegment ?? "" };
 
   const rooms = roomsQuery.data?.rooms ?? [];
   const filteredRooms = useMemo(
@@ -106,7 +111,7 @@ export function RoomResultsPage(): JSX.Element {
         workspace={workspaceName ?? undefined}
         meta={
           selectedSegment ? (
-            <span className="desk-mono">{selectedSegment}</span>
+            <span className="desk-mono">{segmentLabel(selectedSegmentRow)}</span>
           ) : undefined
         }
         description={`Room-level matching output for run ${runId}.`}
@@ -260,7 +265,7 @@ export function RoomResultsPage(): JSX.Element {
       </section>
 
       <DetailSidePanelShell
-        description={selectedSegment ? `Segment ${selectedSegment}` : undefined}
+        description={selectedSegment ? segmentLabel(selectedSegmentRow) : undefined}
         open={Boolean(selectedStudentRecord)}
         title={selectedStudentRecord?.full_name ?? "Student details"}
         onClose={() => {

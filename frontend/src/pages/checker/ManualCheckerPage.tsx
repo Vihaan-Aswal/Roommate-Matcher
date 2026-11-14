@@ -12,6 +12,7 @@ import { Button } from "../../components/ui/button";
 import { useAdminSegmentsQuery } from "../../hooks/useAdminSegments";
 import { useManualCheckerMutation } from "../../hooks/useManualCheckerMutation";
 import { useSegmentStudentsQuery } from "../../hooks/useSegmentStudentsQuery";
+import { segmentLabel } from "../../lib/segmentLabel";
 import { useWorkspace } from "../../providers/WorkspaceProvider";
 
 function resolveValidationMessage(
@@ -129,7 +130,19 @@ export function ManualCheckerPage(): JSX.Element {
       <AdminPageHeader
         title="Manual Checker"
         workspace={workspaceName ?? undefined}
-        meta={segmentKey ? <span className="desk-mono">{segmentKey}</span> : "No segment selected"}
+        meta={
+          segmentKey ? (
+            <span className="desk-mono">
+              {segmentLabel(
+                (segmentsQuery.data?.segments ?? []).find(
+                  (segment) => segment.segment_key === segmentKey,
+                ) ?? { segment_key: segmentKey },
+              )}
+            </span>
+          ) : (
+            "No segment selected"
+          )
+        }
         description="A second opinion on a group you are considering. It reads compatibility and explains it; it never edits a run, a room or an assignment."
       />
 

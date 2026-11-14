@@ -1,4 +1,4 @@
-import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { LogOut, Menu } from "lucide-react";
 
 import { useAuth } from "../providers/AuthProvider";
@@ -14,38 +14,63 @@ const groups = [
   {
     label: "Setup",
     links: [
-      { to: "students-data", label: "Students & Data" },
-      { to: "form-collection", label: "Form & Collection" },
+      { key: "students-data", label: "Students & Data" },
+      { key: "form-collection", label: "Form & Collection" },
     ],
   },
   {
     label: "Run",
-    links: [{ to: "matching-runs", label: "Matching Runs" }],
+    links: [{ key: "matching-runs", label: "Matching Runs" }],
   },
   {
     label: "Review",
     links: [
-      { to: "fairness", label: "Reports & Fairness" },
-      { to: "at-risk-review", label: "At-Risk Review" },
-      { to: "manual-checker", label: "Manual Checker" },
+      { key: "fairness", label: "Reports & Fairness" },
+      { key: "at-risk-review", label: "At-Risk Review" },
+      { key: "manual-checker", label: "Manual Checker" },
     ],
   },
 ];
 
+/**
+ * Which nav row the user believes they are on.
+ *
+ * At-risk review has no route of its own: it opens the student register with
+ * `atRisk=1`, so the URL's section is still `matching-runs`. The review state is
+ * the better truth, and it is derived from that same URL — no route changes.
+ */
+function useActiveNavKey(): string {
+  const { pathname, search } = useLocation();
+
+  const inStudentRegister = /\/matching-runs\/[^/]+\/students\/?$/.test(pathname);
+  if (inStudentRegister && new URLSearchParams(search).get("atRisk") === "1") {
+    return "at-risk-review";
+  }
+
+  return pathname.replace(/^\/app\/[^/]+/, "").split("/")[1] ?? "";
+}
+
 function DeskNav(): JSX.Element {
+  const activeKey = useActiveNavKey();
+
+  const navLink = (key: string, label: string): JSX.Element => (
+    <Link
+      aria-current={activeKey === key ? "page" : undefined}
+      className="desk-nav-link"
+      key={key}
+      to={key}
+    >
+      {label}
+    </Link>
+  );
+
   return (
     <nav className="desk-nav" aria-label="Workspace">
-      <NavLink className="desk-nav-link" to="dashboard">
-        Dashboard
-      </NavLink>
+      {navLink("dashboard", "Dashboard")}
       {groups.map((group) => (
         <div className="desk-nav-group" key={group.label}>
           <p className="desk-nav-label">{group.label}</p>
-          {group.links.map((link) => (
-            <NavLink className="desk-nav-link" key={link.to} to={link.to}>
-              {link.label}
-            </NavLink>
-          ))}
+          {group.links.map((link) => navLink(link.key, link.label))}
         </div>
       ))}
     </nav>

@@ -38,6 +38,26 @@ function formatPercent(value: number | undefined): string {
   return `${rounded}%`;
 }
 
+/**
+ * Readiness vocabulary — one word per condition, four rules:
+ *
+ *   Missing      nothing for this stage exists yet                    (quiet)
+ *   In progress  the input exists, the stage's condition is unmet      (plain)
+ *   Ready        the stage's condition is met                          (wax mark)
+ *   Risk / Impossible  a segment-level blocker reported by the API     (amber)
+ *
+ * "Complete" was removed: on the Responses stage it meant exactly what "Ready"
+ * means. Partial completion is "In progress", and the detail line carries the
+ * count ("3 of 4 ready to match").
+ */
+type ReadinessState = "Missing" | "In progress" | "Ready" | "Risk" | "Impossible";
+
+function stageTone(state: ReadinessState): "ready" | "pending" | "attention" {
+  if (state === "Ready") return "ready";
+  if (state === "Risk" || state === "Impossible") return "attention";
+  return "pending";
+}
+
 export function AdminDashboard(): JSX.Element {
   const { workspaceId, workspaceName } = useWorkspace();
   const dashboardQuery = useWorkspaceDashboardQuery(workspaceId || "");
@@ -80,6 +100,29 @@ export function AdminDashboard(): JSX.Element {
   const impossibleSegments = segments?.impossible ?? 0;
   const riskySegments = segments?.at_risk ?? 0;
   const runId = run?.run_id ?? null;
+
+  const responsesComplete =
+    Boolean(stats) &&
+    (stats?.total_students ?? 0) > 0 &&
+    (stats?.students_with_valid_preferences ?? 0) >= (stats?.total_students ?? 0);
+
+  const rosterState: ReadinessState = hasRoster ? "Ready" : "Missing";
+  const roomsState: ReadinessState = hasRooms ? "Ready" : "Missing";
+  const responsesState: ReadinessState = !collectionStarted
+    ? "Missing"
+    : responsesComplete
+      ? "Ready"
+      : "In progress";
+  const segmentsState: ReadinessState =
+    impossibleSegments > 0
+      ? "Impossible"
+      : riskySegments > 0
+        ? "Risk"
+        : totalSegments === 0
+          ? "Missing"
+          : readySegments > 0
+            ? "Ready"
+            : "In progress";
 
   /** The one thing this page should ask for next, derived from real state only. */
   const next = !hasRoster
@@ -198,7 +241,7 @@ export function AdminDashboard(): JSX.Element {
               hint="responses that count"
             />
             <StatCard
-              label="Collection Complete"
+              label="Collection"
               value={formatPercent(stats?.percentage_complete)}
               hint="of the roster has answered"
             />
@@ -216,12 +259,12 @@ export function AdminDashboard(): JSX.Element {
             <div className="desk-stages">
               <Link
                 className="desk-stage"
-                data-state={hasRoster ? "ready" : "pending"}
+                data-state={stageTone(rosterState)}
                 to={`/app/${workspaceId}/students-data`}
               >
                 <span className="desk-stage-top">
                   <span className="desk-stage-step">01</span>
-                  <StatusBadge value={hasRoster ? "Ready" : "Pending"} />
+                  <StatusBadge value={rosterState} />
                 </span>
                 <span className="desk-stage-name">Roster</span>
                 <span className="desk-stage-value">
@@ -232,12 +275,12 @@ export function AdminDashboard(): JSX.Element {
 
               <Link
                 className="desk-stage"
-                data-state={hasRooms ? "ready" : "pending"}
+                data-state={stageTone(roomsState)}
                 to={`/app/${workspaceId}/students-data`}
               >
                 <span className="desk-stage-top">
                   <span className="desk-stage-step">02</span>
-                  <StatusBadge value={hasRooms ? "Ready" : "Pending"} />
+                  <StatusBadge value={roomsState} />
                 </span>
                 <span className="desk-stage-name">Rooms</span>
                 <span className="desk-stage-value">
@@ -248,20 +291,12 @@ export function AdminDashboard(): JSX.Element {
 
               <Link
                 className="desk-stage"
-                data-state={collectionStarted ? "ready" : "pending"}
+                data-state={stageTone(responsesState)}
                 to={`/app/${workspaceId}/form-collection`}
               >
                 <span className="desk-stage-top">
                   <span className="desk-stage-step">03</span>
-                  <StatusBadge
-                    value={
-                      !collectionStarted
-                        ? "Pending"
-                        : collectionRatio >= 100
-                          ? "Complete"
-                          : "Collecting"
-                    }
-                  />
+                  <StatusBadge value={responsesState} />
                 </span>
                 <span className="desk-stage-name">Responses</span>
                 <span className="desk-stage-value">
@@ -274,28 +309,12 @@ export function AdminDashboard(): JSX.Element {
 
               <Link
                 className="desk-stage"
-                data-state={
-                  impossibleSegments > 0 || riskySegments > 0
-                    ? "attention"
-                    : readySegments > 0
-                      ? "ready"
-                      : "pending"
-                }
+                data-state={stageTone(segmentsState)}
                 to={`/app/${workspaceId}/matching-runs`}
               >
                 <span className="desk-stage-top">
                   <span className="desk-stage-step">04</span>
-                  <StatusBadge
-                    value={
-                      impossibleSegments > 0
-                        ? "Impossible"
-                        : riskySegments > 0
-                          ? "Risk"
-                          : readySegments > 0
-                            ? "Ready"
-                            : "Pending"
-                    }
-                  />
+                  <StatusBadge value={segmentsState} />
                 </span>
                 <span className="desk-stage-name">Segments</span>
                 <span className="desk-stage-value">

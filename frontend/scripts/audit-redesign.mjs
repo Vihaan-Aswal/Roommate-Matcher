@@ -42,19 +42,31 @@ const formLink = await (
 ).json();
 
 const ws = demo.workspace_id;
+// `activeNav` is the rail row a user should believe they are on.
 const routes = [
   { name: "login", url: "/login" },
   { name: "chooser", url: "/app", auth: true },
-  { name: "dashboard", url: `/app/${ws}/dashboard`, auth: true },
-  { name: "students-data", url: `/app/${ws}/students-data`, auth: true },
-  { name: "form-collection", url: `/app/${ws}/form-collection`, auth: true },
-  { name: "matching-runs", url: `/app/${ws}/matching-runs`, auth: true },
+  { name: "dashboard", url: `/app/${ws}/dashboard`, auth: true, activeNav: "Dashboard" },
+  { name: "students-data", url: `/app/${ws}/students-data`, auth: true, activeNav: "Students & Data" },
+  {
+    name: "form-collection",
+    url: `/app/${ws}/form-collection`,
+    auth: true,
+    activeNav: "Form & Collection",
+  },
+  {
+    name: "matching-runs",
+    url: `/app/${ws}/matching-runs`,
+    auth: true,
+    activeNav: "Matching Runs",
+  },
   {
     name: "rooms",
     url: run
       ? `/app/${ws}/matching-runs/${encodeURIComponent(run.run_id)}/rooms?segment=${encodeURIComponent(segmentKey)}&needsReview=0`
       : null,
     auth: true,
+    activeNav: "Matching Runs",
   },
   {
     name: "students",
@@ -62,13 +74,28 @@ const routes = [
       ? `/app/${ws}/matching-runs/${encodeURIComponent(run.run_id)}/students?segment=all&label=all&atRisk=0`
       : null,
     auth: true,
+    activeNav: "Matching Runs",
   },
   {
     name: "fairness",
     url: run ? `/app/${ws}/fairness/${encodeURIComponent(run.run_id)}?segment=all` : null,
     auth: true,
+    activeNav: "Reports & Fairness",
   },
-  { name: "manual-checker", url: `/app/${ws}/manual-checker?segment=${encodeURIComponent(segmentKey)}`, auth: true },
+  {
+    name: "at-risk-review",
+    url: run
+      ? `/app/${ws}/at-risk-review?run=${encodeURIComponent(run.run_id)}&segment=all`
+      : null,
+    auth: true,
+    activeNav: "At-Risk Review",
+  },
+  {
+    name: "manual-checker",
+    url: `/app/${ws}/manual-checker?segment=${encodeURIComponent(segmentKey)}`,
+    auth: true,
+    activeNav: "Manual Checker",
+  },
   { name: "student-form", url: `/f/${formLink.token}` },
 ];
 
@@ -149,6 +176,29 @@ for (const route of routes) {
         h1: document.querySelectorAll("h1").length,
       };
 
+      // Segment keys are identifiers, never copy: no raw key may reach visible
+      // text except the deliberate mono subline (`.desk-segname-key`).
+      const RAWS = [/_1st_year/, /_2nd_to_4th/, /NonAC/, /Non_AC/, /\b[MF]_[A-Za-z]/];
+      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+      const rawKeyText = [];
+      while (walker.nextNode()) {
+        const node = walker.currentNode;
+        if (node.parentElement?.closest(".desk-segname-key")) continue;
+        const text = (node.textContent || "").trim();
+        if (text && RAWS.some((pattern) => pattern.test(text))) {
+          rawKeyText.push(text.slice(0, 48));
+        }
+        if (rawKeyText.length >= 3) break;
+      }
+
+      // The rail must not claim two destinations at once. Each nav renders twice
+      // (rail + mobile menu); count only the one that is actually shown.
+      const currentLinks = Array.from(
+        document.querySelectorAll(".desk-nav-link[aria-current='page']"),
+      )
+        .filter((node) => node.getBoundingClientRect().height > 0)
+        .map((node) => (node.textContent || "").trim());
+
       const smallTargets = Array.from(document.querySelectorAll("button,a")).filter((node) => {
         // A control wrapped in its own label inherits the label's hit area.
         if (node.closest("label")) return false;
@@ -157,10 +207,20 @@ for (const route of routes) {
         return rect.width > 0 && rect.height > 0 && rect.height < 24;
       }).map((node) => `${node.tagName.toLowerCase()}:"${(node.textContent || "").trim().slice(0, 24)}"`);
 
-      return { headingLevels, orderBroken, unnamed, overflow, wideElements, landmarks, smallTargets };
+      return {
+        headingLevels,
+        orderBroken,
+        unnamed,
+        overflow,
+        wideElements,
+        landmarks,
+        smallTargets,
+        rawKeyText,
+        currentLinks,
+      };
     });
 
-    findings.push({ route: route.name, width, consoleErrors, focus, ...report });
+    findings.push({ route: route.name, width, activeNav: route.activeNav, consoleErrors, focus, ...report });
     await context.close();
   }
 }
@@ -176,6 +236,15 @@ for (const row of findings) {
   if (row.unnamed.length) issues.push(`unnamed: ${row.unnamed.join(" | ")}`);
   if (row.overflow > 0) issues.push(`overflow ${row.overflow}px: ${row.wideElements.join(" | ")}`);
   if (row.smallTargets.length > 0) issues.push(`small targets: ${row.smallTargets.join(" | ")}`);
+  if (row.rawKeyText.length > 0) issues.push(`raw segment key in copy: ${row.rawKeyText.join(" | ")}`);
+  if (row.activeNav !== undefined) {
+    const shown = row.currentLinks.join(" + ");
+    if (row.currentLinks.length !== 1 || row.currentLinks[0] !== row.activeNav) {
+      issues.push(`active nav is "${shown || "none"}", expected "${row.activeNav}"`);
+    }
+  } else if (row.currentLinks.length > 0) {
+    issues.push(`active nav row on a page with no rail: ${row.currentLinks.join(" + ")}`);
+  }
   if (row.consoleErrors.length > 0) issues.push(`console: ${row.consoleErrors.join(" | ")}`);
   const focusMissing = row.focus.filter((entry) => entry.includes("outline=none/") || entry.includes("outline=none")).length;
   if (focusMissing > 0) issues.push(`focus ring missing: ${row.focus.join(" | ")}`);

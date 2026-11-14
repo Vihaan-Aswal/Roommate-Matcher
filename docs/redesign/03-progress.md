@@ -1,8 +1,22 @@
 # 03 — Progress
 
-**Phase:** 5 — hardening · **Branch:** `feat/homepage-motion-and-app-redesign` (no git commands run by
-this agent; the human commits from the file list below) · **Homepage commit:** `9c491bf`
-**Last updated:** 2026-11-14 (evening)
+**Phase:** complete — review round 2 (three seams) done · **Branch:**
+`feat/homepage-motion-and-app-redesign` (no git commands run by this agent; the human commits)
+**Homepage commit:** `9c491bf` · **App redesign commit:** `eddee75` · **Last updated:** 2026-11-14
+
+## Review round 2 — three seams (after `eddee75`)
+
+| Seam | Rule now | Files |
+|---|---|---|
+| Segments had three names | `lib/segmentLabel.ts` + `<SegmentLabel showKey />`: human label primary everywhere; raw key only as the mono subline in registers. Guarded by a unit test and a runtime text scan on 12 routes. | `lib/segmentLabel.ts` (new), `components/SegmentLabel.tsx` (new), `app/desk.css` (`.desk-segname*`), `pages/AdminMatchingRuns.tsx`, `pages/AdminFormCollection.tsx`, `pages/AdminStudentsData.tsx`, `pages/matching/RoomResultsPage.tsx`, `pages/matching/StudentResultsPage.tsx`, `pages/reports/FairnessReportsPage.tsx`, `pages/checker/ManualCheckerPage.tsx`, `components/reports/FairnessCountsCard.tsx`, `components/reports/RunSegmentSelector.tsx`, `components/checker/CheckerSelectionPanel.tsx`, `components/matching/filters/RoomResultsFilters.tsx`, `components/matching/filters/StudentResultsFilters.tsx` |
+| The rail lied on at-risk | Active row derived from the review state: student register + `atRisk=1` → **At-Risk Review**, Matching Runs suppressed. No route change. | `layouts/AdminLayout.tsx` |
+| Readiness had two vocabularies | Four rules: **Missing** (quiet) · **In Progress** (plain) · **Ready** (wax) · **Risk / Impossible** (amber). "Complete"/"Pending"/"Collecting" removed; the detail line carries the count. | `pages/AdminDashboard.tsx`, `components/StatusBadge.tsx` |
+| *(found while photographing)* the public form could not submit | Request/response mapping for `POST /api/public/forms/:token/submit`; config reads `workspace_display_name`. Verified through the real UI. | `lib/apiClient.ts` |
+
+Guards added to `scripts/audit-redesign.mjs`: no raw segment key outside `.desk-segname-key`, and the
+expected active rail row per route (it would have caught seam 2). New `scripts/seed-partial-workspace.mjs`
+seeds a 4-student workspace at 2 of 4 responses, drives the student form UI end to end, and photographs
+the partial dashboard at 1280/375.
 
 ## How to run
 
@@ -75,16 +89,21 @@ fails on a second run (fixed tenant slugs), so mint one from an existing members
 ## After (evidence)
 
 - `.impeccable/review/app/after/` — the same 20 routes × 4 widths, `after-<route>-<width>.png`.
+- `.impeccable/review/app/seams/` — review round 2: the nine affected pages at 1280 and 375
+  (`seams-*`), plus `partial-dashboard-{1280,375}.png` (Missing / In Progress / Risk) and
+  `student-form-receipt-390.png`.
 - `.impeccable/review/app/page*/` — viewport captures used while judging individual pages.
 - `.impeccable/review/app/perf-after-prod.json` — LCP / CLS / bytes on the production preview:
   home LCP 700 ms · login 340 ms · dashboard 364 ms · matching-runs 368 ms; CLS 0.0006–0.0136;
   DOMContentLoaded ≤ 177 ms; ~91–92 kB transferred per route (gzip).
-- Bundle after: JS **734.15 kB** (213.14 gzip, +5.0 kB gzip on baseline), CSS **87.63 kB**
-  (17.67 gzip, +2.05 kB gzip). No new dependency.
-- Tests: 20 files / 42 tests green. `npm run build` (tsc -b + vite) green.
-- `scripts/audit-redesign.mjs` → **CLEAN** at 375 and 1280 (one `h1` and one `main` per route, no
-  heading-order breaks, no unnamed controls, no console errors, visible focus ring on the first
-  three tab stops, no horizontal overflow, no target under 24px).
+- Bundle after review round 2: JS **735.15 kB** (213.62 gzip), CSS **88.04 kB** (17.74 gzip).
+  No new dependency.
+- Tests: **21 files / 46 tests** green (42 + 4 for the segment formatter). `npm run build`
+  (tsc -b + vite) and `npm run typecheck` green.
+- `scripts/audit-redesign.mjs` → **CLEAN** at 375 and 1280 across 12 routes: one `h1` and one `main`,
+  no heading-order breaks, no unnamed controls, no console errors, visible focus ring on the first
+  three tab stops, no horizontal overflow, no target under 24px, **no raw segment key in copy**, and
+  **exactly the expected active rail row**.
 - Impeccable detector over `desk.css` + every page, component and layout → **no findings**.
 
 ## Homepage regression
@@ -98,8 +117,8 @@ that work is theirs, not this pass).
 
 ## Next action
 
-Nothing pending. Hand the file list below to the human for per-page commits; the only follow-ups are
-the proposals in `04-open-questions.md`.
+Nothing pending. The three seams and the form-submit fix are in; the only follow-ups are the
+proposals in `04-open-questions.md`.
 
 ## Per-page file list (for splitting commits)
 
@@ -168,3 +187,24 @@ the proposals in `04-open-questions.md`.
 `docs/redesign/00-brief.md` (pre-existing), `00-research.md`, `01-ux-plan.md`, `02-design-system.md`,
 `03-progress.md`, `decisions.md`, `deviations.md`, `placeholders.md`, `04-open-questions.md`,
 `docs/redesign/design-language.md` (merged into `02-design-system.md` §1–3).
+
+**Review round 2 (three seams + the form-submit fix)**
+
+New: `frontend/src/lib/segmentLabel.ts`, `frontend/src/components/SegmentLabel.tsx`,
+`frontend/src/test/segment-label.test.ts`, `frontend/scripts/seed-partial-workspace.mjs`.
+Changed: `frontend/src/app/desk.css` (`.desk-segname*`), `frontend/src/layouts/AdminLayout.tsx`,
+`frontend/src/pages/AdminDashboard.tsx`, `frontend/src/components/StatusBadge.tsx`,
+`frontend/src/pages/AdminMatchingRuns.tsx`, `frontend/src/pages/AdminFormCollection.tsx`,
+`frontend/src/pages/AdminStudentsData.tsx`, `frontend/src/pages/matching/RoomResultsPage.tsx`,
+`frontend/src/pages/matching/StudentResultsPage.tsx`,
+`frontend/src/pages/reports/FairnessReportsPage.tsx`,
+`frontend/src/pages/checker/ManualCheckerPage.tsx`,
+`frontend/src/components/reports/FairnessCountsCard.tsx`,
+`frontend/src/components/reports/RunSegmentSelector.tsx`,
+`frontend/src/components/checker/CheckerSelectionPanel.tsx`,
+`frontend/src/components/matching/filters/RoomResultsFilters.tsx`,
+`frontend/src/components/matching/filters/StudentResultsFilters.tsx`,
+`frontend/src/lib/apiClient.ts` (public form request/response mapping),
+`frontend/scripts/audit-redesign.mjs` (raw-key + active-nav guards),
+`frontend/scripts/capture-redesign.mjs` (`--workspace` override).
+Docs: `docs/redesign/decisions.md` (D25–D28), `docs/redesign/03-progress.md`.

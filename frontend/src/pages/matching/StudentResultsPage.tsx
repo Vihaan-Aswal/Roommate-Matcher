@@ -14,6 +14,7 @@ import { useAdminSegmentsQuery } from "../../hooks/useAdminSegments";
 import { useRunStudentsAllSegmentsQuery } from "../../hooks/useRunStudentsAllSegmentsQuery";
 import { useRunStudentsQuery } from "../../hooks/useRunStudentsQuery";
 import { SATISFACTION_LABELS } from "../../lib/resultEnums";
+import { segmentLabel } from "../../lib/segmentLabel";
 import { useWorkspace } from "../../providers/WorkspaceProvider";
 
 const VALID_AT_RISK = new Set(["0", "1"]);
@@ -202,7 +203,13 @@ export function StudentResultsPage(): JSX.Element {
           <>
             <span className="desk-mono">{runId}</span>
             <span className="desk-sep">·</span>
-            {selectedSegment === "all" ? "all segments" : selectedSegment}
+            {selectedSegment === "all"
+              ? "all segments"
+              : segmentLabel(
+                  (segmentsQuery.data?.segments ?? []).find(
+                    (segment) => segment.segment_key === selectedSegment,
+                  ) ?? { segment_key: selectedSegment },
+                )}
             <span className="desk-sep">·</span>
             {atRiskCount} at risk
           </>

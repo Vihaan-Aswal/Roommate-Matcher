@@ -1,4 +1,5 @@
 import type { SegmentOverview } from "../../../lib/apiClient";
+import { segmentLabel } from "../../../lib/segmentLabel";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
 import { Checkbox } from "../../ui/checkbox";
 
@@ -30,7 +31,7 @@ export function RoomResultsFilters({
           <SelectContent>
             {segments.map((segment) => (
               <SelectItem key={segment.segment_key} value={segment.segment_key}>
-                {segment.segment_key}
+                {segmentLabel(segment)}
               </SelectItem>
             ))}
           </SelectContent>
