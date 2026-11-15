@@ -1,4 +1,4 @@
-# REPORT — Roommate Matcher quality pass
+﻿# REPORT — Roommate Matcher quality pass
 
 Date: 2026-11-15. Baseline reproduced in `BASELINE.md`; per-file classification in
 `COVERAGE-MAP.md`; optimisation budgets in `PERFORMANCE.md`; live status in `PROGRESS.md`.
@@ -7,10 +7,10 @@ Date: 2026-11-15. Baseline reproduced in `BASELINE.md`; per-file classification 
 
 | Metric | Baseline | Final | Gate |
 |---|---:|---:|---|
-| Backend suite | 269 passed, 0 failed | 619 passed, 5 skipped (624 with `TEST_DATABASE_URL`), 0 failed | all pass |
+| Backend suite | 269 passed, 0 failed | 620 passed, 5 skipped (625 with `TEST_DATABASE_URL`), 0 failed | all pass |
 | Backend wall (warm, no coverage) | 36.6-44.5 s | 44.5 s | no regression |
-| Backend coverage - line | 87 % | **99.93 %** | >= 90 % |
-| Backend coverage - branch | 82 % | **99.20 %** | >= 85 % |
+| Backend coverage - line | 87 % | **99.90 %** | >= 90 % |
+| Backend coverage - branch | 82 % | **99.02 %** | >= 85 % |
 | `matching` line | 80-100 % | **100 %** | 100 % |
 | `scoring` line | 100 % | **100 %** | 100 % |
 | `fairness` line | 90 % | **100 %** | 100 % |
@@ -34,11 +34,11 @@ Date: 2026-11-15. Baseline reproduced in `BASELINE.md`; per-file classification 
 
 ```
 cd backend; uv run --extra dev pytest
-619 passed, 5 skipped in 44.53s
+620 passed, 5 skipped in 44.37s
 
 $env:TEST_DATABASE_URL='postgresql+psycopg2://postgres:postgres@127.0.0.1:55432/postgres'
 uv run --extra dev pytest
-624 passed in 56.55s
+625 passed in 56.93s
 ```
 
 The 5 skips are the Postgres parity module; they run and pass when the container is up
@@ -47,8 +47,8 @@ The 5 skips are the Postgres parity module; they run and pass when the container
 ```
 cd backend; uv run --extra dev pytest --cov=app --cov-report=json:coverage.json
 uv run python scripts/check_coverage.py
-overall line    99.93%  (gate 90%)
-overall branch  99.20%  (gate 85%)
+overall line    99.90%  (gate 90%)
+overall branch  99.02%  (gate 85%)
 app/services/matching/           100.00%  (gate 100%)
 app/services/scoring/            100.00%  (gate 100%)
 app/services/fairness/           100.00%  (gate 100%)
@@ -145,7 +145,7 @@ Public API shapes, route names, CSV headers and deterministic output are otherwi
 
 ## 4. Coverage detail
 
-Backend 99.93 % line / 99.20 % branch; route modules are 100 % line, and `services/*` are 100 %
+Backend 99.90 % line / 99.02 % branch; route modules are 100 % line, and `services/*` are 100 %
 except intentional defensive guards listed in the coverage run. Frontend 95.04 % line / 88.45 %
 branch / 95.16 % function; `src/lib`, `src/hooks` and `src/pages` each exceed the required 85
 line/function. `COVERAGE-MAP.md` lists every file with its owner or exclusion.
@@ -168,7 +168,7 @@ cd backend; uv run --extra dev pytest tests/integration/test_postgres_parity.py 
 
 They cover Alembic upgrade/downgrade (including the new form-link expiry revision), JSONB storage,
 RLS policy presence, cascade deletes and the unique tenant-membership constraint. With
-`TEST_DATABASE_URL` set the whole suite is **624 passed, 0 skipped**; without it the 5 gated tests
+`TEST_DATABASE_URL` set the whole suite is **625 passed, 0 skipped**; without it the 5 gated tests
 skip with the reason `Postgres parity requires TEST_DATABASE_URL`. The fixture refuses any URL
 containing `supabase` and any non-PostgreSQL URL, so production was never touched.
 

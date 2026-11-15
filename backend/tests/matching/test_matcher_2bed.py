@@ -60,6 +60,20 @@ def test_match_2bed_breaks_exact_ties_lexicographically() -> None:
     }
 
 
+def test_canonicalize_ties_ignores_overlapping_pairs() -> None:
+    from app.services.matching.matcher_2bed import _canonicalize_ties
+    from tests.matching.fixtures import make_pair_result
+
+    scores = {
+        ("A", "B"): make_pair_result(0.5),
+        ("A", "C"): make_pair_result(0.5),
+        ("B", "C"): make_pair_result(0.5),
+    }
+    pairs = [("A", "B"), ("A", "C")]
+
+    assert _canonicalize_ties(pairs, scores) == [("A", "B"), ("A", "C")]
+
+
 def test_match_2bed_rejects_odd_student_count() -> None:
     students = ["S01", "S02", "S03", "S04", "S05"]
     pair_results = normalize_and_validate_pair_results(students, build_pair_results(students, default_score=0.5))

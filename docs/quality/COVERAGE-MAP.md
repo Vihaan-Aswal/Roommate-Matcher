@@ -305,6 +305,6 @@ worklist.
   required `workspace_id`); the route uses `get_workspace_dashboard_summary`.
 - Dead reactivation/duplicate branches removed in `room_csv`, `student_csv`, `matcher_3bed`,
   `matcher_4bed`; the 9 formerly uncovered lines are gone rather than suppressed.
-- Final backend coverage is 99.93 % line / 99.20 % branch; all four required packages are 100 %.
+- Final backend coverage is 99.90 % line / 99.02 % branch; all four required packages are 100 %.
   Frontend final is 95.02 line / 88.37 branch / 95.18 function (386 tests).
 

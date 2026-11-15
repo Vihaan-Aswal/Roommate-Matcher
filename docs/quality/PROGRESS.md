@@ -1,4 +1,4 @@
-# PROGRESS — quality pass
+﻿# PROGRESS — quality pass
 
 Live status for `docs/quality/GOAL.md`. Updated after every phase.
 
@@ -9,15 +9,15 @@ Live status for `docs/quality/GOAL.md`. Updated after every phase.
 | 0 — Instrument baseline | done | `BASELINE.md` — backend 269 @ 44.5/43.5/36.6 s, frontend 57 @ 20.1–20.6 s, coverage 87/82 and 73.89/69.81, build 738 kB, seeded run 6.39 s, E2E red (stale specs) |
 | 1 — Coverage map | done | `COVERAGE-MAP.md` — every backend/frontend/root file classified |
 | 2 — Perfect existing suite | done | dead scripts deleted, Pydantic + Router warnings removed, E2E specs rewritten to current UI (15/15 green), 6/6 mutation checks red, wall-clock perf test recalibrated |
-| 3 — Fill gaps | done | backend 615 passed / 5 Postgres-gated skips; 99.93 line / 99.20 branch, core packages 100; frontend 383 passed / 49 files, 95.04 line, lib/hooks 100; contracts + system + security + E2E route/a11y sweeps added |
+| 3 — Fill gaps | done | backend 625 passed with Postgres (620 + 5 gated without); 99.90 line / 99.02 branch, core packages 100; frontend 386 passed / 49 files, 95.02 line, lib/hooks/pages >= 85; contracts + system + security + E2E route/a11y sweeps added |
 | 4 — Fix everything | done | 25 defects fixed with guards (see `REPORT.md` §3); Postgres parity now executes against postgres:16 (5/5) |
 | 5 — Optimise | done | matching 200/100 56.3 s → 3.59 s; N+1 6 → 2 queries; initial JS 738 → 548 kB; LCP 332–660 ms; suite 27.5–29.4 s (`PERFORMANCE.md`) |
 | 6 — CI | done | `.github/workflows/quality.yml` with a postgres:16 service; clean worktree at `c25c2bb`: 624 pass, 386 frontend tests, bundle budget, E2E 23 pass with 2 workers (see `REPORT.md` §7) |
 
 ## Phase 3–5 evidence (2026-11-15)
 
-- Backend: **619 passed, 5 skipped in 44.53 s** default; **624 passed, 0 skipped** with
-  `TEST_DATABASE_URL`; coverage **99.93 % line / 99.20 % branch**;
+- Backend: **620 passed, 5 skipped in 44.37 s** default; **625 passed, 0 skipped** with
+  `TEST_DATABASE_URL`; coverage **99.90 % line / 99.02 % branch**;
   `services/{matching,scoring,fairness,ingestion}` all **100 % line** (`scripts/check_coverage.py`).
 - Frontend: **386 passed / 49 files**, Vitest duration 27.5–29.4 s; coverage **95.02 line /
   88.37 branch / 95.18 function**; `src/lib` 99.67/100, `src/hooks` 100/100, `src/pages` 99.26/100.
@@ -38,7 +38,7 @@ Live status for `docs/quality/GOAL.md`. Updated after every phase.
 ## Blockers
 
 None. Postgres parity runs against the `postgres:16` container (5/5) and the full suite passes with
-`TEST_DATABASE_URL` set (624 passed, 0 skipped). On a machine without Docker those five tests skip
+`TEST_DATABASE_URL` set (625 passed, 0 skipped). On a machine without Docker those five tests skip
 with the documented reason; that is a condition, not an unresolved blocker.
 
 
