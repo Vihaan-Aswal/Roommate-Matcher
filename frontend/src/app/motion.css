@@ -1,0 +1,312 @@
+/* =============================================================================
+   motion.css — the product's motion system.
+   The homepage's tokens and grammar ("a rule is drawn, then the material
+   settles") are the only source. The nine `--m-*` tokens now live on `:root`
+   here; `.mm-home` inherits them, so there is one set of easings and durations
+   in the product. Nothing in this file invents a timing value.
+   ========================================================================== */
+
+:root {
+  --m-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --m-ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --m-dur-feedback: 160ms;
+  --m-dur-change: 320ms;
+  --m-dur-scene: 560ms;
+  --m-dur-mark: 600ms;
+  --m-dur-focal: 900ms;
+  --m-stagger: 28ms;
+  --m-stagger-cap: 280ms;
+
+  /* Distances are not timings; the app keeps them small and local. */
+  --app-lift: 6px;
+  --app-lift-sm: 3px;
+}
+
+/* ---------------------------------------------------------------- kill switches */
+
+/* The manual switch. `off` is absolute, and it is what the test setup uses. */
+html[data-motion="off"] *,
+html[data-motion="off"] *::before,
+html[data-motion="off"] *::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
+
+/* Calm mode: no movement, no loops; state changes are instant. */
+html[data-motion="reduced"] *,
+html[data-motion="reduced"] *::before,
+html[data-motion="reduced"] *::after {
+  animation: none !important;
+  transition-duration: 0.001ms !important;
+  transition-delay: 0ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* The system preference is the same experience as the manual calm mode. */
+@media (prefers-reduced-motion: reduce) {
+  html *,
+  html *::before,
+  html *::after {
+    animation: none !important;
+    transition-duration: 0.001ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* --------------------------------------------------------------------- keyframes */
+
+@keyframes mmRuleDraw {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes mmBarFill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes mmLift {
+  from {
+    opacity: 0;
+    transform: translateY(var(--app-lift, 6px));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes mmFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes mmStamp {
+  from {
+    opacity: 0;
+    transform: scale(1.06);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes mmSheetIn {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes mmScrimIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes mmToastIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes mmToastOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes mmTickIn {
+  from {
+    opacity: 0;
+    transform: scaleY(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
+@keyframes mmBreathe {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.62;
+  }
+}
+
+/* --------------------------------------------------------------- shared utilities
+   Use on state changes and below-the-fold arrivals only. Never on first-paint
+   content, dense register rows, filters or form questions. */
+
+.desk .m-lift {
+  animation: mmLift var(--m-dur-change) var(--m-ease-out) both;
+}
+
+.desk .m-fade {
+  animation: mmFade var(--m-dur-feedback) var(--m-ease-out) both;
+}
+
+.desk .m-stamp {
+  animation: mmStamp var(--m-dur-change) var(--m-ease-out) both;
+}
+
+.desk .m-slip {
+  --app-lift: 8px;
+  animation: mmLift var(--m-dur-scene) var(--m-ease-out) both;
+}
+
+/* ------------------------------------------------------------------ press feedback */
+
+.desk .desk-btn {
+  transition:
+    transform var(--m-dur-feedback) var(--m-ease-out),
+    color var(--m-dur-feedback) var(--m-ease-out),
+    border-color var(--m-dur-feedback) var(--m-ease-out),
+    background-color var(--m-dur-feedback) linear,
+    opacity var(--m-dur-feedback) linear;
+}
+
+.desk .desk-btn:active:not([disabled]) {
+  transform: translateY(1px);
+}
+
+.desk .desk-nav-link {
+  transition:
+    background-color var(--m-dur-feedback) linear,
+    color var(--m-dur-feedback) linear;
+}
+
+/* The route signal. The active tick exists only on the current row, so each
+   navigation re-creates it; no page content fades, so LCP is untouched. */
+.desk .desk-nav-link[aria-current="page"]::before {
+  transform-origin: center;
+  animation: mmTickIn var(--m-dur-feedback) var(--m-ease-out) both;
+}
+
+.desk .desk-stage {
+  transition: background-color var(--m-dur-feedback) linear;
+}
+
+.desk .desk-slip {
+  transition: border-color var(--m-dur-feedback) linear;
+}
+
+.desk .desk-slip[data-copied="true"] {
+  border-color: var(--wax);
+}
+
+/* --------------------------------------------------------------------- loading */
+
+.desk .desk-skel {
+  animation: mmBreathe calc(var(--m-dur-focal) * 2) var(--m-ease-in-out) infinite;
+}
+
+/* ------------------------------------------------------------------ stage strip
+   The dashboard's one authored beat: four rules draw in reading order. */
+
+.desk .desk-stage-rule {
+  transform-origin: left center;
+  animation: mmRuleDraw var(--m-dur-change) var(--m-ease-out) both;
+  transition: background-color var(--m-dur-change) var(--m-ease-in-out);
+}
+
+.desk .desk-stage:nth-child(2) .desk-stage-rule {
+  animation-delay: calc(var(--m-stagger) * 1);
+}
+
+.desk .desk-stage:nth-child(3) .desk-stage-rule {
+  animation-delay: calc(var(--m-stagger) * 2);
+}
+
+.desk .desk-stage:nth-child(4) .desk-stage-rule {
+  animation-delay: calc(var(--m-stagger) * 3);
+}
+
+/* ------------------------------------------------------------------- data bars
+   The bars draw once; the numbers beside them are already final. */
+
+.desk .desk-bar-track span,
+.desk .desk-stackbar span,
+.desk .m-meter span {
+  transform-origin: left center;
+  animation: mmBarFill var(--m-dur-change) var(--m-ease-out) both;
+}
+
+.desk .desk-bar-row:nth-child(2) .desk-bar-track span {
+  animation-delay: calc(var(--m-stagger) * 1);
+}
+
+.desk .desk-bar-row:nth-child(3) .desk-bar-track span {
+  animation-delay: calc(var(--m-stagger) * 2);
+}
+
+.desk .desk-bar-row:nth-child(4) .desk-bar-track span {
+  animation-delay: calc(var(--m-stagger) * 3);
+}
+
+.desk .desk-stackbar span:nth-child(2) {
+  animation-delay: calc(var(--m-stagger) * 1);
+}
+
+.desk .desk-stackbar span:nth-child(3) {
+  animation-delay: calc(var(--m-stagger) * 2);
+}
+
+.desk .desk-stackbar span:nth-child(4) {
+  animation-delay: calc(var(--m-stagger) * 3);
+}
+
+/* ---------------------------------------------------------------------- drawer */
+
+.desk .desk-drawer-scrim {
+  animation: mmScrimIn var(--m-dur-feedback) linear both;
+}
+
+.desk .desk-drawer-panel {
+  animation: mmSheetIn var(--m-dur-change) var(--m-ease-out) both;
+}
+
+/* ----------------------------------------------------------------------- toast */
+
+.desk-toast {
+  animation: mmToastIn var(--m-dur-feedback) var(--m-ease-out) both;
+}
+
+.desk-toast[data-state="closed"] {
+  animation: mmToastOut var(--m-dur-feedback) var(--m-ease-in-out) both;
+}

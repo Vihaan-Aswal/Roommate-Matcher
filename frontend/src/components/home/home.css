@@ -54,15 +54,6 @@
   --sans: "Public Sans MM", "Segoe UI", system-ui, sans-serif;
   --mono: "IBM Plex Mono MM", "Courier New", monospace;
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
-  --m-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --m-ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
-  --m-dur-feedback: 160ms;
-  --m-dur-change: 320ms;
-  --m-dur-scene: 560ms;
-  --m-dur-mark: 600ms;
-  --m-dur-focal: 900ms;
-  --m-stagger: 28ms;
-  --m-stagger-cap: 280ms;
   position: relative;
   isolation: isolate;
   min-height: 100vh;
