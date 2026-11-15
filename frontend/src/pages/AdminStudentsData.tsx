@@ -48,7 +48,7 @@ function AppliedStamp({
   onReset: () => void;
 }): JSX.Element {
   return (
-    <section className="desk-sheet desk-stack-sm">
+    <section className="desk-sheet desk-stack-sm m-stamp">
       <div className="desk-row" style={{ gap: 8 }}>
         <span
           className="desk-row"

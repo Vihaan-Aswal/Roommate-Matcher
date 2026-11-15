@@ -123,7 +123,7 @@ export function DiffPreviewPanel({
   ];
 
   return (
-    <section className="desk-sheet desk-stack" aria-labelledby="diff-title">
+    <section className="desk-sheet desk-stack m-fade" aria-labelledby="diff-title">
       <div className="desk-row-between">
         <div>
           <p className="desk-overline">Step 2 of 3 · review</p>
