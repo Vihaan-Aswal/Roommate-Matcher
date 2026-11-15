@@ -93,6 +93,7 @@ jobs:
         with:
           python-version: "3.11"
           cache: pip
+          cache-dependency-path: backend/pyproject.toml
 
       - name: Install backend runtime into the repo venv
         working-directory: .

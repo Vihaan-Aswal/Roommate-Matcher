@@ -41,7 +41,7 @@ Budget: **≤ 600 kB minified JS** (baseline was 738.42 kB with a Vite warning).
 | Build | JS | gzip | CSS | gzip |
 |---|---:|---:|---:|---:|
 | Baseline | 738.42 kB | 214.49 kB | 91.93 kB | 18.40 kB |
-| Route-level `React.lazy` (home + shell eager) | **547.94 kB** | **160.18 kB** | 92.31 kB | 18.46 kB |
+| Route-level `React.lazy` (home + shell eager) | **548.09 kB** | **160.25 kB** | 92.31 kB | 18.46 kB |
 
 26 % smaller initial JS, 25 % smaller gzip. The warning is gone.
 
@@ -67,7 +67,7 @@ Budget: **≤ 30 s** (brief target; baseline 20 s at 57 tests, 62 s cold).
 | State | Files | Tests | Vitest duration |
 |---|---:|---:|---:|
 | Baseline | 23 | 57 | 17.8–18.2 s |
-| Final (happy-dom + node env for pure libs + dep optimizer) | 49 | 386 | **27.5–30.1 s** |
+| Final (happy-dom + node env for pure libs + dep optimizer) | 49 | 383 | **27.5-30.9 s** |
 
 Changes kept: `happy-dom` for DOM tests, `// @vitest-environment node` on 13 pure files,
 conditional `jest-dom`, dependency optimizer, 10 workers. Wall time including npm/Node startup is
@@ -80,3 +80,19 @@ conditional `jest-dom`, dependency optimizer, 10 workers. Wall time including np
 - Deleted broken dead `get_dashboard_summary` (missing required `workspace_id`; no callers).
 - Removed dead reactivation blocks and unreachable defensive branches (9 lines) to reach 100 % on
   matching/ingestion by deletion rather than suppression.
+
+## 7. Checked, not changed (no win to claim)
+
+- **Upload memory**: `MAX_CSV_UPLOAD_BYTES` is 5 MB; the route reads 64 KB chunks into a list and
+  joins once, so peak is bounded at ~2x the file (10 MB) plus parsed rows. Streaming to disk would
+  add complexity for a hard 5 MB ceiling; no change.
+- **Export streaming**: `_iter_assignment_rows` already yields rows; the route uses
+  `StreamingResponse`, so a large export is not buffered whole. No change.
+- **Indexes**: reviewed against the real query patterns — `students(workspace_id, admission_number)`
+  unique, `rooms(workspace_id, segment_id, room_id)` unique, `room_assignments(matching_run_id,
+  segment_id, room_id)` unique, `pair_scores(matching_run_id, segment_id, pair_a, pair_b)` unique,
+  plus `workspace_id`/`segment_id` indexes on every child table and `matching_runs.workspace_id`.
+  Existing indexes cover the reads; no new migration.
+- **Student results payload**: the response is dominated by reasons and factor traces, which are
+  the product output, not overhead. No field removed.
+

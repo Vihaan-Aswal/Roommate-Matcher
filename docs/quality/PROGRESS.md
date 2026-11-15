@@ -9,17 +9,17 @@ Live status for `docs/quality/GOAL.md`. Updated after every phase.
 | 0 — Instrument baseline | done | `BASELINE.md` — backend 269 @ 44.5/43.5/36.6 s, frontend 57 @ 20.1–20.6 s, coverage 87/82 and 73.89/69.81, build 738 kB, seeded run 6.39 s, E2E red (stale specs) |
 | 1 — Coverage map | done | `COVERAGE-MAP.md` — every backend/frontend/root file classified |
 | 2 — Perfect existing suite | done | dead scripts deleted, Pydantic + Router warnings removed, E2E specs rewritten to current UI (15/15 green), 6/6 mutation checks red, wall-clock perf test recalibrated |
-| 3 — Fill gaps | done | backend 614 passed / 5 Postgres-gated skips; 99.93 line / 99.20 branch, core packages 100; frontend 386 passed / 49 files, 94.97 line, lib/hooks 100; contracts + system + security + E2E route/a11y sweeps added |
-| 4 — Fix everything | done | 18 defects fixed with guards (see `REPORT.md` §3); Postgres parity BLOCKED with command |
-| 5 — Optimise | done | matching 200/100 56.3 s → 1.32 s; N+1 6 → 2 queries; initial JS 738 → 548 kB; LCP 332–660 ms; suite 27.5–30.1 s (`PERFORMANCE.md`) |
-| 6 — CI | in progress | `.github/workflows/quality.yml` added; clean-clone replay pending |
+| 3 — Fill gaps | done | backend 614 passed / 5 Postgres-gated skips; 99.93 line / 99.20 branch, core packages 100; frontend 383 passed / 49 files, 95.04 line, lib/hooks 100; contracts + system + security + E2E route/a11y sweeps added |
+| 4 — Fix everything | done | 20 defects fixed with guards (see `REPORT.md` §3); Postgres parity BLOCKED with command |
+| 5 — Optimise | done | matching 200/100 56.3 s → 1.32 s; N+1 6 → 2 queries; initial JS 738 → 548 kB; LCP 332–660 ms; suite 27.5–30.9 s (`PERFORMANCE.md`) |
+| 6 — CI | done | `.github/workflows/quality.yml`; clean worktree at `0becb7f`: 614 pass / 5 skip, 383 frontend tests, build 547.80 kB, E2E 22 pass (see `REPORT.md` §7) |
 
 ## Phase 3–5 evidence (2026-11-15)
 
 - Backend: **614 passed, 5 skipped in 43.30 s**; coverage **99.93 % line / 99.20 % branch**;
   `services/{matching,scoring,fairness,ingestion}` all **100 % line** (`scripts/check_coverage.py`).
-- Frontend: **386 passed / 49 files**, Vitest duration 27.5–30.1 s; coverage **94.97 line /
-  88.39 branch / 95.16 function**; `src/lib` 100/100, `src/hooks` 100/100, `src/pages` 99.26/100.
+- Frontend: **383 passed / 49 files**, Vitest duration 27.5–30.9 s; coverage **95.04 line /
+  88.45 branch / 95.16 function**; `src/lib` 100/100, `src/hooks` 100/100, `src/pages` 99.26/100.
 - Typecheck and build pass; initial JS 547.94 kB (160.18 gzip).
 - E2E: 22 tests, run twice, zero retries (see final run logs).
 - Contracts: OpenAPI snapshot (32 paths / 33 operations), form-question ↔ payload ↔ profile
