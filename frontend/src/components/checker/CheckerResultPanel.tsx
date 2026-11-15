@@ -52,7 +52,7 @@ export function CheckerResultPanel({
       ) : null}
 
       {result ? (
-        <div className="desk-stack">
+        <div className="desk-stack m-lift">
           <div className="desk-stack-sm">
             <div>
               <p className="desk-figure-label">Group compatibility score</p>
