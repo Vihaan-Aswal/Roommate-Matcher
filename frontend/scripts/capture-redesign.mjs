@@ -161,9 +161,10 @@ async function main() {
           { value: token },
         );
       }
-      await context.addInitScript(() => {
+      await context.addInitScript(({ mode }) => {
         localStorage.setItem("mm-capture", "1");
-      });
+        if (mode) localStorage.setItem("mm-motion", mode);
+      }, { mode: args.motion ?? null });
       for (const width of widths) {
         const page = await context.newPage();
         if (args.debug) {
