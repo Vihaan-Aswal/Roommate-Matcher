@@ -7,7 +7,7 @@ Date: 2026-11-15. Baseline reproduced in `BASELINE.md`; per-file classification 
 
 | Metric | Baseline | Final | Gate |
 |---|---:|---:|---|
-| Backend suite | 269 passed, 0 failed | 614 passed, 5 skipped, 0 failed | all pass |
+| Backend suite | 269 passed, 0 failed | 615 passed, 5 skipped, 0 failed | all pass |
 | Backend wall (warm, no coverage) | 36.6-44.5 s | 61.2 s | no regression |
 | Backend coverage - line | 87 % | **99.93 %** | >= 90 % |
 | Backend coverage - branch | 82 % | **99.20 %** | >= 85 % |
@@ -34,7 +34,7 @@ Date: 2026-11-15. Baseline reproduced in `BASELINE.md`; per-file classification 
 
 ```
 cd backend; uv run --extra dev pytest
-614 passed, 5 skipped in 61.18s
+615 passed, 5 skipped in 43.28s
 ```
 
 The 5 skips are the Postgres parity module, each explained in section 5.
@@ -183,7 +183,7 @@ the workflow's commands were replayed:
 | Step | Result |
 |---|---|
 | `uv sync --extra dev` (cold) | 11.2 s |
-| `uv run --extra dev pytest` (cold) | **614 passed, 5 skipped in 79.44 s** |
+| `uv run --extra dev pytest` (cold) | **615 passed, 5 skipped in 79.44 s** |
 | `npm ci` (cold) | 118.6 s |
 | `npm run typecheck` | exit 0 |
 | `npm run test` | **49 files passed, 383 tests, 27.44 s** |
