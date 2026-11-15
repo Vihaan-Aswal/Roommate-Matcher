@@ -1,25 +1,56 @@
-import React from "react";
+import React, { Suspense, lazy } from "react";
 import { Navigate, Route, BrowserRouter as Router, Routes } from "react-router-dom";
 
 import { useAuth } from "./providers/AuthProvider";
 import { WorkspaceProvider } from "./providers/WorkspaceProvider";
 import { AdminLayout } from "./layouts/AdminLayout";
-import { LoginPage } from "./pages/LoginPage";
 import { HomePage } from "./pages/HomePage";
-import { WorkspaceChooserPage } from "./pages/WorkspaceChooserPage";
-import { AdminAtRiskReview } from "./pages/AdminAtRiskReview";
-import { AdminDashboard } from "./pages/AdminDashboard";
-import { AdminFairness } from "./pages/AdminFairness";
-import { AdminFormCollection } from "./pages/AdminFormCollection";
-import { AdminManualChecker } from "./pages/AdminManualChecker";
-import { AdminMatchingRuns } from "./pages/AdminMatchingRuns";
-import { AdminStudentsData } from "./pages/AdminStudentsData";
-import { StudentForm } from "./pages/StudentForm";
-import { RoomResultsPage } from "./pages/matching/RoomResultsPage";
-import { StudentResultsPage } from "./pages/matching/StudentResultsPage";
-import { PlatformTenantsPage } from "./pages/platform/PlatformTenantsPage";
-import { PlatformTenantWorkspacesPage } from "./pages/platform/PlatformTenantWorkspacesPage";
 import { Toaster } from "./components/ui/toaster";
+
+// The public landing page ships in the initial chunk; every authenticated
+// surface is loaded on its route so a first visit does not download the desk.
+const LoginPage = lazy(() => import("./pages/LoginPage").then((m) => ({ default: m.LoginPage })));
+const WorkspaceChooserPage = lazy(() =>
+  import("./pages/WorkspaceChooserPage").then((m) => ({ default: m.WorkspaceChooserPage })),
+);
+const AdminAtRiskReview = lazy(() =>
+  import("./pages/AdminAtRiskReview").then((m) => ({ default: m.AdminAtRiskReview })),
+);
+const AdminDashboard = lazy(() =>
+  import("./pages/AdminDashboard").then((m) => ({ default: m.AdminDashboard })),
+);
+const AdminFairness = lazy(() =>
+  import("./pages/AdminFairness").then((m) => ({ default: m.AdminFairness })),
+);
+const AdminFormCollection = lazy(() =>
+  import("./pages/AdminFormCollection").then((m) => ({ default: m.AdminFormCollection })),
+);
+const AdminManualChecker = lazy(() =>
+  import("./pages/AdminManualChecker").then((m) => ({ default: m.AdminManualChecker })),
+);
+const AdminMatchingRuns = lazy(() =>
+  import("./pages/AdminMatchingRuns").then((m) => ({ default: m.AdminMatchingRuns })),
+);
+const AdminStudentsData = lazy(() =>
+  import("./pages/AdminStudentsData").then((m) => ({ default: m.AdminStudentsData })),
+);
+const StudentForm = lazy(() =>
+  import("./pages/StudentForm").then((m) => ({ default: m.StudentForm })),
+);
+const RoomResultsPage = lazy(() =>
+  import("./pages/matching/RoomResultsPage").then((m) => ({ default: m.RoomResultsPage })),
+);
+const StudentResultsPage = lazy(() =>
+  import("./pages/matching/StudentResultsPage").then((m) => ({ default: m.StudentResultsPage })),
+);
+const PlatformTenantsPage = lazy(() =>
+  import("./pages/platform/PlatformTenantsPage").then((m) => ({ default: m.PlatformTenantsPage })),
+);
+const PlatformTenantWorkspacesPage = lazy(() =>
+  import("./pages/platform/PlatformTenantWorkspacesPage").then((m) => ({
+    default: m.PlatformTenantWorkspacesPage,
+  })),
+);
 
 /**
  * DeskBoot — what the page shows while auth is still resolving. It is the desk's
@@ -76,74 +107,76 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 export default function App(): JSX.Element {
   return (
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-      <Routes>
-        {/* Public homepage */}
-        <Route path="/" element={<HomePage />} />
+      <Suspense fallback={<DeskBoot />}>
+        <Routes>
+          {/* Public homepage */}
+          <Route path="/" element={<HomePage />} />
 
-        {/* Auth */}
-        <Route path="/login" element={<LoginPage />} />
+          {/* Auth */}
+          <Route path="/login" element={<LoginPage />} />
 
-        {/* Public student-facing form — no auth required */}
-        <Route path="/f/:token" element={<StudentForm />} />
+          {/* Public student-facing form — no auth required */}
+          <Route path="/f/:token" element={<StudentForm />} />
 
-        {/* Chooser page */}
-        <Route
-          path="/app"
-          element={
-            <ProtectedRoute>
-              <WorkspaceChooserPage />
-            </ProtectedRoute>
-          }
-        />
+          {/* Chooser page */}
+          <Route
+            path="/app"
+            element={
+              <ProtectedRoute>
+                <WorkspaceChooserPage />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* Platform Routes */}
-        <Route
-          path="/platform"
-          element={
-            <PlatformRoute>
-              <PlatformTenantsPage />
-            </PlatformRoute>
-          }
-        />
-        <Route
-          path="/platform/tenants/:tenantId/workspaces"
-          element={
-            <PlatformRoute>
-              <PlatformTenantWorkspacesPage />
-            </PlatformRoute>
-          }
-        />
+          {/* Platform Routes */}
+          <Route
+            path="/platform"
+            element={
+              <PlatformRoute>
+                <PlatformTenantsPage />
+              </PlatformRoute>
+            }
+          />
+          <Route
+            path="/platform/tenants/:tenantId/workspaces"
+            element={
+              <PlatformRoute>
+                <PlatformTenantWorkspacesPage />
+              </PlatformRoute>
+            }
+          />
 
-        {/* Protected workspace routes */}
-        <Route
-          path="/app/:workspaceId"
-          element={
-            <ProtectedRoute>
-              <WorkspaceProvider>
-                <AdminLayout />
-              </WorkspaceProvider>
-            </ProtectedRoute>
-          }
-        >
-          <Route index element={<Navigate replace to="dashboard" />} />
-          <Route path="dashboard" element={<AdminDashboard />} />
-          <Route path="students-data" element={<AdminStudentsData />} />
-          <Route path="form-collection" element={<AdminFormCollection />} />
-          <Route path="matching-runs" element={<AdminMatchingRuns />} />
-          <Route path="matching-runs/:runId/rooms" element={<RoomResultsPage />} />
-          <Route path="matching-runs/:runId/students" element={<StudentResultsPage />} />
-          <Route path="fairness" element={<AdminFairness />} />
-          <Route path="fairness/:runId" element={<AdminFairness />} />
-          <Route path="at-risk-review" element={<AdminAtRiskReview />} />
-          <Route path="manual-checker" element={<AdminManualChecker />} />
-        </Route>
+          {/* Protected workspace routes */}
+          <Route
+            path="/app/:workspaceId"
+            element={
+              <ProtectedRoute>
+                <WorkspaceProvider>
+                  <AdminLayout />
+                </WorkspaceProvider>
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<Navigate replace to="dashboard" />} />
+            <Route path="dashboard" element={<AdminDashboard />} />
+            <Route path="students-data" element={<AdminStudentsData />} />
+            <Route path="form-collection" element={<AdminFormCollection />} />
+            <Route path="matching-runs" element={<AdminMatchingRuns />} />
+            <Route path="matching-runs/:runId/rooms" element={<RoomResultsPage />} />
+            <Route path="matching-runs/:runId/students" element={<StudentResultsPage />} />
+            <Route path="fairness" element={<AdminFairness />} />
+            <Route path="fairness/:runId" element={<AdminFairness />} />
+            <Route path="at-risk-review" element={<AdminAtRiskReview />} />
+            <Route path="manual-checker" element={<AdminManualChecker />} />
+          </Route>
 
-        {/* Legacy redirect */}
-        <Route path="/admin/*" element={<Navigate replace to="/app" />} />
+          {/* Legacy redirect */}
+          <Route path="/admin/*" element={<Navigate replace to="/app" />} />
 
-        {/* Catch-all → login */}
-        <Route path="*" element={<Navigate replace to="/login" />} />
-      </Routes>
+          {/* Catch-all → login */}
+          <Route path="*" element={<Navigate replace to="/login" />} />
+        </Routes>
+      </Suspense>
       <Toaster />
     </Router>
   );

@@ -18,27 +18,56 @@ class _StateEvaluation:
     labels_by_student: dict[str, SatisfactionLabel]
 
 
+@dataclass(frozen=True)
+class _RoomEvaluation:
+    minimum_satisfaction: float
+    poor_count: int
+    total_satisfaction: float
+    labels_by_student: dict[str, SatisfactionLabel]
+
+
+def _evaluate_room(
+    room_students: list[str],
+    pair_results: dict[tuple[str, str], PairResult],
+) -> _RoomEvaluation:
+    students = sorted(room_students)
+    satisfaction_scores = compute_student_satisfaction_scores(students, pair_results)
+    labels_by_student: dict[str, SatisfactionLabel] = {}
+    scores: list[float] = []
+
+    for student_id in students:
+        roommates = [roommate for roommate in students if roommate != student_id]
+        score = satisfaction_scores[student_id]
+        label, _, _ = classify_student(student_id, roommates, score, pair_results)
+        labels_by_student[student_id] = label
+        scores.append(score)
+
+    return _RoomEvaluation(
+        minimum_satisfaction=min(scores) if scores else 0.0,
+        poor_count=sum(1 for label in labels_by_student.values() if label == "Poor"),
+        total_satisfaction=sum(scores),
+        labels_by_student=labels_by_student,
+    )
+
+
 def _evaluate_state(
     room_assignments: dict[str, list[str]],
     pair_results: dict[tuple[str, str], PairResult],
 ) -> _StateEvaluation:
     labels_by_student: dict[str, SatisfactionLabel] = {}
-    all_scores: list[float] = []
+    minimum_satisfaction = 0.0
+    poor_count = 0
+    total_satisfaction = 0.0
 
-    for room_id in sorted(room_assignments):
-        room_students = sorted(room_assignments[room_id])
-        satisfaction_scores = compute_student_satisfaction_scores(room_students, pair_results)
-
-        for student_id in room_students:
-            roommates = [roommate for roommate in room_students if roommate != student_id]
-            score = satisfaction_scores[student_id]
-            label, _, _ = classify_student(student_id, roommates, score, pair_results)
-            labels_by_student[student_id] = label
-            all_scores.append(score)
-
-    minimum_satisfaction = min(all_scores) if all_scores else 0.0
-    poor_count = sum(1 for label in labels_by_student.values() if label == "Poor")
-    total_satisfaction = sum(all_scores)
+    for index, room_id in enumerate(sorted(room_assignments)):
+        room_eval = _evaluate_room(room_assignments[room_id], pair_results)
+        if index == 0:
+            minimum_satisfaction = room_eval.minimum_satisfaction
+        else:
+            minimum_satisfaction = min(minimum_satisfaction, room_eval.minimum_satisfaction)
+        poor_count += room_eval.poor_count
+        total_satisfaction += room_eval.total_satisfaction
+        labels_by_student.update(room_eval.labels_by_student)
 
     return _StateEvaluation(
         minimum_satisfaction=minimum_satisfaction,
@@ -109,7 +138,24 @@ def optimize_swaps(
             break
         seen_signatures.add(signature)
 
-        baseline_eval = _evaluate_state(current_state, pair_results)
+        baseline_rooms = {
+            room_id: _evaluate_room(students, pair_results)
+            for room_id, students in current_state.items()
+        }
+        baseline_eval = _StateEvaluation(
+            minimum_satisfaction=min(
+                (room.minimum_satisfaction for room in baseline_rooms.values()),
+                default=0.0,
+            ),
+            poor_count=sum(room.poor_count for room in baseline_rooms.values()),
+            total_satisfaction=sum(room.total_satisfaction for room in baseline_rooms.values()),
+            labels_by_student={
+                student_id: label
+                for room in baseline_rooms.values()
+                for student_id, label in room.labels_by_student.items()
+            },
+        )
+
         best_state: dict[str, list[str]] | None = None
         best_eval: _StateEvaluation | None = None
         best_signature: tuple[str, str, str, str] | None = None
@@ -120,39 +166,86 @@ def optimize_swaps(
                 room_a = room_ids[index_a]
                 room_b = room_ids[index_b]
 
-                students_a = sorted(current_state[room_a])
-                students_b = sorted(current_state[room_b])
+                students_a = baseline_rooms[room_a].labels_by_student
+                students_b = baseline_rooms[room_b].labels_by_student
+                other_rooms_min = min(
+                    (
+                        room.minimum_satisfaction
+                        for room_id, room in baseline_rooms.items()
+                        if room_id not in (room_a, room_b)
+                    ),
+                    default=float("inf"),
+                )
 
-                for student_a in students_a:
-                    for student_b in students_b:
-                        candidate_state = {
-                            room_id: sorted(students)
-                            for room_id, students in current_state.items()
-                        }
+                for student_a in sorted(students_a):
+                    for student_b in sorted(students_b):
+                        candidate_a = sorted(
+                            student_b if student == student_a else student
+                            for student in current_state[room_a]
+                        )
+                        candidate_b = sorted(
+                            student_a if student == student_b else student
+                            for student in current_state[room_b]
+                        )
 
-                        idx_a = candidate_state[room_a].index(student_a)
-                        idx_b = candidate_state[room_b].index(student_b)
-                        candidate_state[room_a][idx_a] = student_b
-                        candidate_state[room_b][idx_b] = student_a
-                        candidate_state[room_a].sort()
-                        candidate_state[room_b].sort()
+                        eval_a = _evaluate_room(candidate_a, pair_results)
+                        eval_b = _evaluate_room(candidate_b, pair_results)
 
-                        candidate_eval = _evaluate_state(candidate_state, pair_results)
+                        candidate_eval = _StateEvaluation(
+                            minimum_satisfaction=min(
+                                eval_a.minimum_satisfaction,
+                                eval_b.minimum_satisfaction,
+                                other_rooms_min,
+                            ),
+                            poor_count=(
+                                baseline_eval.poor_count
+                                - baseline_rooms[room_a].poor_count
+                                - baseline_rooms[room_b].poor_count
+                                + eval_a.poor_count
+                                + eval_b.poor_count
+                            ),
+                            total_satisfaction=(
+                                baseline_eval.total_satisfaction
+                                - baseline_rooms[room_a].total_satisfaction
+                                - baseline_rooms[room_b].total_satisfaction
+                                + eval_a.total_satisfaction
+                                + eval_b.total_satisfaction
+                            ),
+                            labels_by_student={
+                                **eval_a.labels_by_student,
+                                **eval_b.labels_by_student,
+                            },
+                        )
+
                         if candidate_eval.minimum_satisfaction <= baseline_eval.minimum_satisfaction + EPSILON:
                             continue
 
-                        if _creates_new_poor(baseline_eval.labels_by_student, candidate_eval.labels_by_student):
+                        if _creates_new_poor(
+                            {
+                                student_id: baseline_eval.labels_by_student[student_id]
+                                for student_id in candidate_eval.labels_by_student
+                            },
+                            candidate_eval.labels_by_student,
+                        ):
                             continue
 
                         candidate_signature = (room_a, student_a, room_b, student_b)
                         if best_state is None or best_eval is None or best_signature is None:
-                            best_state = candidate_state
+                            best_state = {
+                                **current_state,
+                                room_a: candidate_a,
+                                room_b: candidate_b,
+                            }
                             best_eval = candidate_eval
                             best_signature = candidate_signature
                             continue
 
                         if _is_better_candidate(candidate_eval, best_eval, candidate_signature, best_signature):
-                            best_state = candidate_state
+                            best_state = {
+                                **current_state,
+                                room_a: candidate_a,
+                                room_b: candidate_b,
+                            }
                             best_eval = candidate_eval
                             best_signature = candidate_signature
 

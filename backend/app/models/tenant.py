@@ -18,7 +18,7 @@ class Tenant(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     slug: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     display_name: Mapped[str] = mapped_column(String, nullable=False)
     contact_email: Mapped[str | None] = mapped_column(String, nullable=True)
-    is_demo: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
+    is_demo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
     demo_expires_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )

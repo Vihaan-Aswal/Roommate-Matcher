@@ -48,4 +48,24 @@ def test_build_complete_graph_uses_deterministic_tie_ranking() -> None:
 
     graph = build_complete_graph(students, pair_results)
 
-    assert graph["S01"]["S02"]["weight"] > graph["S03"]["S04"]["weight"]
+    # Equal scores stay equal for NetworkX (distinct near-tied weights made
+    # blossom >300x slower); the tie rank is carried for audit and ordering.
+    assert graph["S01"]["S02"]["weight"] == graph["S03"]["S04"]["weight"]
+    assert graph["S01"]["S02"]["tie_rank"] > graph["S03"]["S04"]["tie_rank"]
+
+
+def test_build_complete_graph_equal_scores_match_deterministically() -> None:
+    from app.services.matching.matcher_2bed import match_2bed
+
+    students = ["S01", "S02", "S03", "S04", "S05", "S06"]
+    pair_results = normalize_and_validate_pair_results(
+        students,
+        build_pair_results(students, default_score=0.5),
+    )
+
+    forward = match_2bed(students, pair_results)
+    reversed_input = match_2bed(list(reversed(students)), pair_results)
+
+    assert forward == reversed_input
+    assert sorted(student for room in forward for student in room) == students
+    assert all(len(room) == 2 for room in forward)

@@ -97,7 +97,11 @@ def verify_supabase_jwt(token: str) -> dict[str, Any]:
             raise jwt.InvalidTokenError("Supabase JWT verification is not configured")
         # Use JWKS for asymmetric algorithms (RS256, ES256)
         jwks_client = get_jwks_client()
-        signing_key = jwks_client.get_signing_key_from_jwt(token)
+        try:
+            signing_key = jwks_client.get_signing_key_from_jwt(token)
+        except jwt.PyJWKClientError as exc:
+            # Missing kid / unreachable JWKS is an invalid token, not a 500.
+            raise jwt.InvalidTokenError(f"Unable to resolve signing key: {exc}") from exc
         return jwt.decode(
             token,
             signing_key.key,

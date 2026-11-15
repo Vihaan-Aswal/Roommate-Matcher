@@ -23,7 +23,7 @@ export interface DiffPreviewPanelProps {
   validationErrors: InvalidRow[];
   diffEntries: UnifiedDiffEntry[];
   workspaceWarnings: string[];
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<void>;
   onCancel: () => void;
   isApplying: boolean;
 }
@@ -135,7 +135,14 @@ export function DiffPreviewPanel({
           <Button variant="outline" onClick={onCancel} disabled={isApplying}>
             Cancel
           </Button>
-          <Button onClick={onConfirm} disabled={isApplying}>
+          <Button
+            onClick={() => {
+              void Promise.resolve(onConfirm()).catch(() => {
+                // The caller renders the apply error next to the preview.
+              });
+            }}
+            disabled={isApplying}
+          >
             {isApplying ? "Applying…" : "Confirm & Apply"}
           </Button>
         </div>

@@ -31,4 +31,4 @@ class Student(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     dob: Mapped[date] = mapped_column(Date, nullable=False)
     phone_number: Mapped[str | None] = mapped_column(String, nullable=True)
     phone_last4: Mapped[str] = mapped_column(String(4), nullable=False, index=True)
-    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="true")
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")

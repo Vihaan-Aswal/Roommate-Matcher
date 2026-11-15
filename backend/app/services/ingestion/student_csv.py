@@ -404,11 +404,6 @@ def apply_student_import(
                 student.segment_id = segment.id
                 changed = True
 
-            # Re-activate if was somehow inactive
-            if not student.is_active:
-                student.is_active = True
-                changed = True
-
             if changed:
                 result.updated += 1
             else:

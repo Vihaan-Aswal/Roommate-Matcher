@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import App from "../App";
 import { useAuth } from "../providers/AuthProvider";
@@ -51,7 +51,7 @@ describe("Workspace Routing and Guards", () => {
     vi.clearAllMocks();
   });
 
-  it("test_unauthenticated_redirect_to_login", () => {
+  it("test_unauthenticated_redirect_to_login", async () => {
     // Unauthenticated user
     vi.mocked(useAuth).mockReturnValue({
       user: null,
@@ -64,16 +64,12 @@ describe("Workspace Routing and Guards", () => {
     window.history.pushState({}, "Test page", "/app");
     render(<App />);
 
-    // Since it's unauthenticated, it redirects to /login.
-    // Assuming LoginPage renders a "Sign In" text or similar.
-    // Let's check for "Log in" or "Sign in"
-    // The LoginPage likely has a button to sign in or a header.
-    // Since we don't know the exact text, we can check that it doesn't render WorkspaceChooserPage
+    // The route is lazy; the guard's redirect resolves after the chunk loads.
+    await waitFor(() => expect(window.location.pathname).toBe("/login"));
     expect(screen.queryByText(/Create New Workspace/i)).not.toBeInTheDocument();
-    expect(window.location.pathname).toBe("/login");
   });
 
-  it("test_authenticated_shows_workspace_chooser", () => {
+  it("test_authenticated_shows_workspace_chooser", async () => {
     // Authenticated user
     vi.mocked(useAuth).mockReturnValue({
       user: {
@@ -93,10 +89,10 @@ describe("Workspace Routing and Guards", () => {
     render(<App />);
 
     // Should render WorkspaceChooserPage
-    expect(screen.getByText(/Create New Workspace/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Create New Workspace/i)).toBeInTheDocument();
   });
 
-  it("test_workspace_route_renders_admin_layout", () => {
+  it("test_workspace_route_renders_admin_layout", async () => {
     // Authenticated user
     vi.mocked(useAuth).mockReturnValue({
       user: {
@@ -119,11 +115,10 @@ describe("Workspace Routing and Guards", () => {
 
     // AdminDashboard should render
     // We mock useDashboardSummary above, so the dashboard will render.
-    // We expect some text from AdminLayout or AdminDashboard
-    expect(screen.getByText(/Switch Workspace/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Switch workspace/i)).toBeInTheDocument();
   });
 
-  it("test_legacy_admin_redirect", () => {
+  it("test_legacy_admin_redirect", async () => {
     // Authenticated user
     vi.mocked(useAuth).mockReturnValue({
       user: {
@@ -143,6 +138,6 @@ describe("Workspace Routing and Guards", () => {
     render(<App />);
 
     // Should redirect to /app
-    expect(window.location.pathname).toBe("/app");
+    await waitFor(() => expect(window.location.pathname).toBe("/app"));
   });
 });

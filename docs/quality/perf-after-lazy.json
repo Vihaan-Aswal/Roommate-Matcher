@@ -1,0 +1,46 @@
+{
+  "base": "http://127.0.0.1:4175",
+  "measuredAt": "2026-11-15T04:49:56.175Z",
+  "results": [
+    {
+      "route": "home",
+      "lcp": 660,
+      "cls": 0.0041,
+      "domContentLoaded": 170,
+      "load": 172,
+      "resourceBytes": 0,
+      "resourceCount": 6,
+      "transferredBytes": 92976
+    },
+    {
+      "route": "login",
+      "lcp": 332,
+      "cls": 0.0004,
+      "domContentLoaded": 157,
+      "load": 157,
+      "resourceBytes": 0,
+      "resourceCount": 8,
+      "transferredBytes": 93313
+    },
+    {
+      "route": "dashboard",
+      "lcp": 380,
+      "cls": 0.0014,
+      "domContentLoaded": 155,
+      "load": 155,
+      "resourceBytes": 0,
+      "resourceCount": 18,
+      "transferredBytes": 97331
+    },
+    {
+      "route": "matching-runs",
+      "lcp": 364,
+      "cls": 0.053,
+      "domContentLoaded": 151,
+      "load": 151,
+      "resourceBytes": 0,
+      "resourceCount": 22,
+      "transferredBytes": 98807
+    }
+  ]
+}

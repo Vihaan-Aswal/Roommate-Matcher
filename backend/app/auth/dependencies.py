@@ -126,11 +126,20 @@ async def get_authenticated_user(
         supabase_user_id: str = supabase_payload["sub"]
         email: str = supabase_payload.get("email", "")
 
+        try:
+            supabase_user_uuid = uuid.UUID(supabase_user_id)
+        except (ValueError, TypeError, AttributeError) as exc:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token claims are invalid.",
+                headers={"WWW-Authenticate": "Bearer"},
+            ) from exc
+
         # Look up the user's tenant membership. For Phase 1 we pick the first
         # (and typically only) membership. Workspace selection happens separately.
         membership = (
             db.query(TenantMembership)
-            .filter(TenantMembership.supabase_user_id == uuid.UUID(supabase_user_id))
+            .filter(TenantMembership.supabase_user_id == supabase_user_uuid)
             .first()
         )
         if membership is None:
@@ -155,15 +164,25 @@ async def get_authenticated_user(
     # --- Branch: app JWT (demo / impersonation) ---
     assert app_payload is not None  # type narrowing
     impersonated_raw = app_payload.get("impersonated_tenant")
+    try:
+        tenant_id = uuid.UUID(app_payload["tenant_id"])
+        impersonated_tenant_id = uuid.UUID(impersonated_raw) if impersonated_raw else None
+    except (ValueError, TypeError, AttributeError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token claims are invalid.",
+            headers={"WWW-Authenticate": "Bearer"},
+        ) from exc
+
     return AuthenticatedUser(
         auth_kind="app_jwt",
         supabase_user_id=app_payload["sub"],
         email=app_payload["email"],
-        tenant_id=uuid.UUID(app_payload["tenant_id"]),
+        tenant_id=tenant_id,
         role=app_payload["role"],  # type: ignore[arg-type]
         is_demo=bool(app_payload.get("is_demo", False)),
         is_platform_admin=_is_platform_admin(app_payload["email"]),
-        impersonated_tenant_id=uuid.UUID(impersonated_raw) if impersonated_raw else None,
+        impersonated_tenant_id=impersonated_tenant_id,
     )
 
 

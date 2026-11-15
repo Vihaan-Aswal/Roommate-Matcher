@@ -19,6 +19,15 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    # Supabase already provisions service_role; a vanilla Postgres test container
+    # does not. Creating it when absent keeps the migration portable without
+    # touching Supabase's managed role.
+    op.execute(
+        "DO $$ BEGIN "
+        "IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') "
+        "THEN CREATE ROLE service_role NOLOGIN; END IF; "
+        "END $$;"
+    )
     tables = [
         "alembic_version", "tenants", "workspaces", "tenant_memberships", 
         "segments", "students", "rooms", "preference_profiles", "form_responses", 

@@ -32,9 +32,9 @@ class PreferenceProfile(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         UUID(as_uuid=True), ForeignKey("form_responses.id", ondelete="SET NULL"), nullable=True, index=True
     )
 
-    has_preferences: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="true")
-    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="true")
-    is_generated: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
+    has_preferences: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
+    is_generated: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
 
     # Raw answers
     q1_raw: Mapped[str | None] = mapped_column(Text, nullable=True)

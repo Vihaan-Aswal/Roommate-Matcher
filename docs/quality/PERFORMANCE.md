@@ -1,0 +1,82 @@
+# PERFORMANCE — budget before, measured after
+
+Every change below was kept only because it beat its stated budget. Measurements are from this
+machine (8 logical cores, Windows, Python 3.11.9, Node 22.20.0), unless noted.
+
+## 1. Backend matching — 200 students / 100 rooms (2-bed)
+
+Budget: **≤ 5,000 ms** for one segment (the brief asks for run latency on this seed).
+
+| Stage | Median | Result |
+|---|---:|---|
+| Baseline (encoded integer weights + full-state re-evaluation per swap) | **56,268 ms** | over budget |
+| Float weights in `graph_builder` (same lexicographic tie intent, no huge integers) | 26,116 ms | still over |
+| + incremental swap evaluation (`_evaluate_room`, two rooms per candidate) | 1,323 ms | **passes** |
+
+Command: `cd backend; uv run --extra dev python scripts/benchmark_matching.py --students 200 --room-size 2 --iterations 3`
+
+```
+{'students': 200, 'room_size': 2, 'rooms': 100,
+ 'iterations_ms': [1322.91, 1289.26, 1610.08],
+ 'median_ms': 1322.91, 'min_ms': 1289.26, 'max_ms': 1610.08, 'swap_passes': 0}
+```
+
+42× faster. Tie-break for exactly equal pair scores is now NetworkX's deterministic sorted-graph
+order instead of a per-edge encoded rank; the public contract (same input → same output, including
+ties) still holds and is guarded by tests. `graph["..."]["tie_rank"]` is retained for audit.
+
+## 2. Matching-runs history — N+1 query
+
+Budget: **≤ 2 SELECTs** for 5 runs.
+
+- Before: 1 query for runs + 1 count query per run = **6 SELECTs**.
+- After: 1 runs query + 1 grouped count query = **2 SELECTs**.
+
+Guarded by `backend/tests/matching/test_query_count.py`.
+
+## 3. Frontend initial bundle
+
+Budget: **≤ 600 kB minified JS** (baseline was 738.42 kB with a Vite warning).
+
+| Build | JS | gzip | CSS | gzip |
+|---|---:|---:|---:|---:|
+| Baseline | 738.42 kB | 214.49 kB | 91.93 kB | 18.40 kB |
+| Route-level `React.lazy` (home + shell eager) | **547.94 kB** | **160.18 kB** | 92.31 kB | 18.46 kB |
+
+26 % smaller initial JS, 25 % smaller gzip. The warning is gone.
+
+## 4. Route load (production preview, 1280×900)
+
+Budget: **LCP ≤ 800 ms**, CLS ≤ 0.1.
+
+`node scripts/measure-redesign.mjs --base http://127.0.0.1:4175`
+
+| Route | LCP | CLS | DCL | transferred |
+|---|---:|---:|---:|---:|
+| home | 660 ms | 0.0041 | 170 ms | 90.8 kB |
+| login | 332 ms | 0.0004 | 157 ms | 91.1 kB |
+| dashboard | 380 ms | 0.0014 | 155 ms | 95.0 kB |
+| matching-runs | 364 ms | 0.0530 | 151 ms | 96.5 kB |
+
+All inside budget; matching-runs CLS is 0.053 (good, < 0.1).
+
+## 5. Frontend unit suite
+
+Budget: **≤ 30 s** (brief target; baseline 20 s at 57 tests, 62 s cold).
+
+| State | Files | Tests | Vitest duration |
+|---|---:|---:|---:|
+| Baseline | 23 | 57 | 17.8–18.2 s |
+| Final (happy-dom + node env for pure libs + dep optimizer) | 49 | 386 | **27.5–30.1 s** |
+
+Changes kept: `happy-dom` for DOM tests, `// @vitest-environment node` on 13 pure files,
+conditional `jest-dom`, dependency optimizer, 10 workers. Wall time including npm/Node startup is
+~30–33 s on this machine; the suite's own duration is 27.5–30.1 s.
+
+## 6. Repo slimming
+
+- Deleted `backend/tests/fixer.py`, `refactor.py`, `refactor2.py`, `refactor3.py` (unreferenced scratch).
+- Deleted `app/services/scoring_adapter.py` (broken unused import shim).
+- Deleted broken dead `get_dashboard_summary` (missing required `workspace_id`; no callers).
+- Removed dead reactivation blocks and unreachable defensive branches (9 lines) to reach 100 % on
+  matching/ingestion by deletion rather than suppression.

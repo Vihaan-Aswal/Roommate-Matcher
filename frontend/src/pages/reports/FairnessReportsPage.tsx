@@ -125,8 +125,8 @@ export function FairnessReportsPage(): JSX.Element {
 
   const totalStudents = fairnessQuery.data?.total_students ?? 0;
   const atRiskCount = fairnessQuery.data?.run_at_risk_count ?? 0;
-  const minimumSatisfaction = fairnessQuery.data?.by_segment.length
-    ? Math.min(...fairnessQuery.data.by_segment.map((segment) => segment.minimum_satisfaction))
+  const minimumSatisfaction = visibleSegments.length
+    ? Math.min(...visibleSegments.map((segment) => segment.minimum_satisfaction))
     : null;
 
   return (

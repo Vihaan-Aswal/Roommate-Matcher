@@ -252,11 +252,7 @@ def apply_room_import(
             if room.capacity != capacity:
                 room.capacity = capacity
                 changed = True
-            
-            if not room.is_active:
-                room.is_active = True
-                changed = True
-                
+
             if changed:
                 result.updated += 1
             else:

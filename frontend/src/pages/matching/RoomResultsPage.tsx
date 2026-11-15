@@ -126,8 +126,18 @@ export function RoomResultsPage(): JSX.Element {
               if (!runId || !selectedSegment) return;
               void exportMutation
                 .mutateAsync({ runId, segmentKey: selectedSegment })
-                .then((result) => {
-                  const downloadUrl = URL.createObjectURL(result.blob);
+                .then(async (result) => {
+                  let blob = result.blob;
+                  if (needsReviewOnly) {
+                    // The export endpoint returns the whole segment; trim it to
+                    // the rooms the operator is currently looking at.
+                    const text = await blob.text();
+                    const [header, ...rows] = text.split(/\r?\n/);
+                    const allowedRooms = new Set(filteredRooms.map((room) => room.room_id));
+                    const keptRows = rows.filter((row) => allowedRooms.has(row.split(",")[0]));
+                    blob = new Blob([[header, ...keptRows].join("\n")], { type: "text/csv" });
+                  }
+                  const downloadUrl = URL.createObjectURL(blob);
                   const link = document.createElement("a");
                   link.href = downloadUrl;
                   link.download = result.fileName;

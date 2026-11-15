@@ -25,21 +25,18 @@ class RowError:
 def parse_csv_bytes(csv_bytes: bytes, required_columns: set[str]) -> csv.DictReader:
     """Decode CSV bytes, validate header, return DictReader."""
     try:
-        text = csv_bytes.decode("utf-8")
-    except UnicodeDecodeError:
-        try:
-            text = csv_bytes.decode("utf-8-sig")
-        except UnicodeDecodeError:
-            raise ValueError("CSV file encoding not supported. Use UTF-8.")
+        # utf-8-sig accepts both plain UTF-8 and a UTF-8 BOM; the BOM must be
+        # stripped or it glues itself to the first header name.
+        text = csv_bytes.decode("utf-8-sig")
+    except UnicodeDecodeError as exc:
+        raise ValueError("CSV file encoding not supported. Use UTF-8.") from exc
 
     if not text.strip():
         raise ValueError("CSV file is empty.")
 
     reader = csv.DictReader(io.StringIO(text))
-    if reader.fieldnames is None:
-        raise ValueError("CSV file is empty or missing header row")
 
-    actual_columns = {name.strip() for name in reader.fieldnames}
+    actual_columns = {name.strip() for name in reader.fieldnames or []}
     missing = sorted(required_columns - actual_columns)
     if missing:
         raise ValueError(f"Missing required columns: {', '.join(missing)}")

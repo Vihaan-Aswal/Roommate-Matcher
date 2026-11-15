@@ -24,6 +24,6 @@ class Room(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
     room_id: Mapped[str] = mapped_column(String, nullable=False)
     capacity: Mapped[int] = mapped_column(Integer, nullable=False)
-    source: Mapped[str] = mapped_column(String, nullable=False, server_default="'uploaded'")
-    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="true")
+    source: Mapped[str] = mapped_column(String, nullable=False, default="uploaded", server_default="'uploaded'")
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
 

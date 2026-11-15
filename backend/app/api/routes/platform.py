@@ -26,6 +26,14 @@ from app.services.platform.impersonation import issue_impersonation_token
 router = APIRouter(prefix="/api/platform", tags=["platform"])
 
 
+def _is_uuid(value: str) -> bool:
+    try:
+        uuid.UUID(value)
+    except (ValueError, TypeError, AttributeError):
+        return False
+    return True
+
+
 # ---------------------------------------------------------------------------
 # Response schemas
 # ---------------------------------------------------------------------------
@@ -192,7 +200,12 @@ def impersonate_tenant(
     if tenant is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tenant not found.")
 
-    workspace_uuid = uuid.UUID(body.workspace_id)
+    workspace_uuid = uuid.UUID(body.workspace_id) if _is_uuid(body.workspace_id) else None
+    if workspace_uuid is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="workspace_id must be a valid UUID.",
+        )
     workspace = (
         db.query(Workspace)
         .filter(Workspace.id == workspace_uuid, Workspace.tenant_id == tenant_id)

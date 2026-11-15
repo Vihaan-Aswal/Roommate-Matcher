@@ -1,0 +1,222 @@
+{
+  "paths": {
+    "/api/auth/demo": {
+      "post": {
+        "request_required": [
+          "email"
+        ],
+        "response_schema": "DemoResponse"
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "request_required": [],
+        "response_schema": null
+      }
+    },
+    "/api/auth/me": {
+      "get": {
+        "request_required": [],
+        "response_schema": "MeResponse"
+      }
+    },
+    "/api/auth/session": {
+      "post": {
+        "request_required": [
+          "access_token"
+        ],
+        "response_schema": "SessionResponse"
+      }
+    },
+    "/api/platform/tenants": {
+      "get": {
+        "request_required": [],
+        "response_schema": "TenantListResponse"
+      }
+    },
+    "/api/platform/tenants/{tenant_id}": {
+      "get": {
+        "request_required": [],
+        "response_schema": "TenantRow"
+      }
+    },
+    "/api/platform/tenants/{tenant_id}/impersonate": {
+      "post": {
+        "request_required": [
+          "workspace_id"
+        ],
+        "response_schema": "ImpersonateResponse"
+      }
+    },
+    "/api/platform/tenants/{tenant_id}/workspaces": {
+      "get": {
+        "request_required": [],
+        "response_schema": "app__api__routes__platform__WorkspaceListResponse"
+      }
+    },
+    "/api/public/forms/{public_form_token}": {
+      "get": {
+        "request_required": [],
+        "response_schema": null
+      }
+    },
+    "/api/public/forms/{public_form_token}/submit": {
+      "post": {
+        "request_required": [
+          "answers",
+          "submitted_admission_number",
+          "submitted_phone_last4"
+        ],
+        "response_schema": null
+      }
+    },
+    "/api/workspaces": {
+      "get": {
+        "request_required": [],
+        "response_schema": "app__schemas__workspace__WorkspaceListResponse"
+      },
+      "post": {
+        "request_required": [
+          "name"
+        ],
+        "response_schema": "WorkspaceResponse"
+      }
+    },
+    "/api/workspaces/{workspace_id}": {
+      "get": {
+        "request_required": [],
+        "response_schema": "WorkspaceResponse"
+      }
+    },
+    "/api/workspaces/{workspace_id}/checker/compatibility": {
+      "post": {
+        "request_required": [
+          "room_size",
+          "segment_key",
+          "student_ids"
+        ],
+        "response_schema": "CheckerResponse"
+      }
+    },
+    "/api/workspaces/{workspace_id}/collection/non-submitters": {
+      "get": {
+        "request_required": [],
+        "response_schema": "NonSubmittersResponse"
+      }
+    },
+    "/api/workspaces/{workspace_id}/collection/status": {
+      "get": {
+        "request_required": [],
+        "response_schema": "FormStatusResponse"
+      }
+    },
+    "/api/workspaces/{workspace_id}/dashboard": {
+      "get": {
+        "request_required": [],
+        "response_schema": "WorkspaceDashboardResponse"
+      }
+    },
+    "/api/workspaces/{workspace_id}/exports/assignments/{run_id}": {
+      "get": {
+        "request_required": [],
+        "response_schema": null
+      }
+    },
+    "/api/workspaces/{workspace_id}/fairness/{run_id}": {
+      "get": {
+        "request_required": [],
+        "response_schema": "FairnessReportResponse"
+      }
+    },
+    "/api/workspaces/{workspace_id}/form-link": {
+      "get": {
+        "request_required": [],
+        "response_schema": "FormLinkResponse"
+      }
+    },
+    "/api/workspaces/{workspace_id}/form-link/regenerate": {
+      "post": {
+        "request_required": [],
+        "response_schema": "FormLinkResponse"
+      }
+    },
+    "/api/workspaces/{workspace_id}/magic-fill": {
+      "post": {
+        "request_required": [],
+        "response_schema": "MagicFillResponse"
+      }
+    },
+    "/api/workspaces/{workspace_id}/matching/runs": {
+      "get": {
+        "request_required": [],
+        "response_schema": "MatchingRunListResponse"
+      },
+      "post": {
+        "request_required": [
+          "scope"
+        ],
+        "response_schema": "MatchingRunResponse"
+      }
+    },
+    "/api/workspaces/{workspace_id}/matching/runs/{run_id}/rooms": {
+      "get": {
+        "request_required": [],
+        "response_schema": "MatchingRunRoomsResponse"
+      }
+    },
+    "/api/workspaces/{workspace_id}/matching/runs/{run_id}/students": {
+      "get": {
+        "request_required": [],
+        "response_schema": "MatchingRunStudentsResponse"
+      }
+    },
+    "/api/workspaces/{workspace_id}/matching/runs/{run_id}/students/all-segments": {
+      "get": {
+        "request_required": [],
+        "response_schema": null
+      }
+    },
+    "/api/workspaces/{workspace_id}/rooms/upload/apply": {
+      "post": {
+        "request_required": [],
+        "response_schema": "RoomImportApplyResponse"
+      }
+    },
+    "/api/workspaces/{workspace_id}/rooms/upload/preview": {
+      "post": {
+        "request_required": [],
+        "response_schema": "RoomImportDiffResponse"
+      }
+    },
+    "/api/workspaces/{workspace_id}/segments": {
+      "get": {
+        "request_required": [],
+        "response_schema": "SegmentListResponse"
+      }
+    },
+    "/api/workspaces/{workspace_id}/segments/{segment_key}/students": {
+      "get": {
+        "request_required": [],
+        "response_schema": "SegmentStudentsResponse"
+      }
+    },
+    "/api/workspaces/{workspace_id}/students/upload/apply": {
+      "post": {
+        "request_required": [],
+        "response_schema": "StudentImportApplyResponse"
+      }
+    },
+    "/api/workspaces/{workspace_id}/students/upload/preview": {
+      "post": {
+        "request_required": [],
+        "response_schema": "StudentImportDiffResponse"
+      }
+    },
+    "/health": {
+      "get": {
+        "request_required": [],
+        "response_schema": null
+      }
+    }
+  }
+}

@@ -39,7 +39,13 @@ export function FileUploadPanel({
     if (!selectedFile || isUploading) {
       return;
     }
-    await onUpload(selectedFile);
+    try {
+      await onUpload(selectedFile);
+    } catch {
+      // The parent renders the request error; keeping the file selected lets
+      // the operator retry without re-picking it.
+      return;
+    }
     setSelectedFile(null);
     onFileSelected?.(null);
     formElement.reset();

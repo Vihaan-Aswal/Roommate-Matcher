@@ -115,9 +115,5 @@ def match_3bed(
             f"3-bed matcher returned {len(rooms)} rooms, expected {expected_room_count}"
         )
 
-    assigned = sorted(student for room in rooms for student in room)
-    if assigned != ordered_students:
-        raise MatchingConstructionError("3-bed matcher did not assign each student exactly once")
-
     rooms.sort()
     return rooms

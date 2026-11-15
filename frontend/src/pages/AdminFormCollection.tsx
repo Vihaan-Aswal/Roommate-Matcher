@@ -14,6 +14,7 @@ import {
   useRegenerateFormLinkMutation,
 } from "../hooks/useAdminFormCollection";
 import { QUESTION_CONFIGS } from "../lib/formQuestions";
+import { csvCell } from "../lib/utils";
 import { Button } from "../components/ui/button";
 import { useWorkspace } from "../providers/WorkspaceProvider";
 
@@ -26,14 +27,6 @@ function triggerCsvDownload(fileName: string, content: string): void {
   anchor.click();
   URL.revokeObjectURL(url);
 }
-
-function formatExpiry(value: string | null | undefined): string | null {
-  if (!value) return null;
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.valueOf())) return value;
-  return parsed.toLocaleDateString(undefined, { dateStyle: "medium" });
-}
-
 
 export function AdminFormCollection(): JSX.Element {
   const { workspaceId, workspaceName } = useWorkspace();
@@ -127,8 +120,6 @@ export function AdminFormCollection(): JSX.Element {
       cell: (row) => <SegmentLabel segment={row} />,
     },
   ];
-
-  const expiry = formatExpiry(formLinkQuery.data?.expires_at);
 
   return (
     <section className="desk-stack">
@@ -332,7 +323,8 @@ export function AdminFormCollection(): JSX.Element {
                 const csv = [
                   "admission_number,full_name,segment_key",
                   ...rows.map(
-                    (row) => `${row.admission_number},${JSON.stringify(row.full_name)},${row.segment_key}`,
+                    (row) =>
+                      `${csvCell(row.admission_number)},${csvCell(row.full_name)},${csvCell(row.segment_key)}`,
                   ),
                 ].join("\n");
                 triggerCsvDownload("non_submitters.csv", csv);

@@ -23,6 +23,10 @@ __pycache__/
 htmlcov/
 backend/coverage.json
 backend/coverage-run.txt
+backend/coverage-final.txt
+backend/coverage-api.json
+backend/coverage-core.json
+backend/full-run.txt
 backend/collect.txt
 
 # Virtual environments
@@ -45,7 +49,12 @@ frontend/dist/
 frontend/.vite/
 frontend/coverage/
 frontend/coverage-run.txt
+frontend/coverage-final.txt
 frontend/e2e-baseline.txt
+frontend/e2e-run*.txt
+frontend/e2e-final-*.txt
+frontend/test-out.txt
+frontend/vitest-report.json
 frontend/covmap.md
 frontend/covmap.py
 frontend/playwright-report/
