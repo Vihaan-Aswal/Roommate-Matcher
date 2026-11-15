@@ -8,7 +8,7 @@ Date: 2026-11-15. Baseline reproduced in `BASELINE.md`; per-file classification 
 | Metric | Baseline | Final | Gate |
 |---|---:|---:|---|
 | Backend suite | 269 passed, 0 failed | 615 passed, 5 skipped, 0 failed | all pass |
-| Backend wall (warm, no coverage) | 36.6-44.5 s | 61.2 s | no regression |
+| Backend wall (warm, no coverage) | 36.6-44.5 s | 43.3 s | no regression |
 | Backend coverage - line | 87 % | **99.93 %** | >= 90 % |
 | Backend coverage - branch | 82 % | **99.20 %** | >= 85 % |
 | `matching` line | 80-100 % | **100 %** | 100 % |
