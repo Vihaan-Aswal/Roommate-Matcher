@@ -171,7 +171,7 @@ export function AdminFormCollection(): JSX.Element {
             }
           />
         ) : (
-          <div className="desk-slip">
+          <div className="desk-slip" data-copied={copied ? "true" : undefined}>
             <p className="desk-slip-url" aria-live="polite">
               {formUrl ?? "The link is being issued…"}
             </p>
@@ -210,7 +210,7 @@ export function AdminFormCollection(): JSX.Element {
             </p>
           </div>
         ) : (
-          <div className="desk-note" data-tone="error">
+          <div className="desk-note m-lift" data-tone="error">
             <div className="desk-stack-sm">
               <p className="desk-note-title">Regenerating invalidates the link students already have</p>
               <p className="desk-note-body">
@@ -269,7 +269,7 @@ export function AdminFormCollection(): JSX.Element {
             <p className="desk-figure-value" style={{ fontSize: 34 }}>
               {percentage.toFixed(percentage % 1 === 0 ? 0 : 1)}%
             </p>
-            <span className="desk-meter">
+            <span className="desk-meter m-meter">
               <span style={{ width: `${Math.min(100, Math.max(0, percentage))}%` }} />
             </span>
             <div className="desk-figures">
