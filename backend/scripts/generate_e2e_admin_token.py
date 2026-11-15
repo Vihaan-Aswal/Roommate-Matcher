@@ -12,6 +12,11 @@ sys.path.insert(0, str(BACKEND_DIR))
 
 # Ensure dummy secrets are loaded for e2e
 os.environ["DATABASE_URL"] = f"sqlite:///{(ROOT_DIR / 'data' / 'app.db').as_posix()}"
+os.environ.setdefault("APP_JWT_SECRET", "e2e-app-jwt-secret-e2e-app-jwt-secret")
+os.environ.setdefault("SUPABASE_JWT_SECRET", "e2e-supabase-secret-e2e-supabase-secret")
+os.environ.setdefault("SUPABASE_JWT_ISSUER", "https://e2e.supabase.co/auth/v1")
+os.environ.setdefault("SUPABASE_JWT_AUDIENCE", "authenticated")
+os.environ.setdefault("ADMIN_EMAILS", "e2e-admin@example.com")
 
 import jwt
 from app.config import get_settings

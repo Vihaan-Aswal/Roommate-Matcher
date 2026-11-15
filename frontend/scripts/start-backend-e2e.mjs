@@ -34,7 +34,16 @@ const server = spawn(
   {
     cwd: backendDir,
     stdio: "inherit",
-    env: { ...process.env, DATABASE_URL: `sqlite:///${path.join(repoRoot, "data", "app.db").replace(/\\/g, "/")}` },
+    env: {
+      ...process.env,
+      DATABASE_URL: `sqlite:///${path.join(repoRoot, "data", "app.db").replace(/\\/g, "/")}`,
+      // Deterministic E2E secrets so a clean clone needs no backend/.env.
+      APP_JWT_SECRET: process.env.APP_JWT_SECRET || "e2e-app-jwt-secret-e2e-app-jwt-secret",
+      SUPABASE_JWT_SECRET: process.env.SUPABASE_JWT_SECRET || "e2e-supabase-secret-e2e-supabase-secret",
+      SUPABASE_JWT_ISSUER: process.env.SUPABASE_JWT_ISSUER || "https://e2e.supabase.co/auth/v1",
+      SUPABASE_JWT_AUDIENCE: process.env.SUPABASE_JWT_AUDIENCE || "authenticated",
+      ADMIN_EMAILS: process.env.ADMIN_EMAILS || "e2e-admin@example.com",
+    },
   },
 );
 
