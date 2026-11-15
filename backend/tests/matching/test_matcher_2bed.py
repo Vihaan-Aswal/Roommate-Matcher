@@ -44,6 +44,22 @@ def test_match_2bed_is_deterministic_for_shuffled_input_order() -> None:
     assert forward == shuffled
 
 
+def test_match_2bed_breaks_exact_ties_lexicographically() -> None:
+    students = [f"S{i:02d}" for i in range(1, 9)]
+    pair_results = normalize_and_validate_pair_results(
+        students, build_pair_results(students, default_score=0.5)
+    )
+
+    rooms = match_2bed(students, pair_results)
+
+    assert {tuple(room) for room in rooms} == {
+        ("S01", "S02"),
+        ("S03", "S04"),
+        ("S05", "S06"),
+        ("S07", "S08"),
+    }
+
+
 def test_match_2bed_rejects_odd_student_count() -> None:
     students = ["S01", "S02", "S03", "S04", "S05"]
     pair_results = normalize_and_validate_pair_results(students, build_pair_results(students, default_score=0.5))

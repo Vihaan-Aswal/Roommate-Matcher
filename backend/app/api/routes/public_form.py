@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.workspace_form_link import WorkspaceFormLink
+from app.services.public_form.token_service import is_expired
 from app.models.workspace import Workspace
 from app.models.student import Student
 from app.models.form_response import FormResponse
@@ -44,7 +45,7 @@ def get_public_form(public_form_token: str, db: Session = Depends(get_db)) -> di
         )
     ).first()
 
-    if not link:
+    if not link or is_expired(link):
         return {"token_valid": False}
 
     workspace = db.get(Workspace, link.workspace_id)
@@ -74,7 +75,7 @@ def submit_public_form(
         )
     ).first()
 
-    if not link:
+    if not link or is_expired(link):
         raise HTTPException(status_code=400, detail={"error": "form_link_invalid"})
 
     workspace_id = link.workspace_id

@@ -13,6 +13,7 @@ class WorkspaceCreateRequest(BaseModel):
 
 class FormLinkResponse(BaseModel):
     token: str
+    expires_at: datetime | None = None
 
 
 class WorkspaceResponse(BaseModel):

@@ -35,6 +35,8 @@ class Settings(BaseSettings):
     # --- DFY / Demo ---
     whatsapp_dfy_number: str = ""
     demo_ttl_hours: int = 24
+    form_link_ttl_days: int = 30
+    demo_rate_limit: str = "10/minute"
 
     # --- Cleanup Job ---
     cleanup_job_secret: str | None = None

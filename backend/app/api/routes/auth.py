@@ -32,8 +32,6 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, EmailStr
 
 from app.main import limiter
-
-RATE_LIMIT_DEMO = "10/minute"
 from sqlalchemy.orm import Session
 
 from app.auth.contracts import AuthenticatedUser
@@ -46,6 +44,8 @@ from app.models import Tenant, TenantMembership, Workspace
 from app.services.demo_seed.service import seed_demo_workspace
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
+
+RATE_LIMIT_DEMO = get_settings().demo_rate_limit
 
 
 # ---------------------------------------------------------------------------

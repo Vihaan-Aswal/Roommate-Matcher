@@ -410,6 +410,25 @@ function extractErrorMessage(data: unknown): string {
     return detail;
   }
 
+  if (Array.isArray(detail) && detail.length > 0) {
+    const first = detail[0];
+    if (typeof first === "string") {
+      return first;
+    }
+    if (first && typeof first === "object") {
+      const item = first as Record<string, unknown>;
+      const message = typeof item.msg === "string" ? item.msg : null;
+      const location = Array.isArray(item.loc) ? item.loc.filter((part) => part !== "body") : [];
+      const field = location.length > 0 ? String(location[location.length - 1]) : null;
+      if (message && field) {
+        return `${field}: ${message}`;
+      }
+      if (message) {
+        return message;
+      }
+    }
+  }
+
   if (detail && typeof detail === "object") {
     const detailRecord = detail as Record<string, unknown>;
     if (typeof detailRecord.message === "string") {

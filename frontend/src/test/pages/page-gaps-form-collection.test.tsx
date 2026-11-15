@@ -140,6 +140,7 @@ describe("AdminFormCollection link and collection states", () => {
     renderWithProviders(<AdminFormCollection />);
 
     expect(screen.getByText(/\/f\/abc-def$/)).toBeInTheDocument();
+    expect(screen.getByTestId("form-link-expiry")).toHaveTextContent(/Link expires/);
 
     fireEvent.click(screen.getByRole("button", { name: /copy link/i }));
 

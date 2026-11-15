@@ -54,6 +54,7 @@ frontend/e2e-baseline.txt
 frontend/e2e-run*.txt
 frontend/e2e-final-*.txt
 frontend/e2e-dod-*.txt
+frontend/e2e-par*.txt
 frontend/test-out.txt
 frontend/vitest-report.json
 frontend/covmap.md

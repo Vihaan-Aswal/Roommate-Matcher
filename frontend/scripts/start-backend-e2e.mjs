@@ -43,6 +43,7 @@ const server = spawn(
       SUPABASE_JWT_ISSUER: process.env.SUPABASE_JWT_ISSUER || "https://e2e.supabase.co/auth/v1",
       SUPABASE_JWT_AUDIENCE: process.env.SUPABASE_JWT_AUDIENCE || "authenticated",
       ADMIN_EMAILS: process.env.ADMIN_EMAILS || "e2e-admin@example.com",
+      DEMO_RATE_LIMIT: process.env.DEMO_RATE_LIMIT || "100000/minute",
     },
   },
 );

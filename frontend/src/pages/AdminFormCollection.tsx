@@ -28,6 +28,13 @@ function triggerCsvDownload(fileName: string, content: string): void {
   URL.revokeObjectURL(url);
 }
 
+function formatExpiry(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.valueOf())) return value;
+  return parsed.toLocaleDateString(undefined, { dateStyle: "medium" });
+}
+
 export function AdminFormCollection(): JSX.Element {
   const { workspaceId, workspaceName } = useWorkspace();
   const formStatusQuery = useAdminFormStatusQuery(workspaceId);
@@ -121,6 +128,8 @@ export function AdminFormCollection(): JSX.Element {
     },
   ];
 
+  const expiry = formatExpiry(formLinkQuery.data?.expires_at);
+
   return (
     <section className="desk-stack">
       <AdminPageHeader
@@ -142,6 +151,12 @@ export function AdminFormCollection(): JSX.Element {
           </h2>
           <p className="desk-section-note">Share once · same link for every student</p>
         </div>
+
+        {expiry ? (
+          <p className="desk-section-note" data-testid="form-link-expiry">
+            Link expires {expiry}
+          </p>
+        ) : null}
 
         {formLinkQuery.isLoading ? (
           <div className="desk-stack-sm" aria-busy="true">

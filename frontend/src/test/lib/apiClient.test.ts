@@ -170,6 +170,13 @@ describe("request plumbing", () => {
     ["a top-level message", { message: "Import failed" }, "Import failed"],
     ["an unrecognised object", { error: "nope" }, "Request failed. Please try again."],
     ["a detail object without a message", { detail: { code: "E1" } }, "Request failed. Please try again."],
+    [
+      "a FastAPI validation array",
+      { detail: [{ loc: ["body", "name"], msg: "field required", type: "missing" }] },
+      "name: field required",
+    ],
+    ["a detail array of strings", { detail: ["first problem", "second"] }, "first problem"],
+    ["an empty detail array", { detail: [] }, "Request failed. Please try again."],
     ["an array body", ["bad"], "Request failed. Please try again."],
   ];
 

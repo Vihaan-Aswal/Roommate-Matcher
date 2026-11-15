@@ -11,19 +11,19 @@ Budget: **≤ 5,000 ms** for one segment (the brief asks for run latency on this
 |---|---:|---|
 | Baseline (encoded integer weights + full-state re-evaluation per swap) | **56,268 ms** | over budget |
 | Float weights in `graph_builder` (same lexicographic tie intent, no huge integers) | 26,116 ms | still over |
-| + incremental swap evaluation (`_evaluate_room`, two rooms per candidate) | 1,323 ms | **passes** |
+| + incremental swap evaluation (`_evaluate_room`, two rooms per candidate) | 1,323 ms | passes |
+| + explicit equal-score canonicalization (restores deterministic lexicographic ties) | **3,592 ms** | **passes** |
 
 Command: `cd backend; uv run --extra dev python scripts/benchmark_matching.py --students 200 --room-size 2 --iterations 3`
 
 ```
 {'students': 200, 'room_size': 2, 'rooms': 100,
- 'iterations_ms': [1322.91, 1289.26, 1610.08],
- 'median_ms': 1322.91, 'min_ms': 1289.26, 'max_ms': 1610.08, 'swap_passes': 0}
+ 'iterations_ms': [3573.8, 3611.02],
+ 'median_ms': 3592.41, 'min_ms': 3573.8, 'max_ms': 3611.02, 'swap_passes': 0}
 ```
 
-42× faster. Tie-break for exactly equal pair scores is now NetworkX's deterministic sorted-graph
-order instead of a per-edge encoded rank; the public contract (same input → same output, including
-ties) still holds and is guarded by tests. `graph["..."]["tie_rank"]` is retained for audit.
+15.7x faster than baseline. The explicit tie pass trades ~2.3 s for a deterministic,
+lexicographically smallest pairing among exactly equal scores; the 5 s budget still holds.
 
 ## 2. Matching-runs history — N+1 query
 
@@ -67,11 +67,11 @@ Budget: **≤ 30 s** (brief target; baseline 20 s at 57 tests, 62 s cold).
 | State | Files | Tests | Vitest duration |
 |---|---:|---:|---:|
 | Baseline | 23 | 57 | 17.8–18.2 s |
-| Final (happy-dom + node env for pure libs + dep optimizer) | 49 | 383 | **27.5-30.9 s** |
+| Final (happy-dom + node env for pure libs + dep optimizer) | 49 | 386 | **27.5-29.4 s** |
 
 Changes kept: `happy-dom` for DOM tests, `// @vitest-environment node` on 13 pure files,
 conditional `jest-dom`, dependency optimizer, 10 workers. Wall time including npm/Node startup is
-~30–33 s on this machine; the suite's own duration is 27.5–30.1 s.
+~30–32 s on this machine; the suite's own duration is 27.5–29.4 s.
 
 ## 6. Repo slimming
 
