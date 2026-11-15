@@ -22,17 +22,30 @@ import { PlatformTenantWorkspacesPage } from "./pages/platform/PlatformTenantWor
 import { Toaster } from "./components/ui/toaster";
 
 /**
+ * DeskBoot — what the page shows while auth is still resolving. It is the desk's
+ * field with a mono note, not a spinner: a cold load must not paint a different
+ * product for half a second.
+ */
+function DeskBoot(): JSX.Element {
+  return (
+    <div className="desk desk-canvas">
+      <div className="desk-canvas-inner">
+        <p className="desk-loading-note" style={{ color: "var(--ink-faint)" }}>
+          Reading the desk
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/**
  * PlatformRoute — restricts access to platform admins only.
  */
 function PlatformRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-      </div>
-    );
+    return <DeskBoot />;
   }
 
   if (!user) return <Navigate replace to="/login" />;
@@ -43,18 +56,14 @@ function PlatformRoute({ children }: { children: React.ReactNode }) {
 
 /**
  * ProtectedRoute — renders children only when the user is authenticated.
- * Shows a loading spinner while AuthProvider is bootstrapping.
+ * Shows the desk's boot state while AuthProvider is bootstrapping.
  * Redirects to /login otherwise.
  */
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-      </div>
-    );
+    return <DeskBoot />;
   }
 
   if (!user) {
