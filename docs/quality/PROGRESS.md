@@ -10,38 +10,36 @@ Live status for `docs/quality/GOAL.md`. Updated after every phase.
 | 1 — Coverage map | done | `COVERAGE-MAP.md` — every backend/frontend/root file classified |
 | 2 — Perfect existing suite | done | dead scripts deleted, Pydantic + Router warnings removed, E2E specs rewritten to current UI (15/15 green), 6/6 mutation checks red, wall-clock perf test recalibrated |
 | 3 — Fill gaps | done | backend 615 passed / 5 Postgres-gated skips; 99.93 line / 99.20 branch, core packages 100; frontend 383 passed / 49 files, 95.04 line, lib/hooks 100; contracts + system + security + E2E route/a11y sweeps added |
-| 4 — Fix everything | done | 20 defects fixed with guards (see `REPORT.md` §3); Postgres parity BLOCKED with command |
-| 5 — Optimise | done | matching 200/100 56.3 s → 1.32 s; N+1 6 → 2 queries; initial JS 738 → 548 kB; LCP 332–660 ms; suite 27.5–30.9 s (`PERFORMANCE.md`) |
-| 6 — CI | done | `.github/workflows/quality.yml`; clean worktree at `384459f`: 615 pass / 5 skip, 383 frontend tests, build 547.80 kB, bundle budget, E2E 22 pass (see `REPORT.md` §7) |
+| 4 — Fix everything | done | 25 defects fixed with guards (see `REPORT.md` §3); Postgres parity now executes against postgres:16 (5/5) |
+| 5 — Optimise | done | matching 200/100 56.3 s → 3.59 s; N+1 6 → 2 queries; initial JS 738 → 548 kB; LCP 332–660 ms; suite 27.5–29.4 s (`PERFORMANCE.md`) |
+| 6 — CI | done | `.github/workflows/quality.yml` with a postgres:16 service; clean worktree at `c25c2bb`: 624 pass, 386 frontend tests, bundle budget, E2E 23 pass with 2 workers (see `REPORT.md` §7) |
 
 ## Phase 3–5 evidence (2026-11-15)
 
-- Backend: **615 passed, 5 skipped in 43.28 s**; coverage **99.93 % line / 99.20 % branch**;
+- Backend: **619 passed, 5 skipped in 44.53 s** default; **624 passed, 0 skipped** with
+  `TEST_DATABASE_URL`; coverage **99.93 % line / 99.20 % branch**;
   `services/{matching,scoring,fairness,ingestion}` all **100 % line** (`scripts/check_coverage.py`).
-- Frontend: **383 passed / 49 files**, Vitest duration 27.5–30.9 s; coverage **95.04 line /
-  88.45 branch / 95.16 function**; `src/lib` 100/100, `src/hooks` 100/100, `src/pages` 99.26/100.
-- Typecheck and build pass; initial JS 547.94 kB (160.18 gzip).
-- E2E: 23 tests, run twice, zero retries (see final run logs).
+- Frontend: **386 passed / 49 files**, Vitest duration 27.5–29.4 s; coverage **95.02 line /
+  88.37 branch / 95.18 function**; `src/lib` 99.67/100, `src/hooks` 100/100, `src/pages` 99.26/100.
+- Typecheck and build pass; initial JS 548.09 kB (160.25 gzip).
+- E2E: 23 tests, 2 workers, run twice, zero retries, 2.2 min/run.
 - Contracts: OpenAPI snapshot (32 paths / 33 operations), form-question ↔ payload ↔ profile
   columns, export header/4-slot cap.
 - System: upload → form → run → rooms → students → fairness → export → checker; failure paths
-  (capacity, zero rooms, duplicates, bad DOB, dead token) and a 3-student remainder room.
+  (capacity, zero rooms, duplicates, bad DOB, dead/expired token) and a 3-student remainder room.
 - Security: JWT expiry/issuer/audience/alg, IDOR, mass assignment, PII, CORS, demo TTL; 17 tests.
 - Non-functional: axe on 8 core pages (no serious/critical), keyboard focus order, both widths
-  1280/375, no horizontal overflow, no console errors, empty-workspace states.
-- Perf: 200 students / 100 rooms **56.3 s → 1.32 s**; matching history **6 → 2 SELECTs**; route
-  LCP 332–660 ms, CLS ≤ 0.053.
+  1280/375, no horizontal overflow, no console errors, empty/loading/error states.
+- Perf: 200 students / 100 rooms **56.3 s → 3.59 s** (tie canonicalization included); matching
+  history **6 → 2 SELECTs**; route LCP 332–660 ms, CLS ≤ 0.053.
+- Postgres: 5/5 parity tests pass (alembic up/down including the form-link expiry revision, JSONB,
+  RLS, cascades, unique membership) against `postgres:16`.
 
 ## Blockers
 
-- **Postgres parity is BLOCKED**: Docker Desktop did not start on this machine
-  (`docker version` → `npipe:////./pipe/dockerDesktopLinuxEngine` missing). The 5 gated tests are
-  written and skip with reason `Postgres parity requires TEST_DATABASE_URL`; unblock:
-  `docker run --rm -e POSTGRES_PASSWORD=postgres -p 55432:5432 postgres:16` then
-  `$env:TEST_DATABASE_URL='postgresql+psycopg2://postgres:postgres@127.0.0.1:55432/postgres'` and
-  `cd backend; uv run --extra dev pytest tests/integration/test_postgres_parity.py -q`.
-- Public form links have no expiry in the schema; recorded as a medium product risk, not fixed
-  (schema/feature change outside the brief's anti-goals).
+None. Postgres parity runs against the `postgres:16` container (5/5) and the full suite passes with
+`TEST_DATABASE_URL` set (624 passed, 0 skipped). On a machine without Docker those five tests skip
+with the documented reason; that is a condition, not an unresolved blocker.
 
 
 ## Phase 2 evidence (2026-11-15)

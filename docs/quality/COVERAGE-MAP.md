@@ -306,5 +306,5 @@ worklist.
 - Dead reactivation/duplicate branches removed in `room_csv`, `student_csv`, `matcher_3bed`,
   `matcher_4bed`; the 9 formerly uncovered lines are gone rather than suppressed.
 - Final backend coverage is 99.93 % line / 99.20 % branch; all four required packages are 100 %.
-  Frontend final is 95.04 line / 88.45 branch / 95.16 function.
+  Frontend final is 95.02 line / 88.37 branch / 95.18 function (386 tests).
 

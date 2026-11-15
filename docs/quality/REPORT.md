@@ -190,24 +190,25 @@ Workflow: `.github/workflows/quality.yml`. Jobs: backend (uv sync, pytest + cove
 frontend (npm ci, typecheck, test:coverage, build), E2E (venv + npm ci + Chromium, run twice,
 upload traces on failure). No secrets or external services are required.
 
-A clean checkout at commit `384459f` was created with `git worktree add <temp> HEAD --detach` and
+A clean checkout at commit `c25c2bb` was created with `git worktree add <temp> HEAD --detach` and
 the workflow's commands were replayed:
 
 | Step | Result |
 |---|---|
-| `uv sync --extra dev` (cold) | 11.2 s |
-| `uv run --extra dev pytest` (cold) | **615 passed, 5 skipped in 79.44 s** |
-| `npm ci` (cold) | 118.6 s |
+| `uv sync --extra dev` (cold) | 11 s |
+| `uv run --extra dev pytest` with `TEST_DATABASE_URL` (postgres:16) | **624 passed, 0 skipped in 88.57 s** |
+| `npm ci` (cold) | ~119 s |
 | `npm run typecheck` | exit 0 |
-| `npm run test` | **49 files passed, 383 tests, 29.79 s** |
-| `npm run build` | **547.80 kB JS / 160.03 kB gzip**, built in 11.92 s |
-| `npm run check:bundle` | largest chunk 534.96 kB (156.28 gzip); budget passed |
+| `npm run test` | **49 files passed, 386 tests, 31.50 s** |
+| `npm run build` | **548.09 kB JS / 160.13 kB gzip**, built in 19.32 s |
+| `npm run check:bundle` | budget passed |
 | root `.venv` + `pip install -e "./backend[dev]"` | deps import cleanly |
-| `npm run e2e` | **22 passed (2.9 m)** |
+| `npm run e2e` | **23 passed with 2 workers (2.4 m)** |
 
-The first clean-clone E2E attempt exposed two real CI defects, both fixed (defects 19-20 in
+The first clean-clone E2E attempts exposed two real CI defects, both fixed (defects 19-20 in
 section 3). Local suites now require no `.env` file; a real deployment still logs the
-missing-config error.
+missing-config error. The Postgres container is the only external service the CI workflow supplies
+(as a GitHub Actions service).
 
 ## 8. Known risks (remaining)
 
