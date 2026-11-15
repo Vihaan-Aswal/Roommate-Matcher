@@ -20,7 +20,11 @@ export function InlineAlert({
   actions,
 }: InlineAlertProps): JSX.Element {
   return (
-    <div className="desk-note" data-tone={TONE_MAP[tone]} role={tone === "error" ? "alert" : undefined}>
+    <div
+      className="desk-note m-lift"
+      data-tone={TONE_MAP[tone]}
+      role={tone === "error" ? "alert" : undefined}
+    >
       <div>
         <p className="desk-note-title">{title}</p>
         <p className="desk-note-body">{message}</p>

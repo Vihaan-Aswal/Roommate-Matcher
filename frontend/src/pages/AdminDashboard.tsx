@@ -183,7 +183,7 @@ export function AdminDashboard(): JSX.Element {
       <AdminPageHeader
         title="Dashboard"
         workspace={workspaceName ?? undefined}
-        meta={<>{totalSegments} segments</>}
+        meta={<>{dashboardQuery.isLoading ? "reading the workspace" : `${totalSegments} segments`}</>}
         description="Four stages stand between this workspace and a proposal. Each one opens the page that moves it."
         actions={
           <Button asChild variant="outline" size="sm">
@@ -331,7 +331,7 @@ export function AdminDashboard(): JSX.Element {
           </div>
 
           {noteBlockers.length > 0 ? (
-            <div className="desk-note" data-tone="attention">
+            <div className="desk-note m-lift" data-tone="attention">
               <div className="desk-stack-sm">
                 {noteBlockers.map((blocker) => (
                   <div className="desk-row-between" style={{ gap: 12 }} key={blocker.key}>
@@ -404,6 +404,7 @@ export function AdminDashboard(): JSX.Element {
               </div>
             ) : (
               <EmptyState
+                className="m-lift"
                 title="No run recorded yet"
                 line="Matching runs are written when you run a ready segment. Until then there is nothing to read here."
                 action={
