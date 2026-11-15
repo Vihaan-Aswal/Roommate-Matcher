@@ -92,7 +92,7 @@ export function LoginPage(): JSX.Element {
             </dl>
           </div>
 
-          <div className="desk-sheet" style={{ padding: "24px 24px 22px" }}>
+          <div className="desk-sheet m-slip" style={{ padding: "24px 24px 22px" }}>
             <h2 style={{ fontSize: "1.35rem", lineHeight: 1.15 }}>
               A workspace you can throw away.
             </h2>
