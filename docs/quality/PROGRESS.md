@@ -21,7 +21,7 @@ Live status for `docs/quality/GOAL.md`. Updated after every phase.
 - Frontend: **383 passed / 49 files**, Vitest duration 27.5–30.9 s; coverage **95.04 line /
   88.45 branch / 95.16 function**; `src/lib` 100/100, `src/hooks` 100/100, `src/pages` 99.26/100.
 - Typecheck and build pass; initial JS 547.94 kB (160.18 gzip).
-- E2E: 22 tests, run twice, zero retries (see final run logs).
+- E2E: 23 tests, run twice, zero retries (see final run logs).
 - Contracts: OpenAPI snapshot (32 paths / 33 operations), form-question ↔ payload ↔ profile
   columns, export header/4-slot cap.
 - System: upload → form → run → rooms → students → fairness → export → checker; failure paths

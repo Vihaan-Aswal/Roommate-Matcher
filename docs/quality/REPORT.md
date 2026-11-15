@@ -24,7 +24,7 @@ Date: 2026-11-15. Baseline reproduced in `BASELINE.md`; per-file classification 
 | Initial JS bundle | 738.42 kB (214.49 gzip) | **548.09 kB (160.25 gzip)** | <= 600 kB |
 | Matching, 200 students / 100 rooms | 56,268 ms | **1,323 ms** | <= 5,000 ms |
 | Matching history queries (5 runs) | 6 SELECTs | **2 SELECTs** | <= 2 |
-| E2E | red (stale specs) | **22 passed, twice consecutively, 0 retries** | all pass |
+| E2E | red (stale specs) | **23 passed, twice consecutively, 0 retries** | all pass |
 | Typecheck / build | pass | **pass** | pass |
 | Seeded matching run (96 students) | 6.39 s | 6.39 s | - |
 
@@ -77,8 +77,8 @@ src/pages  | 99.26 | 89.83 | 100   | 99.26
 ### E2E
 
 ```
-cd frontend; npm run e2e   (run 1) -> 22 passed (2.9m)
-cd frontend; npm run e2e   (run 2) -> 22 passed (3.7m)
+cd frontend; npm run e2e   (run 1) -> 23 passed (3.1m)
+cd frontend; npm run e2e   (run 2) -> 23 passed (3.1m)
 ```
 
 Zero retries (`retries: 0` in `playwright.config.ts`), one worker, fresh DB each run.
@@ -220,7 +220,7 @@ each change is listed here with the behaviour it now guards:
 | `backend/tests/test_verify_env.py` | Removed the secret-prefix `print`; same assertion | Still guards that the Supabase JWT secret is configured, without leaking it to logs. |
 
 The five Playwright specs were rewritten (not weakened) because they asserted pre-redesign labels
-and routes; the final suite has 22 tests, more than the original 15.
+and routes; the final suite has 23 tests, more than the original 15.
 
 ## 10. Blocked / not done
 

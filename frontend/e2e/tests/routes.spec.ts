@@ -219,6 +219,35 @@ test.describe("route sweep and guards", () => {
     await expect(page.getByRole("heading", { name: /at-risk/i }).first()).toBeVisible();
   });
 
+  test("the dashboard surfaces its loading and error states", async ({ page }) => {
+    await startDemo(page);
+    const token = await page.evaluate(() => sessionStorage.getItem("demo_token"));
+    const created = await page.request.post("http://127.0.0.1:8000/api/workspaces", {
+      headers: { Authorization: `Bearer ${token}` },
+      data: { name: `Error Probe ${Date.now()}` },
+    });
+    expect(created.ok()).toBeTruthy();
+    const workspace = ((await created.json()) as { id: string }).id;
+
+    let firstRequest = true;
+    await page.route("**/api/workspaces/*/dashboard", async (route) => {
+      if (firstRequest) {
+        firstRequest = false;
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+      }
+      await route.fulfill({
+        status: 500,
+        contentType: "application/json",
+        body: JSON.stringify({ detail: "dashboard unavailable" }),
+      });
+    });
+
+    await page.goto(`/app/${workspace}/dashboard`);
+    await expect(page.getByText("Reading the workspace", { exact: true })).toBeVisible();
+    await expect(page.getByText("The workspace could not be read")).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText("dashboard unavailable")).toBeVisible();
+  });
+
   test("the at-risk rail reflects the review URL state", async ({ page }) => {
     await startDemo(page);
     await page.goto(
