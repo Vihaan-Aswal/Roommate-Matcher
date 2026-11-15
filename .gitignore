@@ -87,3 +87,7 @@ pnpm-debug.log*
 
 .agents/
 impli_plan.md
+# Generated design review evidence
+.impeccable/
+docs/redesign/
+docs/motion/

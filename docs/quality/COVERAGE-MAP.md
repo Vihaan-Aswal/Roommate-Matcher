@@ -281,7 +281,7 @@ direct owner are listed with the group that owns them or the exclusion reason.
 | `.github/workflows/*.yml` | M | CI workflows; the Phase 6 workflow itself is the proof. |
 | `demo-data/seed.py` | H | Owner: `tests/scripts/test_demo_seed_outputs.py`, E2E reset. |
 | `demo-data/*.csv` | M | Deterministic fixture data; consumed by seed + E2E. |
-| `docs/**`, `PRODUCT.md`, `DESIGN.md`, `README.md`, `images/**` | L | Documentation and screenshots; anti-goal to delete. |
+| `docs/quality/**`, `PRODUCT.md`, `README.md`, `images/**` | L | Documentation, evidence and screenshots; kept. Design/motion review docs and `.impeccable/` evidence were removed from the repo as non-product artefacts. |
 
 ---
 
