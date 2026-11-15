@@ -17,7 +17,10 @@ export function LoginPage(): JSX.Element {
 
   useEffect(() => {
     if (user) {
-      navigate("/app");
+      const demoWorkspaceId = sessionStorage.getItem("demo_token")
+        ? sessionStorage.getItem("demo_workspace_id")
+        : null;
+      navigate(demoWorkspaceId ? `/app/${demoWorkspaceId}/dashboard` : "/app");
     }
   }, [user, navigate]);
 

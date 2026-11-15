@@ -40,9 +40,6 @@ class TenantRow(BaseModel):
     created_at: str
     workspace_count: int
 
-    class Config:
-        from_attributes = True
-
 
 class TenantListResponse(BaseModel):
     tenants: list[TenantRow]
@@ -56,9 +53,6 @@ class WorkspaceRow(BaseModel):
     source: str
     is_demo_seeded: bool
     created_at: str
-
-    class Config:
-        from_attributes = True
 
 
 class WorkspaceListResponse(BaseModel):

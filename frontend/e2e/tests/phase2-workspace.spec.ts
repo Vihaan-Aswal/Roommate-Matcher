@@ -1,105 +1,64 @@
-import { test, expect } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
-test.describe("Phase 2 Workspace Foundation E2E", () => {
-  test("Test 1: Unauthenticated Routing", async ({ page }) => {
-    // Navigate to the root
+import { startDemo } from "../helpers";
+
+test.describe("Workspace foundation", () => {
+  test("the homepage is public and /app is guarded", async ({ page }) => {
     await page.goto("/");
-    
-    // Assert the application automatically redirects to /login
-    await expect(page).toHaveURL(/.*\/login/);
+    await expect(
+      page.getByRole("heading", { level: 1, name: /a room list you can sign/i }),
+    ).toBeVisible();
+    await expect(page).toHaveURL(/\/$/);
+
+    await page.goto("/app");
+    await expect(page).toHaveURL(/\/login$/);
   });
 
-  test("Test 2: Demo Flow Verification", async ({ page }) => {
-    page.on("console", msg => console.log("PAGE LOG:", msg.text()));
-    page.on("pageerror", err => console.log("PAGE ERROR:", err));
+  test("demo flow lands on a seeded dashboard", async ({ page }) => {
+    const workspaceId = await startDemo(page);
+    expect(workspaceId).toMatch(/^[a-f0-9-]+$/);
 
-    await page.goto("/login");
-
-    await page.getByRole("button", { name: /launch demo/i }).click();
-
-    // Check if there is an error message displayed
-    const errorLocator = page.locator("text=Failed");
-    if (await errorLocator.isVisible()) {
-      console.log("Demo creation failed with error:", await errorLocator.textContent());
-    }
-
-    // The login page redirects to /app. The demo workspace should appear as a card.
-    await expect(page).toHaveURL(/.*\/app$/, { timeout: 15000 });
-    
-    // Click the Demo Workspace card to go to the dashboard
-    await page.getByText(/Demo/i).first().click();
-
-    // Assert the URL is now /app/{demoWorkspaceId}/dashboard
-    await expect(page).toHaveURL(/.*\/app\/.*\/dashboard/);
-
-    // Assert the "Demo Mode" badge is visible in the UI (e.g., in the sidebar)
-    await expect(page.getByText(/demo mode/i)).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
+    await expect(page.getByText("96").first()).toBeVisible();
+    await expect(page.getByText("4/4").first()).toBeVisible();
+    await expect(page.getByText(/demo/i).first()).toBeVisible();
   });
 
-  test("Test 3: Workspace Creation & UI Verification", async ({ page }) => {
-    // Authenticate (using a demo session)
-    await page.goto("/login");
-    await page.getByRole("button", { name: /launch demo/i }).click();
-    await expect(page).toHaveURL(/.*\/app$/);
+  test("a workspace can be created from the chooser", async ({ page }) => {
+    await startDemo(page);
+    await page.goto("/app");
+    await expect(page.getByRole("heading", { name: "Choose a workspace" })).toBeVisible();
 
-    // We are already on the Workspace Chooser page (/app).
-    // Click "Create New Workspace"
-    await page.getByText(/Create New Workspace/i).click();
-
-    // Fill out the workspace name
+    await page.getByRole("button", { name: /create new workspace/i }).click();
     const workspaceName = `Test Workspace ${Date.now()}`;
-    await page.getByPlaceholder(/workspace name/i).fill(workspaceName);
-    await page.getByRole("button", { name: /^Create$/i }).click();
+    await page.getByPlaceholder(/hostel office 2026/i).fill(workspaceName);
+    await page.getByRole("button", { name: /^create$/i }).click();
 
-    // Assert the new workspace dashboard is loaded
-    await expect(page).toHaveURL(/.*\/app\/.*\/dashboard/);
-
-    // Assert the workspace name is visible in the header/sidebar
+    await expect(page).toHaveURL(/\/app\/[^/]+\/dashboard/);
     await expect(page.getByText(workspaceName).first()).toBeVisible();
-
-    // Verify Settings tab works
-    // (Assuming Settings is part of the AdminLayout sidebar)
-    // Here we just verify the structure is present (e.g. sidebar navigation)
     await expect(page.getByRole("navigation")).toBeVisible();
   });
 
-  test("Test 4: Tenant Isolation Check", async ({ browser }) => {
-    // 1. Create a demo session for Tenant A
+  test("one tenant's token cannot read another tenant's workspace", async ({ browser }) => {
     const contextA = await browser.newContext();
     const pageA = await contextA.newPage();
-    
-    await pageA.goto("/login");
-    await pageA.getByRole("button", { name: /launch demo/i }).click();
-    await expect(pageA).toHaveURL(/.*\/app$/);
-    await pageA.getByText(/Demo/i).first().click();
-    await expect(pageA).toHaveURL(/.*\/app\/.*\/dashboard/);
-    
-    const tenantAUrl = pageA.url();
-    await contextA.close(); // Log out Tenant A
-    
-    // 2. Create a demo session for Tenant B
+    const workspaceA = await startDemo(pageA);
+    await contextA.close();
+
     const contextB = await browser.newContext();
     const pageB = await contextB.newPage();
+    await startDemo(pageB);
 
-    await pageB.goto("/login");
-    await pageB.getByRole("button", { name: /launch demo/i }).click();
-    await expect(pageB).toHaveURL(/.*\/app$/);
-    await pageB.getByText(/Demo/i).first().click();
-    await expect(pageB).toHaveURL(/.*\/app\/.*\/dashboard/);
-
-    // 3. Attempt to access Tenant A's Dashboard using Tenant B's session
-    await pageB.goto(tenantAUrl);
-
-    // The backend should return 401/403 or redirect
-    // If it doesn't redirect, the frontend should display an error message
-    // such as "Unable to load dashboard" or "Unauthorized"
-    const currentUrl = pageB.url();
-    if (currentUrl === tenantAUrl) {
-      await expect(pageB.getByText(/unable to load dashboard|unauthorized|forbidden|not found/i).first()).toBeVisible();
+    await pageB.goto(`/app/${workspaceA}/dashboard`);
+    const error = pageB.getByText(
+      /could not be read|access denied|unauthorized|forbidden|not found/i,
+    );
+    if (pageB.url().includes(workspaceA)) {
+      await expect(error.first()).toBeVisible();
     } else {
-      await expect(pageB).not.toHaveURL(tenantAUrl);
+      await expect(pageB).not.toHaveURL(new RegExp(workspaceA));
     }
-    
+
     await contextB.close();
   });
 });

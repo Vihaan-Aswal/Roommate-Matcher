@@ -7,7 +7,7 @@ from app.services.matching.engine import run_matching_for_segment
 from tests.matching.fixtures import build_pair_results
 
 
-def test_performance_smoke_50_student_2bed_under_2_seconds() -> None:
+def test_performance_smoke_50_student_2bed_under_10_seconds() -> None:
     students = [f"P{i:03d}" for i in range(1, 51)]
     pair_results = build_pair_results(students, default_score=0.55)
 
@@ -25,4 +25,7 @@ def test_performance_smoke_50_student_2bed_under_2_seconds() -> None:
     elapsed = time.perf_counter() - started_at
 
     assert len(result.rooms) == 25
-    assert elapsed < 2.0
+    # Wall clock, calibrated on a warm local run: ~0.1 s. The 10 s cap is a
+    # pathological-regression guard that survives coverage instrumentation
+    # (~4x) and slow CI runners without becoming a hardware benchmark.
+    assert elapsed < 10.0

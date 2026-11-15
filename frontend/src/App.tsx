@@ -75,7 +75,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 export default function App(): JSX.Element {
   return (
-    <Router>
+    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Routes>
         {/* Public homepage */}
         <Route path="/" element={<HomePage />} />

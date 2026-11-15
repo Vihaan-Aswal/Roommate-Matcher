@@ -250,6 +250,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(async () => {
     sessionStorage.removeItem(DEMO_TOKEN_KEY);
+    sessionStorage.removeItem("demo_workspace_id");
     sessionStorage.removeItem(IMPERSONATION_TOKEN_KEY);
     sessionStorage.removeItem(REAL_ADMIN_TOKEN_KEY);
     setUser(null);
