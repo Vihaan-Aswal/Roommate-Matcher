@@ -29,6 +29,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
   "pytest>=8.3.0,<9.0.0",
+  "pytest-cov>=6.0.0,<7.0.0",
   "httpx>=0.28.0,<1.0.0"
 ]
 
@@ -43,3 +44,17 @@ include = ["app*"]
 testpaths = ["tests"]
 pythonpath = ["."]
 addopts = "-q"
+
+[tool.coverage.run]
+source = ["app"]
+branch = true
+omit = ["*/__init__.py"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+exclude_lines = [
+  "pragma: no cover",
+  "if TYPE_CHECKING:",
+  "raise NotImplementedError",
+]
