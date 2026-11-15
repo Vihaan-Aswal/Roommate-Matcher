@@ -299,7 +299,7 @@ export function StudentForm(): JSX.Element {
           ) : null}
 
           {step === "success" ? (
-            <div className="desk-stack">
+            <div className="desk-stack m-stamp">
               <div className="desk-row" style={{ gap: 8, color: "var(--wax)" }}>
                 <Check size={18} strokeWidth={2.2} aria-hidden="true" />
                 <p className="desk-overline">Submitted</p>
