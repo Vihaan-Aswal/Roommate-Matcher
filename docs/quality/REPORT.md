@@ -182,7 +182,27 @@ workflow's exact commands (see `PROGRESS.md` for the transcript tail). The only 
 difference is that GitHub's runners provide Docker for optional Postgres work; the default suite
 does not need it.
 
-## 8. Known risks (remaining)
+## 9. Pre-existing tests (326 = 269 backend + 57 frontend)
+
+All 326 still exist and pass. None was deleted or skipped. Four had their expectations corrected;
+each change is listed here with the behaviour it now guards:
+
+| Test | Change | Behaviour guarded now |
+|---|---|---|
+| `backend/tests/matching/test_performance_smoke.py` | 2 s → 10 s wall cap; renamed to `..._under_10_seconds` | Still catches pathological slowdowns; the old bound failed only when coverage instrumentation (~4×) was active. |
+| `backend/tests/matching/test_graph_builder.py::test_build_complete_graph_uses_deterministic_tie_ranking` | Asserts equal weights + ordered `tie_rank` instead of distinct weights | The performance fix removed encoded near-tie weights (they made blossom 300× slower); a new test asserts equal-score matchings are identical for forward/reversed input. |
+| `frontend/src/test/workspace-routing.test.tsx` (4 tests) | Sync `getByText` → `findByText` / `waitFor` | Route-level lazy chunks mean the destination arrives after a chunk resolves; the guards and redirects are unchanged. |
+| `backend/tests/test_verify_env.py` | Removed the secret-prefix `print`; same assertion | Still guards that the Supabase JWT secret is configured, without leaking it to logs. |
+
+The five Playwright specs were rewritten (not weakened) because they asserted pre-redesign labels
+and routes; the final suite has 22 tests, more than the original 15.
+
+## 10. Blocked / not done
+
+- **Postgres parity** — see §5. Five gated tests are written and skip; no pass is claimed.
+- **Public form-link expiry** — no expiry field exists; recorded as a medium product risk rather
+  than invented. Adding it is a schema/feature change outside the brief's anti-goals.
+
 
 | Risk | Severity | Detail |
 |---|---|---|

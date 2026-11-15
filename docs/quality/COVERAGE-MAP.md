@@ -296,3 +296,15 @@ direct owner are listed with the group that owns them or the exclusion reason.
 
 Anything not listed above has no exclusion. Rows above with `partial`/`untested` are the Phase 3
 worklist.
+
+## Post-pass changes (2026-11-15, final)
+
+- `app/services/scoring_adapter.py` deleted: broken unused import shim (`profiles_to_scoring_profiles`
+  no longer exists). No caller.
+- `app/services/dashboard/summary.py::get_dashboard_summary` deleted: dead and broken (missing
+  required `workspace_id`); the route uses `get_workspace_dashboard_summary`.
+- Dead reactivation/duplicate branches removed in `room_csv`, `student_csv`, `matcher_3bed`,
+  `matcher_4bed`; the 9 formerly uncovered lines are gone rather than suppressed.
+- Final backend coverage is 99.93 % line / 99.20 % branch; all four required packages are 100 %.
+  Frontend final is 94.97 line / 88.39 branch / 95.16 function.
+
