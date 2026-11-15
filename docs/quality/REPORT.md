@@ -177,7 +177,7 @@ Workflow: `.github/workflows/quality.yml`. Jobs: backend (uv sync, pytest + cove
 frontend (npm ci, typecheck, test:coverage, build), E2E (venv + npm ci + Chromium, run twice,
 upload traces on failure). No secrets or external services are required.
 
-A clean checkout at commit `0becb7f` was created with `git worktree add <temp> HEAD --detach` and
+A clean checkout at commit `384459f` was created with `git worktree add <temp> HEAD --detach` and
 the workflow's commands were replayed:
 
 | Step | Result |
@@ -186,8 +186,9 @@ the workflow's commands were replayed:
 | `uv run --extra dev pytest` (cold) | **615 passed, 5 skipped in 79.44 s** |
 | `npm ci` (cold) | 118.6 s |
 | `npm run typecheck` | exit 0 |
-| `npm run test` | **49 files passed, 383 tests, 27.44 s** |
-| `npm run build` | **547.80 kB JS / 160.03 kB gzip**, built in 13.32 s |
+| `npm run test` | **49 files passed, 383 tests, 29.79 s** |
+| `npm run build` | **547.80 kB JS / 160.03 kB gzip**, built in 11.92 s |
+| `npm run check:bundle` | largest chunk 534.96 kB (156.28 gzip); budget passed |
 | root `.venv` + `pip install -e "./backend[dev]"` | deps import cleanly |
 | `npm run e2e` | **22 passed (2.9 m)** |
 

@@ -12,7 +12,7 @@ Live status for `docs/quality/GOAL.md`. Updated after every phase.
 | 3 — Fill gaps | done | backend 615 passed / 5 Postgres-gated skips; 99.93 line / 99.20 branch, core packages 100; frontend 383 passed / 49 files, 95.04 line, lib/hooks 100; contracts + system + security + E2E route/a11y sweeps added |
 | 4 — Fix everything | done | 20 defects fixed with guards (see `REPORT.md` §3); Postgres parity BLOCKED with command |
 | 5 — Optimise | done | matching 200/100 56.3 s → 1.32 s; N+1 6 → 2 queries; initial JS 738 → 548 kB; LCP 332–660 ms; suite 27.5–30.9 s (`PERFORMANCE.md`) |
-| 6 — CI | done | `.github/workflows/quality.yml`; clean worktree at `0becb7f`: 614 pass / 5 skip, 383 frontend tests, build 547.80 kB, E2E 22 pass (see `REPORT.md` §7); final tree 615 pass |
+| 6 — CI | done | `.github/workflows/quality.yml`; clean worktree at `384459f`: 615 pass / 5 skip, 383 frontend tests, build 547.80 kB, bundle budget, E2E 22 pass (see `REPORT.md` §7) |
 
 ## Phase 3–5 evidence (2026-11-15)
 
