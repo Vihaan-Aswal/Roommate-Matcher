@@ -858,6 +858,14 @@ export interface SampleCasePair {
   missingFactors: FactorResult[];
 }
 
+export interface SampleCaseAlternative {
+  pair: PairResult;
+  students: [Student, Student];
+  anchorStudent: Student;
+  anchorRoom: Room;
+  anchorScore: number;
+}
+
 export interface SampleCase {
   boundary: {
     students: number;
@@ -869,6 +877,7 @@ export interface SampleCase {
   };
   risk: SampleCasePair & { atRisk: Student[] };
   healthy: SampleCasePair;
+  alternative: SampleCaseAlternative;
   segments: Segment[];
   labels: Record<Label, number>;
   audit: Run["audit"];
@@ -904,6 +913,53 @@ export function selectSampleCase(source: Run = run): SampleCase {
   const riskSegment = source.segments[riskRoom.segmentIndex];
   const riskEdge = [...riskRoom.edges].sort((left, right) => left.score - right.score)[0];
 
+  const chosenPairs = new Set(
+    riskSegment.rooms.map((room) => pairKey(room.members[0], room.members[1])),
+  );
+  // The strongest eligible pair involving an R-12 student that the matching left out.
+  let losingPair: PairResult | undefined;
+  for (let i = 0; i < riskSegment.members.length; i += 1) {
+    for (let j = i + 1; j < riskSegment.members.length; j += 1) {
+      const a = riskSegment.members[i];
+      const b = riskSegment.members[j];
+      if (chosenPairs.has(pairKey(a, b))) continue;
+      if (!riskRoom.members.includes(a) && !riskRoom.members.includes(b)) continue;
+      const outcome = scorePair(source.students[a].answers, source.students[b].answers);
+      const candidate: PairResult = { a, b, ...outcome };
+      if (
+        !losingPair ||
+        candidate.score > losingPair.score + 1e-12 ||
+        (Math.abs(candidate.score - losingPair.score) <= 1e-12 &&
+          pairKey(candidate.a, candidate.b) < pairKey(losingPair.a, losingPair.b))
+      ) {
+        losingPair = candidate;
+      }
+    }
+  }
+  if (!losingPair) {
+    throw new Error("The sample run has no losing alternative pair.");
+  }
+  const alternativeStudents: [Student, Student] = [
+    source.students[losingPair.a],
+    source.students[losingPair.b],
+  ];
+  const anchorStudent =
+    alternativeStudents.find((student) => !riskRoom.members.includes(student.index)) ??
+    alternativeStudents[0];
+  const anchorRoom = riskSegment.rooms.find((room) =>
+    room.members.includes(anchorStudent.index),
+  );
+  if (!anchorRoom) {
+    throw new Error("The losing alternative has no chosen room.");
+  }
+  const alternative: SampleCaseAlternative = {
+    pair: losingPair,
+    students: alternativeStudents,
+    anchorStudent,
+    anchorRoom,
+    anchorScore: anchorRoom.score,
+  };
+
   const healthyPair = source.samplePair;
   const healthySegment = source.segments[healthyPair.room.segmentIndex];
 
@@ -931,6 +987,7 @@ export function selectSampleCase(source: Run = run): SampleCase {
       atRisk: riskRoom.atRisk.map((member) => source.students[member]),
     },
     healthy: casePair(source, healthyPair, healthyPair.room, healthySegment),
+    alternative,
     segments: source.segments,
     labels: source.labelCounts,
     audit: source.audit,

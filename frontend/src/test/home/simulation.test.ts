@@ -134,6 +134,32 @@ describe("sampleCase selectors", () => {
     expect(sampleCase.risk.segment.mean).toBeCloseTo(0.827, 3);
   });
 
+  it("selects a real losing alternative pair from R-12's segment", () => {
+    const source = buildRun();
+    expect(sampleCase.alternative.students.map((student) => student.id)).toEqual([
+      "S-008",
+      "S-021",
+    ]);
+    expect(sampleCase.alternative.pair.score).toBeCloseTo(0.8075, 4);
+    expect(
+      scorePair(
+        source.students[sampleCase.alternative.pair.a].answers,
+        source.students[sampleCase.alternative.pair.b].answers,
+      ).score,
+    ).toBeCloseTo(sampleCase.alternative.pair.score, 12);
+    expect(sampleCase.alternative.anchorStudent.id).toBe("S-008");
+    expect(sampleCase.alternative.anchorRoom.id).toBe("R-02");
+    expect(sampleCase.alternative.anchorScore).toBeCloseTo(0.952941, 4);
+    expect(sampleCase.alternative.pair.factors).toHaveLength(FACTORS.length);
+    expect(
+      sampleCase.risk.segment.rooms.some(
+        (room) =>
+          room.members.includes(sampleCase.alternative.pair.a) &&
+          room.members.includes(sampleCase.alternative.pair.b),
+      ),
+    ).toBe(false);
+  });
+
   it("selects R-15 as the healthy contrast with the same rules", () => {
     expect(sampleCase.healthy.room.id).toBe("R-15");
     expect(sampleCase.healthy.students.map((student) => student.id)).toEqual([
@@ -177,6 +203,10 @@ describe("sampleCase selectors", () => {
     expect(again.healthy.students.map((student) => student.id)).toEqual(
       sampleCase.healthy.students.map((student) => student.id),
     );
+    expect(again.alternative.students.map((student) => student.id)).toEqual(
+      sampleCase.alternative.students.map((student) => student.id),
+    );
+    expect(again.alternative.pair.score).toBe(sampleCase.alternative.pair.score);
     expect(again.labels).toEqual(sampleCase.labels);
     expect(again.audit).toEqual(sampleCase.audit);
   });

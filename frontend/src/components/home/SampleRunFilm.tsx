@@ -181,7 +181,7 @@ function WeightRule({ pair }: { pair: SampleCasePair }): JSX.Element {
       </div>
       <div className="film-weight-foot">
         <span className="film-weight-rule-mark" aria-hidden="true" />
-        {missing ? `${missing} not answered · weights renormalised to 1.00` : "no missing answers · weights stand"}
+        {missing ? `${missing} not answered · weights renormalised` : "no missing answers · weights stand"}
       </div>
     </div>
   );
@@ -332,7 +332,7 @@ function BoundaryScene({ data }: { data: SampleCase }): JSX.Element {
               </span>
               <span className="film-folder-front" />
               <span className="film-folder-tab">
-                {segment.gender} · {segment.year === "1st year" ? "1st" : "2–4"} ·{" "}
+                {segment.gender} {segment.year === "1st year" ? "1st" : "2–4"} ·{" "}
                 {segment.ac} · {segment.size}-bed
               </span>
               <span className="film-folder-count">{segment.members.length} students</span>
@@ -347,6 +347,103 @@ function BoundaryScene({ data }: { data: SampleCase }): JSX.Element {
           );
         })}
       </div>
+
+      <div className="film-risk-strip">
+        <span className="film-risk-strip-label">Open folder · {data.risk.room.id}</span>
+        <strong>{filmScore(data.risk.room.score)}</strong>
+        <span>
+          {data.risk.students[0].id} × {data.risk.students[1].id} ·{" "}
+          {data.risk.segment.members.length} students · at risk
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function FactorCompare({
+  risk,
+  healthy,
+}: {
+  risk: SampleCase["risk"];
+  healthy: SampleCasePair;
+}): JSX.Element {
+  const healthyFactors = new Map(
+    healthy.pair.factors.map((factor) => [factor.key, factor]),
+  );
+  return (
+    <div className="film-sheet film-factor-compare">
+      <header className="film-sheet-head">
+        <div>
+          <span className="film-mono">Pair ledgers · {risk.room.id} / {healthy.room.id}</span>
+          <p className="film-sheet-title">Same ten factors, two outcomes</p>
+        </div>
+      </header>
+
+      <div className="film-compare-scores">
+        <div className="film-compare-score is-risk">
+          <span>
+            {risk.room.id} · {risk.students[0].id} × {risk.students[1].id}
+          </span>
+          <strong>{filmScore(risk.pair.score)}</strong>
+          <span>Poor · below 0.55</span>
+        </div>
+        <div className="film-compare-score">
+          <span>
+            {healthy.room.id} · {healthy.students[0].id} × {healthy.students[1].id}
+          </span>
+          <strong>{filmScore(healthy.pair.score)}</strong>
+          <span>Good</span>
+        </div>
+      </div>
+
+      <WeightRule pair={risk} />
+
+      <div className="film-compare-head" aria-hidden="true">
+        <span>Factor</span>
+        <span>Weight</span>
+        <span>{risk.room.id}</span>
+        <span>{healthy.room.id}</span>
+      </div>
+      <div className="film-compare-rows">
+        {risk.pair.factors.map((factor) => {
+          const other = healthyFactors.get(factor.key);
+          return (
+            <div
+              className={`film-compare-row ${factor.missing ? "is-missing" : ""} ${
+                !factor.missing && factor.raw === 0 ? "is-zero" : ""
+              }`}
+              key={factor.key}
+            >
+              <span className="film-compare-name">{factor.label}</span>
+              <span className="film-compare-weight">{Math.round(factor.weight * 100)}%</span>
+              <span className="film-compare-cell is-risk">
+                <span className="film-compare-track">
+                  <span
+                    className="film-compare-fill"
+                    style={cssVars({ "--raw": factor.missing ? 0 : factor.raw })}
+                  />
+                </span>
+                <b>{factor.missing ? "—" : factor.raw.toFixed(2)}</b>
+              </span>
+              <span className="film-compare-cell">
+                <span className="film-compare-track">
+                  <span
+                    className="film-compare-fill"
+                    style={cssVars({
+                      "--raw": other && !other.missing ? other.raw : 0,
+                    })}
+                  />
+                </span>
+                <b>{other && !other.missing ? other.raw.toFixed(2) : "—"}</b>
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      <p className="film-sheet-foot">
+        Missing answers are excluded and the remaining weights renormalised. They are never guessed.
+      </p>
     </div>
   );
 }
@@ -405,6 +502,10 @@ function FactorsScene({ data }: { data: SampleCase }): JSX.Element {
         <FactorRows pair={data.healthy} compact />
         <p className="film-sheet-foot">Same ten factors. Different outcome.</p>
       </div>
+
+      <div className="film-factors-mobile">
+        <FactorCompare risk={data.risk} healthy={data.healthy} />
+      </div>
     </div>
   );
 }
@@ -412,40 +513,64 @@ function FactorsScene({ data }: { data: SampleCase }): JSX.Element {
 function PlanGraph({ data }: { data: SampleCase }): JSX.Element {
   const rooms = data.risk.segment.rooms;
   const x = (index: number) => 5 + index * 10;
+  const slots = new Map<number, { x: number; y: number }>();
+  rooms.forEach((room, index) => {
+    room.members.forEach((member, lane) => {
+      slots.set(member, { x: x(index), y: lane === 0 ? 20 : 36 });
+    });
+  });
+  const altA = slots.get(data.alternative.pair.a);
+  const altB = slots.get(data.alternative.pair.b);
+  const altPath =
+    altA && altB
+      ? `M${altA.x} ${altA.y} L${altA.x} 48 L${altB.x} 48 L${altB.x} ${altB.y}`
+      : "";
   return (
-    <div className="film-plan-body" aria-hidden="true">
-      <svg viewBox="0 0 124 54" className="film-plan-svg" focusable="false">
-        {rooms.map((room, index) => (
-          <g key={room.id}>
-            <line
-              className={`film-plan-pair ${room.id === data.risk.room.id ? "is-risk" : ""}`}
-              x1={x(index)}
-              y1="20"
-              x2={x(index)}
-              y2="36"
-            />
-            <circle
-              className={`film-plan-node ${room.id === data.risk.room.id ? "is-risk" : ""}`}
-              cx={x(index)}
-              cy="20"
-              r="2.2"
-            />
-            <circle
-              className={`film-plan-node ${room.id === data.risk.room.id ? "is-risk" : ""}`}
-              cx={x(index)}
-              cy="36"
-              r="2.2"
-            />
-          </g>
-        ))}
-        <path className="film-plan-alt" d="M115 20 C 111 8, 105 8, 101 20" />
-        <text className="film-plan-alt-label" x="64" y="5" textAnchor="middle">
-          alternative pairing · not chosen
-        </text>
-        <line className="film-plan-baseline" x1="3" y1="46" x2="121" y2="46" />
-      </svg>
-      <span className="film-plan-caption">12 rooms · 24 students · matching draws the chosen pairs</span>
-    </div>
+    <>
+      <div className="film-plan-body" aria-hidden="true">
+        <svg viewBox="0 0 124 56" className="film-plan-svg" focusable="false">
+          {rooms.map((room, index) => (
+            <g key={room.id}>
+              <line
+                className={`film-plan-pair ${room.id === data.risk.room.id ? "is-risk" : ""}`}
+                x1={x(index)}
+                y1="20"
+                x2={x(index)}
+                y2="36"
+              />
+              <circle
+                className={`film-plan-node ${room.id === data.risk.room.id ? "is-risk" : ""}`}
+                cx={x(index)}
+                cy="20"
+                r="2.2"
+              />
+              <circle
+                className={`film-plan-node ${room.id === data.risk.room.id ? "is-risk" : ""}`}
+                cx={x(index)}
+                cy="36"
+                r="2.2"
+              />
+            </g>
+          ))}
+          {altPath ? <path className="film-plan-alt" d={altPath} /> : null}
+          <line className="film-plan-baseline" x1="3" y1="52" x2="121" y2="52" />
+        </svg>
+        <span className="film-plan-caption">
+          12 rooms · 24 students · chosen pairs
+        </span>
+      </div>
+      <p className="film-plan-alt-note">
+        <span className="film-plan-alt-dash" aria-hidden="true" />
+        <strong>
+          {data.alternative.students[0].id} × {data.alternative.students[1].id} ·{" "}
+          {filmScore(data.alternative.pair.score)}
+        </strong>
+        <span>
+          considered, not chosen · {data.alternative.anchorStudent.id} is in{" "}
+          {data.alternative.anchorRoom.id} ({filmScore(data.alternative.anchorScore)})
+        </span>
+      </p>
+    </>
   );
 }
 
@@ -634,13 +759,13 @@ function SignOffScene({ data }: { data: SampleCase }): JSX.Element {
               <dd>{data.boundary.rooms} rooms · {data.boundary.students} beds</dd>
             </div>
             <div>
-              <dt>At-risk cases</dt>
+              <dt>At risk</dt>
               <dd>
                 {data.risk.atRisk.length} · {data.risk.room.id} · review required
               </dd>
             </div>
             <div>
-              <dt>Fairness floor</dt>
+              <dt>Floor</dt>
               <dd>{filmScore(data.risk.room.score)}</dd>
             </div>
           </dl>
@@ -710,7 +835,7 @@ interface SampleRunFilmProps {
 export function SampleRunFilm({ run, playKey, onReplay }: SampleRunFilmProps): JSX.Element {
   const reduced = usePrefersReducedMotion();
   const data = useMemo(() => selectSampleCase(run), [run]);
-  const [phase, setPhase] = useState(reduced ? 1 : 0);
+  const [phase, setPhase] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [cycle, setCycle] = useState(0);
   const figureRef = useRef<HTMLElement>(null);
@@ -722,7 +847,7 @@ export function SampleRunFilm({ run, playKey, onReplay }: SampleRunFilmProps): J
   const restart = useCallback(() => {
     if (reduced) {
       setPlaying(false);
-      setPhase(1);
+      setPhase(0);
       return;
     }
     startedRef.current = true;
@@ -741,7 +866,7 @@ export function SampleRunFilm({ run, playKey, onReplay }: SampleRunFilmProps): J
     startedRef.current = true;
     if (reduced) {
       setPlaying(false);
-      setPhase(1);
+      setPhase(0);
       return;
     }
     setCycle((value) => value + 1);
@@ -752,7 +877,7 @@ export function SampleRunFilm({ run, playKey, onReplay }: SampleRunFilmProps): J
   useEffect(() => {
     if (!reduced) return;
     setPlaying(false);
-    setPhase((current) => (current >= 1 && current <= 5 ? current : 1));
+    setPhase(0);
   }, [reduced]);
 
   useEffect(() => {
@@ -857,9 +982,8 @@ export function SampleRunFilm({ run, playKey, onReplay }: SampleRunFilmProps): J
   };
 
   const stepScene = (direction: -1 | 1) => {
-    const current = phase >= 1 && phase <= 5 ? phase : 1;
     setPlaying(false);
-    setPhase(Math.min(5, Math.max(1, current + direction)));
+    setPhase(Math.min(LAST_PHASE, Math.max(0, phase + direction)));
   };
 
   const onStageKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -879,7 +1003,7 @@ export function SampleRunFilm({ run, playKey, onReplay }: SampleRunFilmProps): J
   const chapter = chapterForPhase(phase);
   const isReducedStatic = reduced;
   const progressStatic = isReducedStatic || phase === LAST_PHASE;
-  const progress = phase === 0 ? 0 : phase >= LAST_PHASE ? 1 : phase / 5;
+  const progress = phase >= LAST_PHASE ? 1 : phase / LAST_PHASE;
 
   const caption =
     phase === 0
@@ -904,7 +1028,12 @@ export function SampleRunFilm({ run, playKey, onReplay }: SampleRunFilmProps): J
       <div className="mm-film-frame">
         <div className="mm-film-head">
           <span className="mm-film-tag">Sample run</span>
-          <span className="mm-film-meta">Illustrative sample run · 96 students · 38 rooms</span>
+          <span className="mm-film-meta mm-film-meta-full">
+            Illustrative sample run · 96 students · 38 rooms
+          </span>
+          <span className="mm-film-meta mm-film-meta-short">
+            96 students · 38 rooms
+          </span>
           <span className="mm-film-run">{data.audit.runId}</span>
         </div>
 
@@ -1006,20 +1135,20 @@ export function SampleRunFilm({ run, playKey, onReplay }: SampleRunFilmProps): J
                   type="button"
                   className="mm-film-control"
                   onClick={() => stepScene(-1)}
-                  disabled={phase <= 1}
+                  disabled={phase <= 0}
                   aria-label="Previous scene"
                 >
                   <ChevronLeft size={15} strokeWidth={1.8} aria-hidden="true" />
                   Previous
                 </button>
                 <span className="mm-film-scene-count">
-                  Scene {phase} of 5 · static
+                  Panel {phase + 1} of {LAST_PHASE + 1} · static
                 </span>
                 <button
                   type="button"
                   className="mm-film-control"
                   onClick={() => stepScene(1)}
-                  disabled={phase >= 5}
+                  disabled={phase >= LAST_PHASE}
                   aria-label="Next scene"
                 >
                   Next
@@ -1089,9 +1218,7 @@ export function SampleRunFilm({ run, playKey, onReplay }: SampleRunFilmProps): J
         Illustrative sample data. {formatCount(data.boundary.students)} students,{" "}
         {data.boundary.rooms} rooms, {formatCount(data.boundary.scored)} pair scores. No raw
         student answers appear anywhere in this film.
-        {reduced
-          ? " Motion is reduced on this device; use Previous and Next to read the five scenes."
-          : ""}
+
       </figcaption>
     </figure>
   );

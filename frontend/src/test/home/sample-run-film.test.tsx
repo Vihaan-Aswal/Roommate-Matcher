@@ -166,6 +166,12 @@ describe("SampleRunFilm", () => {
     ).toHaveAttribute("href", "#compatibility");
 
     fireEvent.click(
+      screen.getByRole("button", { name: /Chapter 3: The room is chosen from every pair/i }),
+    );
+    expect(screen.getByText(/S-008 × S-021 · 0.808/i)).toBeInTheDocument();
+    expect(screen.getByText(/considered, not chosen · S-008 is in R-02/i)).toBeInTheDocument();
+
+    fireEvent.click(
       screen.getByRole("button", { name: /Chapter 4: The average hides the room/i }),
     );
     expect(
@@ -200,24 +206,38 @@ describe("SampleRunFilm", () => {
     expect(screen.getByRole("button", { name: "Play film" })).toBeInTheDocument();
   });
 
-  it("renders the five static panels under reduced motion without timers", () => {
+  it("renders all seven static panels under reduced motion without timers", () => {
     renderFilm(true);
 
     expect(vi.getTimerCount()).toBe(0);
-    expect(screen.getByText(/Scene 1 of 5 · The boundary decides first/i)).toBeInTheDocument();
-    expect(screen.getByText("Scene 1 of 5 · static")).toBeInTheDocument();
+    expect(screen.getByText(/Cold open · the desk at night/i)).toBeInTheDocument();
+    expect(screen.getByText("Panel 1 of 7 · static")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Previous scene" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Next scene" })).toBeEnabled();
     expect(screen.queryByRole("button", { name: "Pause film" })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Next scene" }));
+    expect(
+      screen.getByText(/Scene 1 of 5 · The boundary decides first/i),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Panel 2 of 7 · static")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Next scene" }));
     expect(screen.getByText(/Scene 2 of 5 · Ten weighted factors/i)).toBeInTheDocument();
-    expect(screen.getByText("Scene 2 of 5 · static")).toBeInTheDocument();
+    expect(screen.getByText("Panel 3 of 7 · static")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Previous scene" }));
     expect(
       screen.getByText(/Scene 1 of 5 · The boundary decides first/i),
     ).toBeInTheDocument();
+
+    for (let step = 0; step < 5; step += 1) {
+      fireEvent.click(screen.getByRole("button", { name: "Next scene" }));
+    }
+    expect(screen.getByText(/End card · same inputs, same rooms/i)).toBeInTheDocument();
+    expect(screen.getByText("Panel 7 of 7 · static")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Next scene" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Previous scene" })).toBeEnabled();
     expect(vi.getTimerCount()).toBe(0);
   });
 
