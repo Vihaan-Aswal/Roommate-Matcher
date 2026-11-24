@@ -469,17 +469,22 @@ def test_capacity_shortfall_makes_segment_impossible_and_run_rejected(
     assert history["runs"] == []
 
 
-def test_zero_room_rows_are_accepted_and_capacity_is_auto_generated(
+def test_zero_room_rows_upload_is_rejected_and_capacity_is_auto_generated(
     client: TestClient, db_session: Session, seed_tenant_and_user: dict[str, Any]
 ) -> None:
     headers = seed_tenant_and_user["headers"]
     workspace_id = create_workspace(client, headers, "Zero rooms")
 
     upload(client, headers, workspace_id, "students", student_csv(cohort("E2E", 4)))
-    room_apply = upload(client, headers, workspace_id, "rooms", room_csv([]))
-    assert room_apply["inserted"] == 0
-    assert room_apply["errors"] == []
+    empty_rooms = client.post(
+        f"/api/workspaces/{workspace_id}/rooms/upload/apply",
+        files={"file": ("rooms.csv", room_csv([]), "text/csv")},
+        headers=headers,
+    )
+    assert empty_rooms.status_code == 400, empty_rooms.text
+    assert "no valid rows" in empty_rooms.json()["detail"]
 
+    # No rooms were accepted, so matching auto-generates them from capacity.
     token = form_token(client, headers, workspace_id)
     for student in cohort("E2E", 4):
         submit(client, token, student["admission_number"], student["phone"], ANSWERS_EARLY)

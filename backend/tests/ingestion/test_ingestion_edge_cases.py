@@ -268,6 +268,121 @@ def test_student_apply_reports_unchanged_rows_and_soft_deletes_missing_ones(
     assert gone.is_active is False
 
 
+def test_student_apply_rejects_a_header_only_file_without_touching_the_roster(
+    db_session: Session,
+) -> None:
+    tenant_id, workspace_id = _workspace(db_session)
+    student = _student(db_session, tenant_id, workspace_id, admission_number="KEEP001")
+
+    with pytest.raises(ValueError, match="no valid rows"):
+        apply_student_import(db_session, workspace_id, tenant_id, STUDENT_HEADER.encode("utf-8"))
+
+    db_session.refresh(student)
+    assert student.is_active is True
+    assert db_session.query(Segment).filter_by(workspace_id=workspace_id).count() == 1
+
+
+def test_student_apply_rejects_an_all_invalid_file_without_touching_the_roster(
+    db_session: Session,
+) -> None:
+    tenant_id, workspace_id = _workspace(db_session)
+    student = _student(db_session, tenant_id, workspace_id, admission_number="KEEP002")
+    csv_bytes = (
+        STUDENT_HEADER + "BAD001,Ann,F,1st_year,AC,2,01/02/2005,9876543210\n"
+    ).encode("utf-8")
+
+    with pytest.raises(ValueError, match="no valid rows"):
+        apply_student_import(db_session, workspace_id, tenant_id, csv_bytes)
+
+    db_session.refresh(student)
+    assert student.is_active is True
+    assert db_session.query(Segment).filter_by(workspace_id=workspace_id).count() == 1
+
+
+def test_student_apply_still_updates_inserts_and_soft_deletes_for_a_valid_file(
+    db_session: Session,
+) -> None:
+    tenant_id, workspace_id = _workspace(db_session)
+    _student(db_session, tenant_id, workspace_id, admission_number="UPD001")
+    _student(db_session, tenant_id, workspace_id, admission_number="GONE002")
+
+    result = apply_student_import(
+        db_session,
+        workspace_id,
+        tenant_id,
+        (
+            STUDENT_HEADER
+            + "UPD001,Edge Student,F,1st_year,AC,2,2006-02-02,9876543210\n"
+            + "NEW001,New Student,F,1st_year,AC,2,2005-01-01,9876543210\n"
+        ).encode("utf-8"),
+    )
+
+    assert (result.inserted, result.updated, result.soft_deleted) == (1, 1, 1)
+    gone = db_session.query(Student).filter_by(admission_number="GONE002").one()
+    assert gone.is_active is False
+
+
+def test_student_preview_and_apply_agree_on_a_mixed_file(db_session: Session) -> None:
+    tenant_id, workspace_id = _workspace(db_session)
+    _student(db_session, tenant_id, workspace_id, admission_number="MIX001")
+
+    csv_bytes = (
+        STUDENT_HEADER
+        + "MIX001,Edge Student,F,1st_year,AC,2,2005-01-01,9876543210\n"
+        + "MIX002,New One,F,1st_year,AC,2,2005-01-01,9876543210\n"
+        + "BROKEN,Ann,F,1st_year,AC,2,01/02/2005,9876543210\n"
+        + "MIX002,New One Again,F,1st_year,AC,2,2005-01-01,9876543210\n"
+    ).encode("utf-8")
+
+    plan = plan_student_import(db_session, workspace_id, tenant_id, csv_bytes)
+    assert plan.valid_csv_rows == 2
+    assert {error["reason"] for error in plan.validation_errors} == {
+        "invalid_dob_iso_format",
+        "duplicate_admission_number_in_file",
+    }
+    expected_admissions = (
+        {row["admission_number"] for row in plan.to_insert}
+        | {row["admission_number"] for row in plan.to_update}
+        | set(plan.unchanged)
+    )
+    assert expected_admissions == {"MIX001", "MIX002"}
+
+    applied = apply_student_import(db_session, workspace_id, tenant_id, csv_bytes)
+
+    assert applied.errors == plan.validation_errors
+    assert (applied.inserted, applied.updated, applied.soft_deleted) == (
+        len(plan.to_insert),
+        len(plan.to_update),
+        len(plan.to_soft_delete),
+    )
+    active = {
+        student.admission_number
+        for student in db_session.query(Student)
+        .filter_by(workspace_id=workspace_id, is_active=True)
+        .all()
+    }
+    assert active == expected_admissions
+
+
+def test_student_plan_and_apply_accept_headers_with_a_space_after_the_comma(
+    db_session: Session,
+) -> None:
+    tenant_id, workspace_id = _workspace(db_session)
+    csv_bytes = (
+        "admission_number, full_name, gender, year_group, ac_type, room_size, dob, phone_number\n"
+        "SPACE001, Ann, F, 1st_year, AC, 2, 2005-01-01, 9876543210\n"
+    ).encode("utf-8")
+
+    plan = plan_student_import(db_session, workspace_id, tenant_id, csv_bytes)
+    assert plan.valid_csv_rows == 1
+    assert [row["admission_number"] for row in plan.to_insert] == ["SPACE001"]
+
+    result = apply_student_import(db_session, workspace_id, tenant_id, csv_bytes)
+    assert result.inserted == 1
+    stored = db_session.query(Student).filter_by(admission_number="SPACE001").one()
+    assert stored.full_name == "Ann"
+
+
 # ---------------------------------------------------------------------------
 # room_csv: per-field validation and apply behaviour
 # ---------------------------------------------------------------------------
@@ -453,6 +568,59 @@ def test_room_apply_updates_reactivates_and_soft_deletes(db_session: Session) ->
     assert rooms["OLD"].is_active is False
 
 
+def test_room_apply_rejects_a_header_only_file_without_touching_the_room_list(
+    db_session: Session,
+) -> None:
+    tenant_id, workspace_id = _workspace(db_session)
+    segment = _room_segment(db_session, tenant_id, workspace_id)
+    room = Room(
+        tenant_id=tenant_id,
+        workspace_id=workspace_id,
+        segment_id=segment.id,
+        room_id="KEEP",
+        capacity=2,
+        source="uploaded",
+        is_active=True,
+    )
+    db_session.add(room)
+    db_session.commit()
+
+    with pytest.raises(ValueError, match="no valid rows"):
+        apply_room_import(db_session, workspace_id, tenant_id, ROOM_HEADER.encode("utf-8"))
+
+    db_session.refresh(room)
+    assert room.is_active is True
+
+
+def test_room_apply_rejects_an_all_invalid_file_without_touching_the_room_list(
+    db_session: Session,
+) -> None:
+    tenant_id, workspace_id = _workspace(db_session)
+    segment = _room_segment(db_session, tenant_id, workspace_id)
+    room = Room(
+        tenant_id=tenant_id,
+        workspace_id=workspace_id,
+        segment_id=segment.id,
+        room_id="KEEP",
+        capacity=2,
+        source="uploaded",
+        is_active=True,
+    )
+    db_session.add(room)
+    db_session.commit()
+
+    with pytest.raises(ValueError, match="no valid rows"):
+        apply_room_import(
+            db_session,
+            workspace_id,
+            tenant_id,
+            (ROOM_HEADER + "BROKEN,F_1st_year_AC_2,abc\n").encode("utf-8"),
+        )
+
+    db_session.refresh(room)
+    assert room.is_active is True
+
+
 # ---------------------------------------------------------------------------
 # form_response: option validation, ordering and answer normalisation
 # ---------------------------------------------------------------------------
@@ -555,6 +723,27 @@ def test_ingest_form_responses_csv_missing_file(db_session: Session, tmp_path) -
     _, workspace_id = _workspace(db_session)
     with pytest.raises(FileNotFoundError):
         ingest_form_responses_csv(db_session, workspace_id, str(tmp_path / "nope.csv"))
+
+
+def test_ingest_form_responses_csv_accepts_headers_with_a_space_after_the_comma(
+    db_session: Session, tmp_path
+) -> None:
+    import csv
+    import io
+
+    tenant_id, workspace_id = _workspace(db_session)
+    _student(db_session, tenant_id, workspace_id, admission_number="CSVSPACE")
+
+    buffer = io.StringIO()
+    writer = csv.writer(buffer)
+    writer.writerow([f" {name}" for name in ["admission_number", "phone_last4", *ANSWERS]])
+    writer.writerow(["CSVSPACE", "3210", *ANSWERS.values()])
+    csv_path = tmp_path / "spaced.csv"
+    csv_path.write_text(buffer.getvalue(), encoding="utf-8")
+
+    result = ingest_form_responses_csv(db_session, workspace_id, str(csv_path))
+
+    assert result["accepted_rows"] == 1
 
 
 def test_ingest_form_responses_csv_empty_and_wrong_header(

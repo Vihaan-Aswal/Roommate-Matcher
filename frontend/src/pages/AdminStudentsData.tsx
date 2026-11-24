@@ -128,6 +128,7 @@ export function AdminStudentsData(): JSX.Element {
               toUpdate={studentDiff.to_update}
               toSoftDelete={studentDiff.to_soft_delete}
               unchanged={studentDiff.unchanged}
+              validCsvRows={studentDiff.valid_csv_rows}
               validationErrors={studentDiff.validation_errors}
               workspaceWarnings={studentDiff.warnings}
               isApplying={applyStudents.isPending}
@@ -206,6 +207,7 @@ export function AdminStudentsData(): JSX.Element {
               toUpdate={roomDiff.to_update}
               toSoftDelete={roomDiff.to_soft_delete}
               unchanged={roomDiff.unchanged}
+              validCsvRows={roomDiff.valid_csv_rows}
               validationErrors={roomDiff.validation_errors}
               workspaceWarnings={roomDiff.warnings}
               isApplying={applyRooms.isPending}

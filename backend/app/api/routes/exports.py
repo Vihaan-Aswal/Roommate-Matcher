@@ -26,6 +26,13 @@ from app.api.deps.run_access import resolve_run_or_403
 router = APIRouter(prefix="/api/workspaces/{workspace_id}/exports", tags=["exports"])
 
 
+def _csv_safe(value: str) -> str:
+    """Neutralise spreadsheet formula injection in a CSV cell."""
+    if value.startswith(("=", "+", "-", "@", "\t", "\r")):
+        return f"'{value}"
+    return value
+
+
 def _iter_assignment_rows(run_id: str, assignments: list[RoomAssignment]):
     header = ["room_id", "segment_key", "student_1", "student_2", "student_3", "student_4", "group_score"]
     buffer = io.StringIO()
@@ -39,14 +46,14 @@ def _iter_assignment_rows(run_id: str, assignments: list[RoomAssignment]):
         assigned_students = json.loads(assignment.assigned_students_json)
         if not isinstance(assigned_students, list):
             continue
-        normalized = [str(item) for item in assigned_students][:4]
+        normalized = [_csv_safe(str(item)) for item in assigned_students][:4]
         while len(normalized) < 4:
             normalized.append("")
 
         writer.writerow(
             [
-                assignment.room_id,
-                getattr(assignment, "segment_key", "UNKNOWN"),
+                _csv_safe(str(assignment.room_id)),
+                _csv_safe(str(getattr(assignment, "segment_key", "UNKNOWN"))),
                 normalized[0],
                 normalized[1],
                 normalized[2],

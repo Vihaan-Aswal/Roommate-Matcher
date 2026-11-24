@@ -37,6 +37,7 @@ describe("DiffPreviewPanel", () => {
         toUpdate={studentDiff.to_update}
         toSoftDelete={studentDiff.to_soft_delete}
         unchanged={studentDiff.unchanged}
+        validCsvRows={studentDiff.valid_csv_rows}
         validationErrors={studentDiff.validation_errors}
         workspaceWarnings={studentDiff.warnings}
         diffEntries={[]}
@@ -61,5 +62,27 @@ describe("DiffPreviewPanel", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
     expect(mockOnCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it("blocks apply and explains when the file has no valid rows", () => {
+    render(
+      <DiffPreviewPanel
+        title="Students Upload Preview"
+        toInsert={0}
+        toUpdate={0}
+        toSoftDelete={0}
+        unchanged={0}
+        validCsvRows={0}
+        validationErrors={[]}
+        workspaceWarnings={[]}
+        diffEntries={[]}
+        onConfirm={mockOnConfirm}
+        onCancel={mockOnCancel}
+        isApplying={false}
+      />,
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent(/no valid rows/i);
+    expect(screen.getByRole("button", { name: /confirm & apply/i })).toBeDisabled();
   });
 });

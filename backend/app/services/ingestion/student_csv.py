@@ -164,6 +164,37 @@ def _build_row_payload(row: dict[str, str | None], row_number: int) -> tuple[dic
     }, []
 
 
+def _parse_student_rows(reader: csv.DictReader) -> tuple[list[tuple[int, dict]], list[dict], int]:
+    """Parse every CSV row once; returns (payloads with row number, validation errors, total rows)."""
+    payloads: list[tuple[int, dict]] = []
+    errors: list[dict] = []
+    seen_in_csv: set[str] = set()
+    total_rows = 0
+
+    for row_number, row in enumerate(reader, start=2):
+        total_rows += 1
+        payload, row_errors = _build_row_payload(row, row_number)
+
+        if row_errors:
+            errors.extend(e.as_dict() for e in row_errors)
+            continue
+
+        assert payload is not None
+        adm = payload["admission_number"]
+        assert isinstance(adm, str)
+
+        if adm in seen_in_csv:
+            errors.append(
+                RowError(row_number, "admission_number", "duplicate_admission_number_in_file", adm).as_dict()
+            )
+            continue
+
+        seen_in_csv.add(adm)
+        payloads.append((row_number, payload))
+
+    return payloads, errors, total_rows
+
+
 @dataclass
 class StudentDiffResult:
     total_csv_rows: int = 0
@@ -188,6 +219,12 @@ def plan_student_import(
     """
     reader = _parse_csv_bytes(csv_bytes)
     result = StudentDiffResult()
+
+    payloads, parse_errors, total_rows = _parse_student_rows(reader)
+    result.total_csv_rows = total_rows
+    result.valid_csv_rows = len(payloads)
+    result.validation_errors = parse_errors
+    csv_admissions = {payload["admission_number"] for _row_number, payload in payloads}
 
     # Load existing active students for this workspace, keyed by admission_number
     existing_students: dict[str, Student] = {}
@@ -218,29 +255,11 @@ def plan_student_import(
         .where(MatchingRun.workspace_id == workspace_id)
     ) > 0
 
-    seen_in_csv: set[str] = set()
     mutable_fields = ("full_name", "gender", "year_group", "ac_type", "room_size", "dob", "phone_number", "phone_last4")
 
-    for row_number, row in enumerate(reader, start=2):
-        result.total_csv_rows += 1
-        payload, row_errors = _build_row_payload(row, row_number)
-
-        if row_errors:
-            result.validation_errors.extend(e.as_dict() for e in row_errors)
-            continue
-
-        assert payload is not None
+    for _row_number, payload in payloads:
         adm = payload["admission_number"]
         assert isinstance(adm, str)
-
-        if adm in seen_in_csv:
-            result.validation_errors.append(
-                RowError(row_number, "admission_number", "duplicate_admission_number_in_file", adm).as_dict()
-            )
-            continue
-
-        seen_in_csv.add(adm)
-        result.valid_csv_rows += 1
 
         if adm in existing_students:
             # Compare for updates
@@ -281,7 +300,6 @@ def plan_student_import(
             })
 
     # Students in DB but missing from CSV → soft-delete candidates
-    csv_admissions = seen_in_csv
     for adm, student in existing_students.items():
         if adm not in csv_admissions:
             warnings = []
@@ -332,6 +350,14 @@ def apply_student_import(
     reader = _parse_csv_bytes(csv_bytes)
     result = StudentApplyResult()
 
+    payloads, parse_errors, _total_rows = _parse_student_rows(reader)
+    result.errors = parse_errors
+    if not payloads:
+        # A header-only or all-invalid file must never empty the roster.
+        db.rollback()
+        raise ValueError("CSV contains no valid rows; the roster was not changed.")
+    csv_admissions = {payload["admission_number"] for _row_number, payload in payloads}
+
     # Load existing active students
     existing_students: dict[str, Student] = {}
     for s in db.scalars(
@@ -347,26 +373,12 @@ def apply_student_import(
     ).all():
         existing_segments[seg.segment_key] = seg
 
-    seen_in_csv: set[str] = set()
     mutable_fields = ("full_name", "gender", "year_group", "ac_type", "room_size", "dob", "phone_number", "phone_last4")
 
-    for row_number, row in enumerate(reader, start=2):
-        payload, row_errors = _build_row_payload(row, row_number)
-        if row_errors:
-            result.errors.extend(e.as_dict() for e in row_errors)
-            continue
-
-        assert payload is not None
+    for _row_number, payload in payloads:
         adm = payload["admission_number"]
         assert isinstance(adm, str)
 
-        if adm in seen_in_csv:
-            result.errors.append(
-                RowError(row_number, "admission_number", "duplicate_admission_number_in_file", adm).as_dict()
-            )
-            continue
-
-        seen_in_csv.add(adm)
         segment_key = payload["segment_key"]
         assert isinstance(segment_key, str)
 
@@ -445,7 +457,7 @@ def apply_student_import(
 
     # Soft-delete students not in CSV
     for adm, student in existing_students.items():
-        if adm not in seen_in_csv:
+        if adm not in csv_admissions:
             student.is_active = False
             result.soft_deleted += 1
 

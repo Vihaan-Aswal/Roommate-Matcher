@@ -31,47 +31,17 @@ def _parse_csv_bytes(csv_bytes: bytes) -> csv.DictReader:
     return parse_csv_bytes(csv_bytes, REQUIRED_COLUMNS)
 
 
-@dataclass
-class RoomDiffResult:
-    total_csv_rows: int = 0
-    valid_csv_rows: int = 0
-    to_insert: list[dict] = dc_field(default_factory=list)
-    to_update: list[dict] = dc_field(default_factory=list)
-    to_soft_delete: list[dict] = dc_field(default_factory=list)
-    unchanged: list[str] = dc_field(default_factory=list)
-    validation_errors: list[dict] = dc_field(default_factory=list)
-    workspace_warnings: list[str] = dc_field(default_factory=list)
-
-
-def plan_room_import(
-    db: Session,
-    workspace_id: UUID,
-    tenant_id: UUID,
-    csv_bytes: bytes,
-) -> RoomDiffResult:
-    reader = _parse_csv_bytes(csv_bytes)
-    result = RoomDiffResult()
-
-    existing_segments = {
-        seg.segment_key: seg
-        for seg in db.scalars(select(Segment).where(Segment.workspace_id == workspace_id)).all()
-    }
-
-    # Load existing active rooms, keyed by (segment_key, room_id)
-    existing_rooms: dict[tuple[str, str], Room] = {}
-    
-    rows = db.execute(
-        select(Room, Segment.segment_key)
-        .join(Segment, Room.segment_id == Segment.id)
-        .where(Room.workspace_id == workspace_id, Room.is_active == True)
-    ).all()
-    for room, seg_key in rows:
-        existing_rooms[(seg_key, room.room_id)] = room
-
+def _parse_room_rows(
+    reader: csv.DictReader, existing_segments: dict[str, Segment]
+) -> tuple[list[dict], list[dict], int]:
+    """Parse every CSV row once; returns (valid payloads, validation errors, total rows)."""
+    payloads: list[dict] = []
+    errors: list[dict] = []
     seen_in_csv: set[tuple[str, str]] = set()
+    total_rows = 0
 
     for row_number, row in enumerate(reader, start=2):
-        result.total_csv_rows += 1
+        total_rows += 1
         room_id = safe_text(row.get("room_id"))
         segment_key = safe_text(row.get("segment_key"))
         capacity_raw = safe_text(row.get("capacity"))
@@ -103,22 +73,80 @@ def plan_room_import(
             )
 
         if row_errors:
-            result.validation_errors.extend(e.as_dict() for e in row_errors)
+            errors.extend(e.as_dict() for e in row_errors)
             continue
-            
+
         assert room_id is not None
         assert segment_key is not None
         assert capacity is not None
+        assert segment is not None
 
         key = (segment_key, room_id)
         if key in seen_in_csv:
-            result.validation_errors.append(
+            errors.append(
                 RowError(row_number, "room_id", "duplicate_room_id_in_file_for_segment", room_id).as_dict()
             )
             continue
 
         seen_in_csv.add(key)
-        result.valid_csv_rows += 1
+        payloads.append({
+            "room_id": room_id,
+            "segment_key": segment_key,
+            "capacity": capacity,
+            "segment": segment,
+        })
+
+    return payloads, errors, total_rows
+
+
+@dataclass
+class RoomDiffResult:
+    total_csv_rows: int = 0
+    valid_csv_rows: int = 0
+    to_insert: list[dict] = dc_field(default_factory=list)
+    to_update: list[dict] = dc_field(default_factory=list)
+    to_soft_delete: list[dict] = dc_field(default_factory=list)
+    unchanged: list[str] = dc_field(default_factory=list)
+    validation_errors: list[dict] = dc_field(default_factory=list)
+    workspace_warnings: list[str] = dc_field(default_factory=list)
+
+
+def plan_room_import(
+    db: Session,
+    workspace_id: UUID,
+    tenant_id: UUID,
+    csv_bytes: bytes,
+) -> RoomDiffResult:
+    reader = _parse_csv_bytes(csv_bytes)
+    result = RoomDiffResult()
+
+    existing_segments = {
+        seg.segment_key: seg
+        for seg in db.scalars(select(Segment).where(Segment.workspace_id == workspace_id)).all()
+    }
+
+    payloads, parse_errors, total_rows = _parse_room_rows(reader, existing_segments)
+    result.total_csv_rows = total_rows
+    result.valid_csv_rows = len(payloads)
+    result.validation_errors = parse_errors
+    csv_keys = {(payload["segment_key"], payload["room_id"]) for payload in payloads}
+
+    # Load existing active rooms, keyed by (segment_key, room_id)
+    existing_rooms: dict[tuple[str, str], Room] = {}
+    
+    rows = db.execute(
+        select(Room, Segment.segment_key)
+        .join(Segment, Room.segment_id == Segment.id)
+        .where(Room.workspace_id == workspace_id, Room.is_active == True)
+    ).all()
+    for room, seg_key in rows:
+        existing_rooms[(seg_key, room.room_id)] = room
+
+    for payload in payloads:
+        room_id = payload["room_id"]
+        segment_key = payload["segment_key"]
+        capacity = payload["capacity"]
+        key = (segment_key, room_id)
 
         if key in existing_rooms:
             room = existing_rooms[key]
@@ -146,7 +174,7 @@ def plan_room_import(
             })
 
     for key, room in existing_rooms.items():
-        if key not in seen_in_csv:
+        if key not in csv_keys:
             result.to_soft_delete.append({
                 "room_id": room.room_id,
                 "segment_key": key[0],
@@ -186,6 +214,14 @@ def apply_room_import(
         for seg in db.scalars(select(Segment).where(Segment.workspace_id == workspace_id)).all()
     }
 
+    payloads, parse_errors, _total_rows = _parse_room_rows(reader, existing_segments)
+    result.errors = parse_errors
+    if not payloads:
+        # A header-only or all-invalid file must never empty the room list.
+        db.rollback()
+        raise ValueError("CSV contains no valid rows; the room list was not changed.")
+    csv_keys = {(payload["segment_key"], payload["room_id"]) for payload in payloads}
+
     existing_rooms: dict[tuple[str, str], Room] = {}
     rows = db.execute(
         select(Room, Segment.segment_key)
@@ -195,56 +231,12 @@ def apply_room_import(
     for room, seg_key in rows:
         existing_rooms[(seg_key, room.room_id)] = room
 
-    seen_in_csv: set[tuple[str, str]] = set()
-
-    for row_number, row in enumerate(reader, start=2):
-        room_id = safe_text(row.get("room_id"))
-        segment_key = safe_text(row.get("segment_key"))
-        capacity_raw = safe_text(row.get("capacity"))
-
-        row_errors: list[RowError] = []
-
-        if not room_id:
-            row_errors.append(RowError(row_number, "room_id", "required", row.get("room_id")))
-
-        if not segment_key:
-            row_errors.append(RowError(row_number, "segment_key", "required", row.get("segment_key")))
-
-        capacity = _parse_capacity(capacity_raw)
-        if capacity is None:
-            row_errors.append(RowError(row_number, "capacity", "invalid_capacity", row.get("capacity")))
-
-        segment = existing_segments.get(segment_key) if segment_key else None
-        if segment_key and segment is None:
-            row_errors.append(RowError(row_number, "segment_key", "unknown_segment", row.get("segment_key")))
-
-        if segment is not None and capacity is not None and capacity != segment.room_size:
-            row_errors.append(
-                RowError(
-                    row_number,
-                    "capacity",
-                    "capacity_must_match_segment_room_size",
-                    row.get("capacity"),
-                )
-            )
-
-        if row_errors:
-            result.errors.extend(e.as_dict() for e in row_errors)
-            continue
-
-        assert room_id is not None
-        assert segment_key is not None
-        assert capacity is not None
-        assert segment is not None
-
+    for payload in payloads:
+        room_id = payload["room_id"]
+        segment_key = payload["segment_key"]
+        capacity = payload["capacity"]
+        segment = payload["segment"]
         key = (segment_key, room_id)
-        if key in seen_in_csv:
-            result.errors.append(
-                RowError(row_number, "room_id", "duplicate_room_id_in_file_for_segment", room_id).as_dict()
-            )
-            continue
-
-        seen_in_csv.add(key)
 
         if key in existing_rooms:
             room = existing_rooms[key]
@@ -281,7 +273,7 @@ def apply_room_import(
                 result.inserted += 1
 
     for key, room in existing_rooms.items():
-        if key not in seen_in_csv:
+        if key not in csv_keys:
             room.is_active = False
             result.soft_deleted += 1
 

@@ -39,6 +39,7 @@ describe("upload failure handling", () => {
         toUpdate={0}
         toSoftDelete={0}
         unchanged={0}
+        validCsvRows={1}
         validationErrors={[]}
         diffEntries={[]}
         workspaceWarnings={[]}

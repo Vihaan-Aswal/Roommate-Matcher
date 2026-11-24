@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 
+import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -123,43 +124,37 @@ def test_plan_room_import_marks_capacity_change_as_update(db_session: Session) -
     ]
 
 
-def test_apply_room_import_reports_blank_fields(db_session: Session) -> None:
+def test_apply_room_import_rejects_a_blank_only_file(db_session: Session) -> None:
     tenant_id, workspace_id = _seed_workspace(db_session)
     _seed_segment(db_session, tenant_id, workspace_id)
 
-    result = apply_room_import(db_session, workspace_id, tenant_id, _csv_bytes("room_id,segment_key,capacity\n,,\n"))
-
-    reasons = [error["reason"] for error in result.errors]
-    assert reasons == ["required", "required", "invalid_capacity"]
-    assert result.inserted == 0
+    with pytest.raises(ValueError, match="no valid rows"):
+        apply_room_import(db_session, workspace_id, tenant_id, _csv_bytes("room_id,segment_key,capacity\n,,\n"))
 
 
-def test_apply_room_import_reports_unknown_segment(db_session: Session) -> None:
+def test_apply_room_import_rejects_an_unknown_segment_only_file(db_session: Session) -> None:
     tenant_id, workspace_id = _seed_workspace(db_session)
 
-    result = apply_room_import(
-        db_session,
-        workspace_id,
-        tenant_id,
-        _csv_bytes("room_id,segment_key,capacity\nA101,UNKNOWN_SEGMENT,2\n"),
-    )
-
-    assert [error["reason"] for error in result.errors] == ["unknown_segment"]
-    assert result.inserted == 0
+    with pytest.raises(ValueError, match="no valid rows"):
+        apply_room_import(
+            db_session,
+            workspace_id,
+            tenant_id,
+            _csv_bytes("room_id,segment_key,capacity\nA101,UNKNOWN_SEGMENT,2\n"),
+        )
 
 
-def test_apply_room_import_reports_capacity_mismatch(db_session: Session) -> None:
+def test_apply_room_import_rejects_a_capacity_mismatch_only_file(db_session: Session) -> None:
     tenant_id, workspace_id = _seed_workspace(db_session)
     _seed_segment(db_session, tenant_id, workspace_id, room_size=2)
 
-    result = apply_room_import(
-        db_session,
-        workspace_id,
-        tenant_id,
-        _csv_bytes("room_id,segment_key,capacity\nA101,F_1st_year_AC_2,3\n"),
-    )
-
-    assert [error["reason"] for error in result.errors] == ["capacity_must_match_segment_room_size"]
+    with pytest.raises(ValueError, match="no valid rows"):
+        apply_room_import(
+            db_session,
+            workspace_id,
+            tenant_id,
+            _csv_bytes("room_id,segment_key,capacity\nA101,F_1st_year_AC_2,3\n"),
+        )
 
 
 def test_apply_room_import_reports_duplicate_room_id_in_file(db_session: Session) -> None:

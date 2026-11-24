@@ -107,6 +107,7 @@ def test_apply_preserves_form_responses_on_soft_delete(db_session: Session) -> N
 
     csv_content = (
         "admission_number,full_name,gender,year_group,ac_type,room_size,dob,phone_number\n"
+        "ADM001,Alice,F,1st_year,AC,2,2005-01-15,9876543210\n"
     )
 
     apply_student_import(db_session, workspace_id, tenant_id, _csv_bytes(csv_content))

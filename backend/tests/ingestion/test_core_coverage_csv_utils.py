@@ -36,6 +36,15 @@ def test_parse_csv_bytes_accepts_a_utf8_bom_header() -> None:
     assert list(reader) == [{"admission_number": "A1"}]
 
 
+def test_parse_csv_bytes_strips_spaces_after_header_commas() -> None:
+    reader = parse_csv_bytes(
+        b"admission_number, full_name\nA1,Ann\n", {"admission_number", "full_name"}
+    )
+
+    assert reader.fieldnames == ["admission_number", "full_name"]
+    assert [row.get("full_name") for row in reader] == ["Ann"]
+
+
 def test_safe_text_normalises_none_and_whitespace() -> None:
     assert safe_text(None) == ""
     assert safe_text("  ADM001  ") == "ADM001"

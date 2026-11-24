@@ -37,8 +37,9 @@ def _validate_header(fieldnames: list[str] | None) -> None:
     if fieldnames is None:
         raise ValueError("CSV file is empty or missing header row")
 
-    actual_columns = {name.strip() for name in fieldnames}
-    missing = sorted(REQUIRED_COLUMNS - actual_columns)
+    # Mutate in place: DictReader.fieldnames is the reader's own list.
+    fieldnames[:] = [name.strip() for name in fieldnames]
+    missing = sorted(REQUIRED_COLUMNS - set(fieldnames))
     if missing:
         raise ValueError(f"Missing required columns: {', '.join(missing)}")
 

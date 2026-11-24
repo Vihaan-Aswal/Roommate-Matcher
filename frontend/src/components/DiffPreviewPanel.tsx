@@ -20,6 +20,7 @@ export interface DiffPreviewPanelProps {
   toUpdate: number;
   toSoftDelete: number;
   unchanged: number;
+  validCsvRows: number;
   validationErrors: InvalidRow[];
   diffEntries: UnifiedDiffEntry[];
   workspaceWarnings: string[];
@@ -51,6 +52,7 @@ export function DiffPreviewPanel({
   toUpdate,
   toSoftDelete,
   unchanged,
+  validCsvRows,
   validationErrors,
   diffEntries,
   workspaceWarnings,
@@ -141,7 +143,7 @@ export function DiffPreviewPanel({
                 // The caller renders the apply error next to the preview.
               });
             }}
-            disabled={isApplying}
+            disabled={isApplying || validCsvRows === 0}
           >
             {isApplying ? "Applying…" : "Confirm & Apply"}
           </Button>
@@ -159,6 +161,14 @@ export function DiffPreviewPanel({
         <StatCard label="Removing" value={toSoftDelete} />
         <StatCard label="Unchanged" value={unchanged} />
       </div>
+
+      {validCsvRows === 0 ? (
+        <InlineAlert
+          title="No valid rows"
+          message="This file has no valid rows, so nothing will be applied."
+          tone="error"
+        />
+      ) : null}
 
       {workspaceWarnings.length > 0 ? (
         <div className="desk-stack-sm">
@@ -179,7 +189,9 @@ export function DiffPreviewPanel({
             </Button>
           </div>
           <p className="desk-help">
-            Invalid rows are skipped. The rest of the file still applies — check these before confirming.
+            {validCsvRows === 0
+              ? "No row in this file is valid, so there is nothing to apply."
+              : "Invalid rows are skipped. The rest of the file still applies — check these before confirming."}
           </p>
           {showValidationErrors ? (
             <DataTable

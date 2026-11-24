@@ -35,8 +35,11 @@ def parse_csv_bytes(csv_bytes: bytes, required_columns: set[str]) -> csv.DictRea
         raise ValueError("CSV file is empty.")
 
     reader = csv.DictReader(io.StringIO(text))
+    if reader.fieldnames is not None:
+        # Normalise in place so row lookups match the required-column check.
+        reader.fieldnames = [name.strip() for name in reader.fieldnames]
 
-    actual_columns = {name.strip() for name in reader.fieldnames or []}
+    actual_columns = set(reader.fieldnames or [])
     missing = sorted(required_columns - actual_columns)
     if missing:
         raise ValueError(f"Missing required columns: {', '.join(missing)}")

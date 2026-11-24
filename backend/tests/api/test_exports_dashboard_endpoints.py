@@ -1,11 +1,16 @@
 from __future__ import annotations
 
+import csv
+import io
+import json
 from datetime import date, datetime, timezone
 
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.form_response import FormResponse
+from app.models.room_assignment import RoomAssignment
 from tests.api.test_matching_endpoints import _seed_ready_segment_with_profiles
 
 
@@ -31,6 +36,39 @@ def test_exports_assignments_endpoint_streams_csv(client: TestClient, db_session
     assert "room_id,segment_key,student_1,student_2,student_3,student_4,group_score" in content
     assert "MR001" in content
     assert "MR002" in content
+
+
+def test_export_neutralises_spreadsheet_formulas(
+    client: TestClient, db_session: Session, seed_tenant_and_user
+) -> None:
+    tenant_id = seed_tenant_and_user["tenant_id"]
+    auth_headers = seed_tenant_and_user["headers"]
+    workspace_id = seed_tenant_and_user["workspace_id"]
+
+    _seed_ready_segment_with_profiles(db_session, tenant_id, workspace_id)
+    run_response = client.post(
+        f"/api/workspaces/{workspace_id}/matching/runs",
+        json={"scope": "segment", "segment_key": "M_1st_year_AC_2"},
+        headers=auth_headers,
+    )
+    assert run_response.status_code == 200
+    run_id = run_response.json()["run_id"]
+
+    payload = "=cmd|' /C calc'!A0"
+    assignment = db_session.scalars(select(RoomAssignment)).one()
+    assignment.room_id = payload
+    assignment.assigned_students_json = json.dumps([payload])
+    db_session.commit()
+
+    response = client.get(
+        f"/api/workspaces/{workspace_id}/exports/assignments/{run_id}", headers=auth_headers
+    )
+    assert response.status_code == 200
+
+    rows = list(csv.reader(io.StringIO(response.text)))
+    body = rows[1]
+    assert body[0].startswith("'=")
+    assert body[2].startswith("'=")
 
 
 def test_dashboard_endpoint_returns_setup_and_latest_run_summary(
