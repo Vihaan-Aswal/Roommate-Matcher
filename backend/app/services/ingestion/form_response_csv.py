@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import csv
 import uuid
-from dataclasses import dataclass
 from pathlib import Path
 
 from sqlalchemy.orm import Session
 
+from app.services.ingestion.csv_utils import RowError, safe_text
 from app.services.ingestion.form_response import (
     QUESTION_KEYS,
     FormIntakeError,
@@ -15,22 +15,6 @@ from app.services.ingestion.form_response import (
 
 
 REQUIRED_COLUMNS = {"admission_number", "phone_last4", *QUESTION_KEYS}
-
-
-@dataclass
-class RowError:
-    row_number: int
-    field: str
-    reason: str
-    raw_value: str | None
-
-    def as_dict(self) -> dict[str, int | str | None]:
-        return {
-            "row_number": self.row_number,
-            "field": self.field,
-            "reason": self.reason,
-            "raw_value": self.raw_value,
-        }
 
 
 def _validate_header(fieldnames: list[str] | None) -> None:
@@ -42,12 +26,6 @@ def _validate_header(fieldnames: list[str] | None) -> None:
     missing = sorted(REQUIRED_COLUMNS - set(fieldnames))
     if missing:
         raise ValueError(f"Missing required columns: {', '.join(missing)}")
-
-
-def _safe_text(value: str | None) -> str:
-    if value is None:
-        return ""
-    return value.strip()
 
 
 def ingest_form_responses_csv(db: Session, workspace_id: uuid.UUID, csv_path: str) -> dict[str, object]:
@@ -68,7 +46,7 @@ def ingest_form_responses_csv(db: Session, workspace_id: uuid.UUID, csv_path: st
         for row_number, row in enumerate(reader, start=2):
             row_errors: list[RowError] = []
 
-            admission_number = _safe_text(row.get("admission_number"))
+            admission_number = safe_text(row.get("admission_number"))
             if not admission_number:
                 row_errors.append(
                     RowError(
@@ -79,7 +57,7 @@ def ingest_form_responses_csv(db: Session, workspace_id: uuid.UUID, csv_path: st
                     )
                 )
 
-            phone_last4 = _safe_text(row.get("phone_last4"))
+            phone_last4 = safe_text(row.get("phone_last4"))
             if not phone_last4:
                 row_errors.append(
                     RowError(
@@ -102,7 +80,7 @@ def ingest_form_responses_csv(db: Session, workspace_id: uuid.UUID, csv_path: st
                 )
 
             answers = {
-                key: (_safe_text(row.get(key)) or None)
+                key: (safe_text(row.get(key)) or None)
                 for key in QUESTION_KEYS
             }
 

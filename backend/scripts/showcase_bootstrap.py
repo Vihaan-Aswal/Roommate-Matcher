@@ -44,7 +44,7 @@ def _backend_runtime_ready() -> bool:
         [
             sys.executable,
             "-c",
-            "import fastapi, sqlalchemy, alembic, uvicorn, networkx, pandas",
+            "import fastapi, sqlalchemy, alembic, uvicorn, networkx",
         ],
         cwd=str(ROOT_DIR),
         check=False,

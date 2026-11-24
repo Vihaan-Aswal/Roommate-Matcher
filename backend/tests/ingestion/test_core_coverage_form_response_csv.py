@@ -12,7 +12,7 @@ from app.models.segment import Segment
 from app.models.student import Student
 from app.services.ingestion.form_response import QUESTION_KEYS
 from app.services.ingestion.form_response_csv import (
-    _safe_text,
+    safe_text,
     _validate_header,
     ingest_form_responses_csv,
 )
@@ -88,8 +88,8 @@ def test_validate_header_rejects_missing_columns() -> None:
 
 
 def test_safe_text_handles_none_and_padding() -> None:
-    assert _safe_text(None) == ""
-    assert _safe_text("  x  ") == "x"
+    assert safe_text(None) == ""
+    assert safe_text("  x  ") == "x"
 
 
 def test_ingest_rejects_missing_file(db_session: Session, tmp_path: Path) -> None:

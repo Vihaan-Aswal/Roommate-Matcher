@@ -134,7 +134,7 @@ For 2-bed rooms: direct pair factors, no aggregation needed.
 | Frontend | React, TypeScript, Vite, React Router, Tailwind CSS, shadcn/ui, TanStack Query |
 | Backend | FastAPI, Python, Pydantic v2, SQLAlchemy, Alembic |
 | Database | Supabase Postgres (production) / SQLite (local demo) |
-| Matching | pandas, NumPy, NetworkX |
+| Matching | NetworkX |
 | Testing | pytest, Vitest, Playwright |
 
 Design constraints: fully local-first, no cloud dependencies, minimal required environment variables, single-command startup.

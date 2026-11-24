@@ -1,38 +1,16 @@
 """
-supabase.py — Supabase admin client and Supabase-JWT verification.
+supabase.py — Supabase-JWT verification.
 
 Supabase JWTs are standard HS256 JWTs signed with the project's JWT secret,
 or ES256/RS256 JWTs verified using the project's JWKS endpoint.
-
-The supabase admin client (service-role equivalent) is built lazily so it is
-available for server-side Supabase operations (user lookup, etc.) without
-requiring it for every request.
 """
 from __future__ import annotations
 
 import jwt
 from jwt import PyJWKClient
-from functools import lru_cache
 from typing import Any
 
-from supabase import Client, create_client
-
 from app.config import get_settings
-
-
-@lru_cache(maxsize=1)
-def get_supabase_admin_client() -> Client:
-    """
-    Returns a long-lived Supabase client initialised with the anon key.
-
-    For server-side admin operations you would normally use the service-role
-    key, but since it is not in the current config we use the anon key.
-    This client is suitable for server-to-server calls that do not need
-    row-level-security bypass.  Upgrade to service-role key in a later phase
-    if needed.
-    """
-    settings = get_settings()
-    return create_client(settings.supabase_project_url, settings.supabase_anon_key)
 
 
 _jwks_client: PyJWKClient | None = None

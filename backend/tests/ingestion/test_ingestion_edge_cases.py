@@ -21,7 +21,7 @@ from app.services.ingestion.form_response import (
     ingest_form_response,
 )
 from app.services.ingestion.form_response_csv import (
-    _safe_text as form_safe_text,
+    safe_text as form_safe_text,
     ingest_form_responses_csv,
 )
 from app.services.ingestion.room_csv import apply_room_import, plan_room_import

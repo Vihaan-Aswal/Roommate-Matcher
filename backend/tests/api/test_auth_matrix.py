@@ -18,7 +18,6 @@ from sqlalchemy.orm import Session
 
 from app.auth.supabase import (
     get_jwks_client,
-    get_supabase_admin_client,
     verify_supabase_jwt,
 )
 from app.auth.tokens import issue_demo_token
@@ -448,25 +447,3 @@ def test_verify_supabase_jwt_wraps_jwks_client_errors(
 
     with pytest.raises(jwt.InvalidTokenError, match="Unable to resolve signing key"):
         verify_supabase_jwt(token)
-
-
-def test_get_supabase_admin_client_is_cached(monkeypatch: pytest.MonkeyPatch) -> None:
-    created: list[tuple[str, str]] = []
-    sentinel = object()
-
-    def _fake_create_client(url: str, key: str):
-        created.append((url, key))
-        return sentinel
-
-    monkeypatch.setattr("app.auth.supabase.create_client", _fake_create_client)
-    monkeypatch.setattr("app.auth.supabase.get_settings", lambda: _stub_settings())
-    get_supabase_admin_client.cache_clear()
-
-    try:
-        first = get_supabase_admin_client()
-        second = get_supabase_admin_client()
-    finally:
-        get_supabase_admin_client.cache_clear()
-
-    assert first is sentinel and second is sentinel
-    assert created == [("https://test.supabase.co", "anon-key")]
