@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import logging
+from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
@@ -12,9 +15,12 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
+from app.database import SessionLocal
 from app.rate_limit import limiter
+from app.services.orchestration.run_workflow import sweep_stale_runs
 
 settings = get_settings()
+logger = logging.getLogger(__name__)
 
 from app.api.routes.auth import router as auth_router
 from app.api.routes.checker import router as checker_router
@@ -80,8 +86,21 @@ def _configure_showcase_routes(application: FastAPI, frontend_dist_dir: Path) ->
         return FileResponse(index_file)
 
 
+@asynccontextmanager
+async def _lifespan(_application: FastAPI):
+    if settings.app_env == "production":
+        db = SessionLocal()
+        try:
+            sweep_stale_runs(db, boot_time=datetime.now(UTC))
+        except Exception:  # noqa: BLE001
+            logger.exception("Failed to sweep stale matching runs on boot")
+        finally:
+            db.close()
+    yield
+
+
 def create_app(*, frontend_dist_dir: Path | None = None) -> FastAPI:
-    application = FastAPI(title=settings.app_name)
+    application = FastAPI(title=settings.app_name, lifespan=_lifespan)
     
     application.state.limiter = limiter
     application.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)

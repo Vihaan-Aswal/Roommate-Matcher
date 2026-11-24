@@ -1,4 +1,4 @@
-import { expect, type APIRequestContext, type Page } from "@playwright/test";
+import { expect, type APIRequestContext, type Locator, type Page } from "@playwright/test";
 
 export const API_BASE = "http://127.0.0.1:8000";
 
@@ -71,6 +71,39 @@ export async function submitResponse(
   expect(response.ok()).toBeTruthy();
   const body = (await response.json()) as { valid?: boolean };
   expect(body.valid).toBe(true);
+}
+
+/**
+ * Start a run over every ready segment and wait for its history row to finish.
+ * The request returns while the run is queued, so the page polls until then.
+ */
+export async function runAllReadySegments(
+  page: Page,
+): Promise<{ runId: string; row: Locator }> {
+  const existingRunIds = await page.locator("tbody .desk-mono").allInnerTexts();
+
+  await page.getByRole("button", { name: /run all ready segments/i }).click();
+  await expect(page.getByText(/Matching run (started|completed)/i)).toBeVisible({
+    timeout: 120_000,
+  });
+
+  let runId = "";
+  await expect
+    .poll(
+      async () => {
+        const runIds = await page.locator("tbody .desk-mono").allInnerTexts();
+        runId = runIds.find((id) => !existingRunIds.includes(id)) ?? "";
+        return runId;
+      },
+      { timeout: 120_000 },
+    )
+    .not.toBe("");
+
+  const row = page.locator("tbody tr", { hasText: runId }).first();
+  await expect(row.locator('td[data-label="Status"]')).toHaveText(/completed/i, {
+    timeout: 120_000,
+  });
+  return { runId, row };
 }
 
 /** Track browser console errors and fail the test if any occur. */

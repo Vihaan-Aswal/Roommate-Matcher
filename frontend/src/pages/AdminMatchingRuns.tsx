@@ -62,6 +62,9 @@ export function AdminMatchingRuns(): JSX.Element {
 
   const segments = segmentsQuery.data?.segments ?? [];
   const runs = runsQuery.data?.runs ?? [];
+  const hasRunningRun = runs.some(
+    (run) => run.status === "running" || run.status === "pending",
+  );
 
   const readySegments = useMemo(
     () => segments.filter((segment) => segment.status === "Ready"),
@@ -106,7 +109,7 @@ export function AdminMatchingRuns(): JSX.Element {
       cell: (row) => (
         <div className="desk-row" style={{ gap: 6 }}>
           <Button
-            disabled={runMutation.isPending || row.status !== "Ready"}
+            disabled={runMutation.isPending || hasRunningRun || row.status !== "Ready"}
             size="sm"
             variant="outline"
             onClick={() => {
@@ -164,7 +167,11 @@ export function AdminMatchingRuns(): JSX.Element {
       cell: (row) => {
         const canOpen = row.status === "completed";
         if (!canOpen) {
-          return <span className="desk-help">Not ready</span>;
+          return (
+            <span className="desk-help">
+              {row.status === "running" || row.status === "pending" ? "Running" : "Not ready"}
+            </span>
+          );
         }
         const roomRoute = defaultSegmentKey
           ? `/app/${workspaceId}/matching-runs/${encodeURIComponent(row.run_id)}/rooms?segment=${encodeURIComponent(defaultSegmentKey)}&needsReview=0`
@@ -224,7 +231,7 @@ export function AdminMatchingRuns(): JSX.Element {
           ) : null}
         </div>
         <Button
-          disabled={runMutation.isPending || readySegments.length === 0}
+          disabled={runMutation.isPending || hasRunningRun || readySegments.length === 0}
           onClick={() => {
             void runMutation.mutateAsync({
               scope: "all_ready_segments",
@@ -238,22 +245,30 @@ export function AdminMatchingRuns(): JSX.Element {
       </div>
 
       {runMutation.isSuccess ? (
-        <InlineAlert
-          title="Matching run completed"
-          message={`Run ${runMutation.data.run_id} finished with status ${runMutation.data.status}.`}
-          tone="success"
-          actions={
-            <Button asChild size="sm" variant="outline">
-              <Link
-                to={`/app/${workspaceId}/matching-runs/${encodeURIComponent(runMutation.data.run_id)}/rooms${
-                  defaultSegmentKey ? `?segment=${encodeURIComponent(defaultSegmentKey)}` : ""
-                }`}
-              >
-                Open the rooms
-              </Link>
-            </Button>
-          }
-        />
+        runMutation.data.status === "completed" ? (
+          <InlineAlert
+            title="Matching run completed"
+            message={`Run ${runMutation.data.run_id} finished with status ${runMutation.data.status}.`}
+            tone="success"
+            actions={
+              <Button asChild size="sm" variant="outline">
+                <Link
+                  to={`/app/${workspaceId}/matching-runs/${encodeURIComponent(runMutation.data.run_id)}/rooms${
+                    defaultSegmentKey ? `?segment=${encodeURIComponent(defaultSegmentKey)}` : ""
+                  }`}
+                >
+                  Open the rooms
+                </Link>
+              </Button>
+            }
+          />
+        ) : (
+          <InlineAlert
+            title="Matching run started"
+            message="Results appear here when it finishes."
+            tone="success"
+          />
+        )
       ) : null}
 
       {runMutation.isError ? (

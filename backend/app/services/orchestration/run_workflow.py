@@ -4,11 +4,11 @@ import json
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from itertools import combinations
-from typing import Literal
+from typing import Callable, Literal
 import uuid
 from uuid import uuid4
 
-from sqlalchemy import func, select, insert
+from sqlalchemy import func, select, insert, or_
 from sqlalchemy.orm import Session
 
 from app.models.matching_run import MatchingRun
@@ -299,26 +299,42 @@ def _persist_segment_artifacts(
     return fairness_records
 
 
-def run_matching_workflow(db: Session, workspace_id: uuid.UUID, tenant_id: uuid.UUID, scope: RunScope, segment_key: str | None) -> MatchingRunStartResult:
+def create_matching_run(
+    db: Session, workspace_id: uuid.UUID, scope: RunScope, segment_key: str | None
+) -> tuple[MatchingRun, list[Segment]]:
     targets = _resolve_target_segments(db, scope, segment_key, workspace_id)
-    run_id = _new_run_id()
-    started_at = _now_utc()
-
     run_row = MatchingRun(
         tenant_id=targets[0].tenant_id,
         workspace_id=targets[0].workspace_id,
-        run_id=run_id,
+        run_id=_new_run_id(),
         scope=scope,
         target_segment_id=targets[0].id if scope == "segment" else None,
         status="running",
-        started_at=started_at,
+        started_at=_now_utc(),
     )
     db.add(run_row)
     db.commit()
+    db.refresh(run_row)
+    return run_row, targets
+
+
+def execute_matching_run(
+    db: Session,
+    run_row_id: uuid.UUID,
+    segment_ids: list[uuid.UUID],
+    scope: str,
+    on_segment_done: Callable[[int, int], None] | None = None,
+) -> None:
+    run_row = db.scalars(select(MatchingRun).where(MatchingRun.id == run_row_id)).first()
+    if run_row is None:
+        raise RuntimeError("Matching run row disappeared during execution")
+
+    segments = db.scalars(select(Segment).where(Segment.id.in_(segment_ids))).all()
+    targets = sorted(segments, key=lambda segment: segment.segment_key)
 
     try:
         fairness_inputs: list[FairnessInputRecord] = []
-        for segment in targets:
+        for done, segment in enumerate(targets, start=1):
             fairness_inputs.extend(
                 _persist_segment_artifacts(
                     db,
@@ -326,18 +342,17 @@ def run_matching_workflow(db: Session, workspace_id: uuid.UUID, tenant_id: uuid.
                     segment=segment,
                 )
             )
+            if on_segment_done is not None:
+                on_segment_done(done, len(targets))
 
         fairness_report = compute_fairness_distribution(fairness_inputs)
-        persisted_run = db.scalars(select(MatchingRun).where(MatchingRun.run_id == run_id, MatchingRun.workspace_id == workspace_id)).first()
-        if persisted_run is None:
-            raise RuntimeError("Matching run row disappeared during execution")
-        persisted_run.fairness_summary_json = json.dumps(asdict(fairness_report), sort_keys=True)
-        persisted_run.status = "completed"
-        persisted_run.finished_at = _now_utc()
+        run_row.fairness_summary_json = json.dumps(asdict(fairness_report), sort_keys=True)
+        run_row.status = "completed"
+        run_row.finished_at = _now_utc()
         db.commit()
     except Exception as exc:  # noqa: BLE001
         db.rollback()
-        failed_run = db.scalars(select(MatchingRun).where(MatchingRun.run_id == run_id, MatchingRun.workspace_id == workspace_id)).first()
+        failed_run = db.scalars(select(MatchingRun).where(MatchingRun.id == run_row_id)).first()
         if failed_run is not None:
             failed_run.status = "failed"
             failed_run.error_message = str(exc)
@@ -345,8 +360,40 @@ def run_matching_workflow(db: Session, workspace_id: uuid.UUID, tenant_id: uuid.
             db.commit()
         raise
 
+
+def has_running_run(db: Session, workspace_id: uuid.UUID) -> bool:
+    running_run_id = db.scalars(
+        select(MatchingRun.id)
+        .where(
+            MatchingRun.workspace_id == workspace_id,
+            MatchingRun.status.in_(("running", "pending")),
+        )
+        .limit(1)
+    ).first()
+    return running_run_id is not None
+
+
+def sweep_stale_runs(db: Session, *, boot_time: datetime) -> int:
+    stale_runs = db.scalars(
+        select(MatchingRun).where(
+            MatchingRun.status.in_(("running", "pending")),
+            or_(MatchingRun.started_at.is_(None), MatchingRun.started_at < boot_time),
+        )
+    ).all()
+    for stale_run in stale_runs:
+        stale_run.status = "failed"
+        stale_run.error_message = "Run interrupted by a server restart."
+        stale_run.finished_at = _now_utc()
+    db.commit()
+    return len(stale_runs)
+
+
+def run_matching_workflow(db: Session, workspace_id: uuid.UUID, tenant_id: uuid.UUID, scope: RunScope, segment_key: str | None) -> MatchingRunStartResult:
+    run_row, targets = create_matching_run(db, workspace_id, scope, segment_key)
+    execute_matching_run(db, run_row.id, [target.id for target in targets], scope)
+
     return MatchingRunStartResult(
-        run_id=run_id,
+        run_id=run_row.run_id,
         scope=scope,
         status="completed",
         message="Matching run completed successfully.",

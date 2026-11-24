@@ -11,6 +11,12 @@ export function useAdminMatchingRunsQuery(workspaceId: string) {
   return useQuery({
     queryKey: adminQueryKeys.matchingRuns(workspaceId),
     queryFn: () => getMatchingRuns(workspaceId),
+    refetchInterval: (query) =>
+      query.state.data?.runs.some(
+        (run) => run.status === "running" || run.status === "pending",
+      )
+        ? 2500
+        : false,
   });
 }
 

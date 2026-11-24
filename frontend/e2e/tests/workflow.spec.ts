@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 
-import { startDemo } from "../helpers";
+import { runAllReadySegments, startDemo } from "../helpers";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -106,13 +106,9 @@ test.describe.serial("primary admin and student workflow", () => {
 
   test("run matching, read results, use the checker", async () => {
     await page.goto(`/app/${workspaceId}/matching-runs`);
-    await page.getByRole("button", { name: /run all ready segments/i }).click();
-    await expect(page.getByText(/Matching run completed/i)).toBeVisible({ timeout: 120_000 });
-
-    const alertText = await page.getByText(/Run run_[^\s]+ finished with status completed/i).innerText();
-    const match = alertText.match(/run_[0-9]{14}_[a-f0-9]{8}/i);
-    expect(match).not.toBeNull();
-    runId = match![0];
+    const finishedRun = await runAllReadySegments(page);
+    runId = finishedRun.runId;
+    await expect(finishedRun.row.getByRole("link", { name: "Rooms" })).toBeVisible();
 
     await page.goto(`/app/${workspaceId}/matching-runs/${runId}/students?segment=all`);
     await expect(page.getByRole("heading", { name: "Student Results", exact: true })).toBeVisible();

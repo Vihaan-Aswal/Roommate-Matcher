@@ -16,6 +16,7 @@ import app.models  # noqa: F401
 from app.database import get_db
 from app.main import app
 from app.models.base import Base
+from app.services.orchestration import run_queue, run_workflow
 from app.models.student import Student
 from app.models.segment import Segment
 from app.models.room import Room
@@ -51,6 +52,18 @@ def db_session() -> Generator[Session, None, None]:
         session.close()
         Base.metadata.drop_all(engine)
         engine.dispose()
+
+
+@pytest.fixture(autouse=True)
+def inline_matching_queue(db_session: Session, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Run queued matching runs inline so route tests see a finished run."""
+    monkeypatch.setattr(
+        run_queue,
+        "enqueue_matching_run",
+        lambda run_row_id, run_id, segment_ids, workspace_id, scope: run_workflow.execute_matching_run(
+            db_session, run_row_id, segment_ids, scope
+        ),
+    )
 
 
 @pytest.fixture

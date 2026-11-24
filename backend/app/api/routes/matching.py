@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import asyncio
+import threading
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import select, exists
@@ -19,40 +19,63 @@ from app.schemas.matching import (
     MatchingRunRoomsResponse,
     MatchingRunStudentsResponse,
 )
+from app.services.orchestration import run_queue
 from app.services.orchestration.run_workflow import (
+    create_matching_run,
     get_run_rooms_from_persisted_artifacts,
     get_run_students_from_persisted_artifacts,
+    has_running_run,
     list_matching_runs,
-    run_matching_workflow,
 )
 
 from app.api.deps.run_access import resolve_run_or_403
 
 router = APIRouter(prefix="/api/workspaces/{workspace_id}/matching", tags=["matching"])
 
+_RUN_LOCK = threading.Lock()
 
-# shortcut: matching runs synchronously in the request; above ~300 students per segment it can outlast a free-tier request, move it to a worker before that.
+
 @router.post("/runs", response_model=MatchingRunResponse)
-async def run_matching(
+def run_matching(
     workspace_id: uuid.UUID,
     payload: MatchingRunRequest,
     db: Session = Depends(get_db),
     workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_editor),
 ) -> MatchingRunResponse:
-    user, tenant, workspace = workspace_ctx
     try:
-        result = await asyncio.to_thread(
-            run_matching_workflow, db, workspace_id, tenant.id, payload.scope, payload.segment_key
-        )
+        with _RUN_LOCK:
+            if has_running_run(db, workspace_id):
+                raise HTTPException(
+                    status_code=409,
+                    detail="A matching run is already in progress for this workspace.",
+                )
+            run_row, targets = create_matching_run(
+                db, workspace_id, payload.scope, payload.segment_key
+            )
+            run_queue.enqueue_matching_run(
+                run_row.id,
+                run_row.run_id,
+                [target.id for target in targets],
+                workspace_id,
+                payload.scope,
+            )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
+    db.refresh(run_row)
+    if run_row.status == "completed":
+        message = "Matching run completed successfully."
+    elif run_row.status == "failed":
+        message = run_row.error_message or "Matching run failed."
+    else:
+        message = "Matching run started."
+
     return MatchingRunResponse(
-        run_id=result.run_id,
-        scope=result.scope,
-        status=result.status,
-        message=result.message,
-        segments_matched=result.segments_matched,
+        run_id=run_row.run_id,
+        scope=payload.scope,
+        status=run_row.status,
+        message=message,
+        segments_matched=len(targets),
     )
 
 
@@ -63,6 +86,7 @@ def get_matching_runs(
     workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_access),
 ) -> MatchingRunListResponse:
     runs = list_matching_runs(db, workspace_id)
+    progress = run_queue.progress_snapshot()
     return MatchingRunListResponse(
         runs=[
             {
@@ -72,7 +96,11 @@ def get_matching_runs(
                 "finished_at": run.finished_at,
                 "status": run.status,
                 "scope": run.scope,
-                "segments_completed": run.segments_completed,
+                "segments_completed": (
+                    progress[run.run_id][0]
+                    if run.status == "running" and run.run_id in progress
+                    else run.segments_completed
+                ),
                 "error_message": run.error_message,
             }
             for run in runs

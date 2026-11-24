@@ -187,6 +187,10 @@ describe("AdminMatchingRuns states and actions", () => {
   });
 
   it("runs a single ready segment and skips an incomplete one", () => {
+    useAdminMatchingRunsQueryMock.mockReturnValue(
+      runsQuery({ data: { runs: [COMPLETED_RUN] } }),
+    );
+
     renderWithProviders(<AdminMatchingRuns />);
 
     const runButtons = screen.getAllByRole("button", { name: /run segment/i });
@@ -199,6 +203,30 @@ describe("AdminMatchingRuns states and actions", () => {
       scope: "segment",
       segment_key: "M_1st_year_AC_2",
     });
+  });
+
+  it("disables every run action while a run is in progress", () => {
+    renderWithProviders(<AdminMatchingRuns />);
+
+    for (const button of screen.getAllByRole("button", { name: /run segment/i })) {
+      expect(button).toBeDisabled();
+    }
+    expect(screen.getByRole("button", { name: /run all ready segments/i })).toBeDisabled();
+  });
+
+  it("announces a started run without opening results", () => {
+    useRunMatchingMutationMock.mockReturnValue(
+      runMutation({
+        isSuccess: true,
+        data: { run_id: "run-200", status: "running" },
+      }),
+    );
+
+    renderWithProviders(<AdminMatchingRuns />);
+
+    expect(screen.getByText("Matching run started")).toBeInTheDocument();
+    expect(screen.getByText("Results appear here when it finishes.")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /open the rooms/i })).not.toBeInTheDocument();
   });
 
   it("confirms a finished run and links to its rooms with the first segment selected", () => {
@@ -245,7 +273,7 @@ describe("AdminMatchingRuns states and actions", () => {
       "href",
       "/app/ws_test/fairness/run-100?segment=all",
     );
-    expect(screen.getByText("Not ready")).toBeInTheDocument();
+    expect(screen.getByText("Running")).toBeInTheDocument();
   });
 
   it("fills missing profiles for one segment and refreshes the readiness table", async () => {

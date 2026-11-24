@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { startDemo } from "../helpers";
+import { runAllReadySegments, startDemo } from "../helpers";
 
 test.describe.serial("Demo seeder and magic fill", () => {
   test.setTimeout(120_000);
@@ -15,10 +15,9 @@ test.describe.serial("Demo seeder and magic fill", () => {
     await page.getByRole("link", { name: "Matching Runs" }).first().click();
     await expect(page).toHaveURL(/\/app\/[a-f0-9-]+\/matching-runs/);
 
-    await page.getByRole("button", { name: /run all ready segments/i }).click();
-    await expect(page.getByText(/Matching run completed/i)).toBeVisible({ timeout: 60_000 });
+    const finishedRun = await runAllReadySegments(page);
 
-    await page.getByRole("link", { name: /open the rooms/i }).click();
+    await finishedRun.row.getByRole("link", { name: "Rooms" }).click();
     await expect(page.getByRole("heading", { name: "Room Results", exact: true })).toBeVisible();
 
     const roomsUrl = page.url();
@@ -35,7 +34,6 @@ test.describe.serial("Demo seeder and magic fill", () => {
     await expect(page.getByText(/Magic Fill complete/i).first()).toBeVisible({ timeout: 30_000 });
 
     await page.getByRole("link", { name: "Matching Runs" }).first().click();
-    await page.getByRole("button", { name: /run all ready segments/i }).click();
-    await expect(page.getByText(/Matching run completed/i)).toBeVisible({ timeout: 60_000 });
+    await runAllReadySegments(page);
   });
 });
