@@ -88,7 +88,9 @@ def _configure_showcase_routes(application: FastAPI, frontend_dist_dir: Path) ->
 
 @asynccontextmanager
 async def _lifespan(_application: FastAPI):
-    if settings.app_env == "production":
+    # An in-memory database cannot outlive a process, so only a real database
+    # can still hold a run that the previous process left behind.
+    if ":memory:" not in settings.database_url:
         db = SessionLocal()
         try:
             sweep_stale_runs(db, boot_time=datetime.now(UTC))

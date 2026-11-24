@@ -4,7 +4,7 @@ import path from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 
 import { resolvePythonRuntime } from "../../scripts/python-runtime.mjs";
-import { demoToken, formToken, startDemo } from "../helpers";
+import { demoToken, formToken, startDemo, waitForRunCompleted } from "../helpers";
 import { API_BASE } from "../helpers";
 
 const VIEWPORTS = [
@@ -20,6 +20,7 @@ async function runMatching(page: Page, workspaceId: string): Promise<string> {
   });
   expect(response.ok()).toBeTruthy();
   const body = (await response.json()) as { run_id: string };
+  await waitForRunCompleted(page, workspaceId, body.run_id);
   return body.run_id;
 }
 

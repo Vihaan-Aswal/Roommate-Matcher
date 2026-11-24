@@ -106,6 +106,43 @@ export async function runAllReadySegments(
   return { runId, row };
 }
 
+/**
+ * Poll the run history until the API reports a run completed.
+ * The POST returns while the run is queued, so result pages must wait.
+ */
+export async function waitForRunCompleted(
+  page: Page,
+  workspaceId: string,
+  runId: string,
+): Promise<void> {
+  const token = await demoToken(page);
+  let status = "";
+
+  await expect
+    .poll(
+      async () => {
+        const response = await page.request.get(
+          `${API_BASE}/api/workspaces/${workspaceId}/matching/runs`,
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
+        expect(response.ok(), `Could not read runs for workspace ${workspaceId}`).toBeTruthy();
+        const body = (await response.json()) as {
+          runs: Array<{ run_id: string; status: string }>;
+        };
+        status = body.runs.find((run) => run.run_id === runId)?.status ?? "missing";
+        return status;
+      },
+      {
+        timeout: 120_000,
+        intervals: [1000],
+        message: `Matching run ${runId} in workspace ${workspaceId} never finished`,
+      },
+    )
+    .toMatch(/completed|failed/);
+
+  expect(status, `Matching run ${runId} finished with status failed`).toBe("completed");
+}
+
 /** Track browser console errors and fail the test if any occur. */
 export function trackConsoleErrors(page: Page): string[] {
   const errors: string[] = [];

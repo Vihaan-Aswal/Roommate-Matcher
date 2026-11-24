@@ -2,7 +2,7 @@ import AxeBuilder from "@axe-core/playwright";
 
 import { expect, test, type Page } from "@playwright/test";
 
-import { demoToken, startDemo } from "../helpers";
+import { demoToken, startDemo, waitForRunCompleted } from "../helpers";
 import { API_BASE } from "../helpers";
 
 async function runMatching(page: Page, workspaceId: string): Promise<string> {
@@ -12,7 +12,9 @@ async function runMatching(page: Page, workspaceId: string): Promise<string> {
     data: { scope: "all_ready_segments", segment_key: null },
   });
   expect(response.ok()).toBeTruthy();
-  return ((await response.json()) as { run_id: string }).run_id;
+  const body = (await response.json()) as { run_id: string };
+  await waitForRunCompleted(page, workspaceId, body.run_id);
+  return body.run_id;
 }
 
 async function expectAccessible(page: Page, label: string): Promise<void> {
