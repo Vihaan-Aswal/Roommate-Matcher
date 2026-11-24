@@ -2,7 +2,7 @@ import pytest
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.models.workspace import Workspace
 from app.models.student import Student
@@ -141,3 +141,30 @@ def test_double_submission_unique_conflict_still_reports_success(
     assert calls["count"] >= 1
     assert resp.status_code == 200
     assert resp.json() == {"status": "submitted", "valid": True}
+
+
+def test_resubmission_with_aware_stored_timestamp(
+    client, test_setup, db_session, monkeypatch
+):
+    """Postgres returns timezone-aware timestamps; the compare must not raise."""
+    payload = {
+        "submitted_admission_number": "ADM001",
+        "submitted_phone_last4": "7890",
+        "answers": VALID_ANSWERS,
+    }
+    first = client.post("/api/public/forms/VALID_TOKEN/submit", json=payload)
+    assert first.json()["valid"] is True
+
+    original_get = db_session.get
+
+    def aware_get(model, ident, *args, **kwargs):
+        obj = original_get(model, ident, *args, **kwargs)
+        if model is FormResponse and obj is not None and obj.submitted_at.tzinfo is None:
+            obj.submitted_at = obj.submitted_at.replace(tzinfo=timezone.utc)
+        return obj
+
+    monkeypatch.setattr(db_session, "get", aware_get)
+
+    second = client.post("/api/public/forms/VALID_TOKEN/submit", json=payload)
+    assert second.status_code == 200
+    assert second.json() == {"status": "submitted", "valid": True}

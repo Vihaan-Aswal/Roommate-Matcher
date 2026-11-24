@@ -29,6 +29,7 @@ from app.services.ingestion.form_response import (
     _build_encoded_answers,
     _latest_valid_profile,
     _deactivate_active_profiles,
+    _to_utc_naive,
 )
 
 router = APIRouter()
@@ -217,7 +218,10 @@ def submit_public_form(
     active_profile = _latest_valid_profile(db, student.id)
     if active_profile is not None:
         previous_response = db.get(FormResponse, active_profile.source_form_response_id)
-        if previous_response is not None and previous_response.submitted_at > submitted_at:
+        if (
+            previous_response is not None
+            and _to_utc_naive(previous_response.submitted_at) > submitted_at
+        ):
             should_activate = False
 
     if should_activate:
