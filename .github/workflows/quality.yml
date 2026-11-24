@@ -121,8 +121,25 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('frontend/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
       - name: Install Chromium
-        run: npx playwright install --with-deps chromium
+        run: |
+          for attempt in 1 2 3; do
+            if npx playwright install --with-deps chromium; then
+              exit 0
+            fi
+            echo "playwright install failed on attempt $attempt; retrying in 15s"
+            sleep 15
+          done
+          echo "playwright install failed three times"
+          exit 1
 
       - name: Run E2E twice (flake gate)
         run: |
