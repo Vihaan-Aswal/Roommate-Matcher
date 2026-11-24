@@ -13,23 +13,9 @@ from app.services.explainability.service import explain_hypothetical_group
 from app.services.matching.adapter import profile_to_scoring_profile
 from app.services.matching.labels import classify_student, derive_satisfaction_label
 from app.services.matching.satisfaction import compute_group_score, compute_student_satisfaction_scores
+from app.services.scoring.neutral import neutral_profile, with_neutral_fallback
 from app.services.scoring.segment_matrix import compute_segment_pair_scores
 from app.services.scoring.types import ScoringProfile
-
-NEUTRAL_ENCODED_VALUES: dict[str, float] = {
-    "q1_enc": 2.5,
-    "q2_enc": 2.0,
-    "q3_enc": 2.0,
-    "q4a_enc": 1.0,
-    "q4b_enc": 1.5,
-    "q5a_enc": 1.0,
-    "q5b_enc": 1.5,
-    "q6_enc": 2.0,
-    "q7_enc": 2.0,
-    "q8_enc": 2.0,
-    "q9_enc": 2.0,
-    "q10_enc": 1.5,
-}
 
 
 @dataclass(frozen=True)
@@ -38,44 +24,6 @@ class CheckerResult:
     group_label: str
     at_risk_students: list[str]
     students: list[dict[str, object]]
-
-
-def _neutral_profile(admission_number: str) -> ScoringProfile:
-    return ScoringProfile(
-        admission_number=admission_number,
-        has_preferences=False,
-        q1_enc=NEUTRAL_ENCODED_VALUES["q1_enc"],
-        q2_enc=NEUTRAL_ENCODED_VALUES["q2_enc"],
-        q3_enc=NEUTRAL_ENCODED_VALUES["q3_enc"],
-        q4a_enc=NEUTRAL_ENCODED_VALUES["q4a_enc"],
-        q4b_enc=NEUTRAL_ENCODED_VALUES["q4b_enc"],
-        q5a_enc=NEUTRAL_ENCODED_VALUES["q5a_enc"],
-        q5b_enc=NEUTRAL_ENCODED_VALUES["q5b_enc"],
-        q6_enc=NEUTRAL_ENCODED_VALUES["q6_enc"],
-        q7_enc=NEUTRAL_ENCODED_VALUES["q7_enc"],
-        q8_enc=NEUTRAL_ENCODED_VALUES["q8_enc"],
-        q9_enc=NEUTRAL_ENCODED_VALUES["q9_enc"],
-        q10_enc=NEUTRAL_ENCODED_VALUES["q10_enc"],
-    )
-
-
-def _with_neutral_fallback(profile: ScoringProfile) -> ScoringProfile:
-    return ScoringProfile(
-        admission_number=profile.admission_number,
-        has_preferences=profile.has_preferences,
-        q1_enc=profile.q1_enc if profile.q1_enc is not None else NEUTRAL_ENCODED_VALUES["q1_enc"],
-        q2_enc=profile.q2_enc if profile.q2_enc is not None else NEUTRAL_ENCODED_VALUES["q2_enc"],
-        q3_enc=profile.q3_enc if profile.q3_enc is not None else NEUTRAL_ENCODED_VALUES["q3_enc"],
-        q4a_enc=profile.q4a_enc if profile.q4a_enc is not None else NEUTRAL_ENCODED_VALUES["q4a_enc"],
-        q4b_enc=profile.q4b_enc if profile.q4b_enc is not None else NEUTRAL_ENCODED_VALUES["q4b_enc"],
-        q5a_enc=profile.q5a_enc if profile.q5a_enc is not None else NEUTRAL_ENCODED_VALUES["q5a_enc"],
-        q5b_enc=profile.q5b_enc if profile.q5b_enc is not None else NEUTRAL_ENCODED_VALUES["q5b_enc"],
-        q6_enc=profile.q6_enc if profile.q6_enc is not None else NEUTRAL_ENCODED_VALUES["q6_enc"],
-        q7_enc=profile.q7_enc if profile.q7_enc is not None else NEUTRAL_ENCODED_VALUES["q7_enc"],
-        q8_enc=profile.q8_enc if profile.q8_enc is not None else NEUTRAL_ENCODED_VALUES["q8_enc"],
-        q9_enc=profile.q9_enc if profile.q9_enc is not None else NEUTRAL_ENCODED_VALUES["q9_enc"],
-        q10_enc=profile.q10_enc if profile.q10_enc is not None else NEUTRAL_ENCODED_VALUES["q10_enc"],
-    )
 
 
 def run_manual_checker(
@@ -128,9 +76,9 @@ def run_manual_checker(
     for student_id in ordered_student_ids:
         profile = profile_map.get(student_id)
         if profile is None:
-            scoring_profiles.append(_neutral_profile(student_id))
+            scoring_profiles.append(neutral_profile(student_id))
             continue
-        scoring_profiles.append(_with_neutral_fallback(profile_to_scoring_profile(profile, admission_number=student_id)))
+        scoring_profiles.append(with_neutral_fallback(profile_to_scoring_profile(profile, admission_number=student_id)))
 
     pair_results = compute_segment_pair_scores(scoring_profiles)
 

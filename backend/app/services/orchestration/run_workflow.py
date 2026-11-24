@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
+from itertools import combinations
 from typing import Literal
 import uuid
 from uuid import uuid4
@@ -23,26 +24,12 @@ from app.services.fairness.distribution import FairnessInputRecord, compute_fair
 from app.services.matching.adapter import profile_to_scoring_profile
 from app.services.matching.contracts import SegmentData
 from app.services.matching.engine import run_matching_for_segment
+from app.services.scoring.neutral import neutral_profile, with_neutral_fallback
 from app.services.scoring.segment_matrix import compute_segment_pair_scores
 from app.services.scoring.types import FactorScore, ScoringProfile
 from app.services.segments.status import compute_segment_status
 
 RunScope = Literal["segment", "all_ready_segments"]
-
-NEUTRAL_ENCODED_VALUES: dict[str, float] = {
-    "q1_enc": 2.5,
-    "q2_enc": 2.0,
-    "q3_enc": 2.0,
-    "q4a_enc": 1.0,
-    "q4b_enc": 1.5,
-    "q5a_enc": 1.0,
-    "q5b_enc": 1.5,
-    "q6_enc": 2.0,
-    "q7_enc": 2.0,
-    "q8_enc": 2.0,
-    "q9_enc": 2.0,
-    "q10_enc": 1.5,
-}
 
 
 @dataclass(frozen=True)
@@ -73,44 +60,6 @@ def _now_utc() -> datetime:
 def _new_run_id() -> str:
     stamp = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
     return f"run_{stamp}_{uuid4().hex[:8]}"
-
-
-def _neutral_scoring_profile(admission_number: str) -> ScoringProfile:
-    return ScoringProfile(
-        admission_number=admission_number,
-        has_preferences=False,
-        q1_enc=NEUTRAL_ENCODED_VALUES["q1_enc"],
-        q2_enc=NEUTRAL_ENCODED_VALUES["q2_enc"],
-        q3_enc=NEUTRAL_ENCODED_VALUES["q3_enc"],
-        q4a_enc=NEUTRAL_ENCODED_VALUES["q4a_enc"],
-        q4b_enc=NEUTRAL_ENCODED_VALUES["q4b_enc"],
-        q5a_enc=NEUTRAL_ENCODED_VALUES["q5a_enc"],
-        q5b_enc=NEUTRAL_ENCODED_VALUES["q5b_enc"],
-        q6_enc=NEUTRAL_ENCODED_VALUES["q6_enc"],
-        q7_enc=NEUTRAL_ENCODED_VALUES["q7_enc"],
-        q8_enc=NEUTRAL_ENCODED_VALUES["q8_enc"],
-        q9_enc=NEUTRAL_ENCODED_VALUES["q9_enc"],
-        q10_enc=NEUTRAL_ENCODED_VALUES["q10_enc"],
-    )
-
-
-def _ensure_neutral_fallback(profile: ScoringProfile) -> ScoringProfile:
-    return ScoringProfile(
-        admission_number=profile.admission_number,
-        has_preferences=profile.has_preferences,
-        q1_enc=profile.q1_enc if profile.q1_enc is not None else NEUTRAL_ENCODED_VALUES["q1_enc"],
-        q2_enc=profile.q2_enc if profile.q2_enc is not None else NEUTRAL_ENCODED_VALUES["q2_enc"],
-        q3_enc=profile.q3_enc if profile.q3_enc is not None else NEUTRAL_ENCODED_VALUES["q3_enc"],
-        q4a_enc=profile.q4a_enc if profile.q4a_enc is not None else NEUTRAL_ENCODED_VALUES["q4a_enc"],
-        q4b_enc=profile.q4b_enc if profile.q4b_enc is not None else NEUTRAL_ENCODED_VALUES["q4b_enc"],
-        q5a_enc=profile.q5a_enc if profile.q5a_enc is not None else NEUTRAL_ENCODED_VALUES["q5a_enc"],
-        q5b_enc=profile.q5b_enc if profile.q5b_enc is not None else NEUTRAL_ENCODED_VALUES["q5b_enc"],
-        q6_enc=profile.q6_enc if profile.q6_enc is not None else NEUTRAL_ENCODED_VALUES["q6_enc"],
-        q7_enc=profile.q7_enc if profile.q7_enc is not None else NEUTRAL_ENCODED_VALUES["q7_enc"],
-        q8_enc=profile.q8_enc if profile.q8_enc is not None else NEUTRAL_ENCODED_VALUES["q8_enc"],
-        q9_enc=profile.q9_enc if profile.q9_enc is not None else NEUTRAL_ENCODED_VALUES["q9_enc"],
-        q10_enc=profile.q10_enc if profile.q10_enc is not None else NEUTRAL_ENCODED_VALUES["q10_enc"],
-    )
 
 
 def _serialize_factor_breakdown(factor_breakdown: dict[str, FactorScore]) -> dict[str, dict[str, float | bool]]:
@@ -186,9 +135,9 @@ def _segment_scoring_profiles(db: Session, segment: Segment) -> tuple[list[str],
     for student_id in student_ids:
         profile = profile_map.get(student_id)
         if profile is None:
-            scoring_profiles.append(_neutral_scoring_profile(student_id))
+            scoring_profiles.append(neutral_profile(student_id))
             continue
-        scoring_profiles.append(_ensure_neutral_fallback(profile_to_scoring_profile(profile, admission_number=student_id)))
+        scoring_profiles.append(with_neutral_fallback(profile_to_scoring_profile(profile, admission_number=student_id)))
 
     return student_ids, scoring_profiles, student_uuid_map
 
@@ -228,9 +177,19 @@ def _persist_segment_artifacts(
         )
     )
 
-    pair_scores_data = []
-    for (student_a, student_b), pair_result in sorted(pair_results.items()):
-        pair_scores_data.append(
+    # Nothing outside the room view reads a pair that is not in a room, so keep
+    # only those and let the rest of the O(n^2) matrix be freed.
+    room_pairs = {
+        pair
+        for room in matching_result.rooms
+        for pair in combinations(sorted(room.student_ids), 2)
+    }
+    room_pair_results = {pair: pair_results[pair] for pair in room_pairs}
+    del pair_results
+
+    pair_scores_chunk: list[dict[str, object]] = []
+    for (student_a, student_b), pair_result in sorted(room_pair_results.items()):
+        pair_scores_chunk.append(
             {
                 "tenant_id": segment.tenant_id,
                 "workspace_id": segment.workspace_id,
@@ -245,9 +204,11 @@ def _persist_segment_artifacts(
                 ),
             }
         )
-    
-    if pair_scores_data:
-        db.execute(insert(PairScore), pair_scores_data)
+        if len(pair_scores_chunk) >= 2000:
+            db.execute(insert(PairScore), pair_scores_chunk)
+            pair_scores_chunk = []
+    if pair_scores_chunk:
+        db.execute(insert(PairScore), pair_scores_chunk)
 
     student_result_map = {item.student_id: item for item in matching_result.students}
     fairness_records: list[FairnessInputRecord] = []
@@ -271,7 +232,7 @@ def _persist_segment_artifacts(
             room_id=room.room_id,
             room_size=effective_room_size,
             student_ids=room.student_ids,
-            pair_results=pair_results,
+            pair_results=room_pair_results,
             student_satisfaction={item.student_id: item.satisfaction_score for item in room_students},
             student_labels={item.student_id: item.satisfaction_label for item in room_students},
             student_at_risk={item.student_id: item.is_at_risk for item in room_students},

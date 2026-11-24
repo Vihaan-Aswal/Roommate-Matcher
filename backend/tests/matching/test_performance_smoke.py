@@ -29,3 +29,26 @@ def test_performance_smoke_50_student_2bed_under_10_seconds() -> None:
     # pathological-regression guard that survives coverage instrumentation
     # (~4x) and slow CI runners without becoming a hardware benchmark.
     assert elapsed < 10.0
+
+
+def test_performance_smoke_150_student_2bed_under_20_seconds() -> None:
+    # The 50-student test above stays as a smoke; this one is big enough to
+    # catch quadratic regressions in the matcher.
+    students = [f"P{i:03d}" for i in range(1, 151)]
+    pair_results = build_pair_results(students, default_score=0.55)
+
+    segment = SegmentData(
+        segment_key="SEG_PERF_150",
+        room_size=2,
+        student_ids=students,
+        room_ids=None,
+        pair_results=pair_results,
+        metadata={"fixture": "performance_smoke_150"},
+    )
+
+    started_at = time.perf_counter()
+    result = run_matching_for_segment(segment)
+    elapsed = time.perf_counter() - started_at
+
+    assert len(result.rooms) == 75
+    assert elapsed < 20.0

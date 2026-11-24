@@ -28,7 +28,7 @@ import os
 import subprocess
 import sys
 import uuid
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterator
 
@@ -40,6 +40,7 @@ from sqlalchemy.engine import Engine, make_url
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.models.form_response import FormResponse
 from app.models.matching_run import MatchingRun
 from app.models.pair_score import PairScore
 from app.models.preference_profile import PreferenceProfile
@@ -471,6 +472,101 @@ def test_deleting_a_segment_cascades_students_rooms_assignments_and_pair_scores(
         run = session.get(MatchingRun, graph["run_id"])
         assert run is not None, "the run must survive a segment delete"
         assert run.target_segment_id is None
+    finally:
+        session.close()
+
+
+def test_deleting_an_expired_demo_tenant_removes_every_child_row(
+    migrated_database: Engine,
+) -> None:
+    """The cleanup job deletes the tenant row; every child row must go with it."""
+    session = Session(migrated_database, expire_on_commit=False)
+    try:
+        graph = _seed_graph(session)
+        tenant_id = graph["tenant_id"]
+        workspace_id = graph["workspace_id"]
+        student_ids = graph["student_ids"]
+
+        tenant = session.get(Tenant, tenant_id)
+        assert tenant is not None
+        tenant.is_demo = True
+        tenant.demo_expires_at = datetime.now(timezone.utc) - timedelta(hours=1)
+
+        session.add(
+            PreferenceProfile(
+                tenant_id=tenant_id,
+                workspace_id=workspace_id,
+                student_id=student_ids[1],
+                has_preferences=True,
+                is_active=True,
+                is_generated=False,
+                q1_enc=1.0,
+                q2_enc=1.0,
+                q3_enc=1.0,
+                q4a_enc=0.0,
+                q4b_enc=3.0,
+                q5a_enc=0.0,
+                q5b_enc=3.0,
+                q6_enc=1.0,
+                q7_enc=1.0,
+                q8_enc=1.0,
+                q9_enc=1.0,
+                q10_enc=0.0,
+            )
+        )
+        for index, student_id in enumerate(student_ids, start=1):
+            session.add(
+                FormResponse(
+                    tenant_id=tenant_id,
+                    workspace_id=workspace_id,
+                    student_id=student_id,
+                    submitted_admission_number=f"PG-{index:03d}",
+                    submitted_phone_last4=f"00{index:02d}",
+                    submitted_at=datetime.now(timezone.utc),
+                    validation_status="valid",
+                )
+            )
+        session.add(
+            RoomAssignment(
+                tenant_id=tenant_id,
+                workspace_id=workspace_id,
+                matching_run_id=graph["run_id"],
+                segment_id=graph["segment_id"],
+                room_id="PG-R2",
+                room_label="PG-R2",
+                assigned_students_json=["PG-002"],
+                group_score=0.5,
+                satisfaction_summary_json={"students": []},
+                needs_review=False,
+            )
+        )
+        session.commit()
+
+        # Raw SQL, like the cleanup route: no ORM cascade may help here.
+        session.execute(
+            text("DELETE FROM tenants WHERE id = CAST(:id AS uuid)"), {"id": str(tenant_id)}
+        )
+        session.commit()
+        session.expire_all()
+
+        for model in (
+            Workspace,
+            Segment,
+            Student,
+            Room,
+            PreferenceProfile,
+            FormResponse,
+            MatchingRun,
+            PairScore,
+            RoomAssignment,
+        ):
+            remaining = session.scalar(
+                select(func.count()).select_from(model).where(model.tenant_id == tenant_id)
+            )
+            assert remaining == 0, f"{model.__name__} rows survived the tenant delete"
+        assert session.scalar(
+            select(func.count()).select_from(Tenant).where(Tenant.id == tenant_id)
+        ) == 0
     finally:
         session.close()
 

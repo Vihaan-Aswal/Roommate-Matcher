@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from sqlalchemy import desc, select
+from sqlalchemy import desc, func, select
 from sqlalchemy.orm import Session
 
 from app.models.form_response import FormResponse
@@ -50,16 +50,26 @@ def _valid_admissions(db: Session, workspace_id: uuid.UUID) -> set[str]:
 
 
 def _latest_form_status_by_admission(db: Session, workspace_id: uuid.UUID) -> dict[str, str]:
-    latest_status: dict[str, str] = {}
-    rows = db.scalars(
-        select(FormResponse)
+    ranked = (
+        select(
+            FormResponse.submitted_admission_number,
+            FormResponse.validation_status,
+            func.row_number()
+            .over(
+                partition_by=FormResponse.submitted_admission_number,
+                order_by=(desc(FormResponse.submitted_at), desc(FormResponse.id)),
+            )
+            .label("rn"),
+        )
         .where(FormResponse.workspace_id == workspace_id)
-        .order_by(desc(FormResponse.submitted_at), desc(FormResponse.id))
+        .subquery()
+    )
+    latest_rows = db.execute(
+        select(ranked.c.submitted_admission_number, ranked.c.validation_status).where(
+            ranked.c.rn == 1
+        )
     ).all()
-    for row in rows:
-        if row.submitted_admission_number not in latest_status:
-            latest_status[row.submitted_admission_number] = row.validation_status
-    return latest_status
+    return {row.submitted_admission_number: row.validation_status for row in latest_rows}
 
 
 def compute_form_collection_status(db: Session, workspace_id: uuid.UUID) -> FormCollectionStatusResult:

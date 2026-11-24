@@ -277,15 +277,31 @@ def get_segment_students_preference_status(db: Session, segment_key: str, worksp
     profiles = db.scalars(profiles_query).all()
     profile_map = {p.student_id: p for p in profiles}
 
-    forms_query = select(FormResponse).where(
-        FormResponse.student_id.in_(student_ids),
-        FormResponse.workspace_id == workspace_id,
-    ).order_by(FormResponse.student_id, desc(FormResponse.submitted_at), desc(FormResponse.id))
-    forms = db.scalars(forms_query).all()
-    latest_form_map = {}
-    for f in forms:
-        if f.student_id not in latest_form_map:
-            latest_form_map[f.student_id] = f
+    ranked_forms = (
+        select(
+            FormResponse.student_id,
+            FormResponse.validation_status,
+            func.row_number()
+            .over(
+                partition_by=FormResponse.student_id,
+                order_by=(desc(FormResponse.submitted_at), desc(FormResponse.id)),
+            )
+            .label("rn"),
+        )
+        .where(
+            FormResponse.student_id.in_(student_ids),
+            FormResponse.workspace_id == workspace_id,
+        )
+        .subquery()
+    )
+    latest_status_rows = db.execute(
+        select(ranked_forms.c.student_id, ranked_forms.c.validation_status).where(
+            ranked_forms.c.rn == 1
+        )
+    ).all()
+    latest_form_status_map = {
+        row.student_id: row.validation_status for row in latest_status_rows
+    }
 
     status_rows: list[SegmentStudentPreferenceStatus] = []
     for student in students:
@@ -298,8 +314,8 @@ def get_segment_students_preference_status(db: Session, segment_key: str, worksp
             preference_status = "missing"
             has_valid_preferences = False
         else:
-            latest_form = latest_form_map.get(student.id)
-            if latest_form is not None and latest_form.validation_status == "invalid":
+            latest_status = latest_form_status_map.get(student.id)
+            if latest_status == "invalid":
                 preference_status = "invalid"
             else:
                 preference_status = "missing"

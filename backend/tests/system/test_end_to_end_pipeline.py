@@ -21,6 +21,8 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.models.matching_run import MatchingRun
+from app.models.pair_score import PairScore
 from app.models.student import Student
 
 STUDENT_HEADER = "admission_number,full_name,gender,year_group,ac_type,room_size,dob,phone_number"
@@ -343,6 +345,52 @@ def test_seeded_pipeline_from_csv_upload_to_manual_checker(
     assert [row["admission_number"] for row in checker_payload["students"]] == sorted(
         row["admission_number"] for row in first_room["assigned_students"]
     )
+
+
+def test_matching_persists_only_pairs_that_ended_up_in_a_room(
+    client: TestClient, db_session: Session, seed_tenant_and_user: dict[str, Any]
+) -> None:
+    """6 students in 3 two-bed rooms: 3 stored pairs, not all 15."""
+    headers = seed_tenant_and_user["headers"]
+    seeded = seed_pipeline(client, headers, "ROOMPAIR")
+    workspace_id = seeded["workspace_id"]
+
+    run_id = run_matching(client, headers, workspace_id)["run_id"]
+    run_row = db_session.scalars(select(MatchingRun).where(MatchingRun.run_id == run_id)).one()
+    stored = db_session.scalars(
+        select(PairScore).where(PairScore.matching_run_id == run_row.id)
+    ).all()
+
+    rooms = room_results(client, headers, workspace_id, run_id)
+    assert len(rooms) == 3
+    assert len(stored) == 3, f"expected one pair per room, got {len(stored)}"
+
+    admission_by_id = {
+        student.id: student.admission_number
+        for student in db_session.scalars(
+            select(Student).where(Student.workspace_id == uuid.UUID(workspace_id))
+        )
+    }
+    room_of = {
+        row["admission_number"]: room["room_id"]
+        for room in rooms
+        for row in room["assigned_students"]
+    }
+    stored_scores = {
+        tuple(sorted((admission_by_id[row.student_a_id], admission_by_id[row.student_b_id]))): row.pair_score
+        for row in stored
+    }
+    for student_a, student_b in stored_scores:
+        assert room_of[student_a] == room_of[student_b], "a stored pair must share a room"
+
+    for room in rooms:
+        room_admissions = [row["admission_number"] for row in room["assigned_students"]]
+        for row in room["assigned_students"]:
+            roommates = row["pair_scores_with_roommates"]
+            assert set(roommates) == set(room_admissions) - {row["admission_number"]}
+            for roommate, score in roommates.items():
+                pair = tuple(sorted((row["admission_number"], roommate)))
+                assert score == stored_scores[pair]
 
 
 def test_remainder_room_is_persisted_without_failing_the_run(

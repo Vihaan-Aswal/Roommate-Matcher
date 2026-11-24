@@ -9,10 +9,9 @@ from app.models.form_response import FormResponse
 from app.models.matching_run import MatchingRun
 from app.models.preference_profile import PreferenceProfile
 from app.models.room import Room
-from app.models.segment import Segment
 from app.models.student import Student
 from app.models.workspace import Workspace
-from app.services.segments.status import compute_segment_status
+from app.services.segments.status import list_segment_overviews
 
 
 @dataclass(frozen=True)
@@ -59,19 +58,16 @@ def get_workspace_dashboard_summary(db: Session, workspace: Workspace) -> Dashbo
         or 0
     )
 
-    segments = db.scalars(
-        select(Segment).where(Segment.workspace_id == workspace.id).order_by(Segment.segment_key)
-    ).all()
+    overviews = list_segment_overviews(db, workspace.id)
     ready = 0
     impossible = 0
     risk = 0
-    for segment in segments:
-        status = compute_segment_status(db, segment.segment_key, workspace.id).status
-        if status == "Ready":
+    for overview in overviews:
+        if overview.status == "Ready":
             ready += 1
-        elif status == "Impossible":
+        elif overview.status == "Impossible":
             impossible += 1
-        elif status == "Risk":
+        elif overview.status == "Risk":
             risk += 1
 
     latest_run = db.scalars(
@@ -110,7 +106,7 @@ def get_workspace_dashboard_summary(db: Session, workspace: Workspace) -> Dashbo
             "percentage_complete": percentage_complete,
         },
         segments_status={
-            "total_segments": len(segments),
+            "total_segments": len(overviews),
             "ready": ready,
             "impossible": impossible,
             "at_risk": risk,

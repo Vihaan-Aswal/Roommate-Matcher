@@ -1,12 +1,13 @@
-from datetime import date
+from datetime import date, datetime, timezone
 
 from sqlalchemy.orm import Session
 
+from app.models.form_response import FormResponse
 from app.models.preference_profile import PreferenceProfile
 from app.models.room import Room
 from app.models.segment import Segment
 from app.models.student import Student
-from app.services.segments.status import compute_segment_status
+from app.services.segments.status import compute_segment_status, get_segment_students_preference_status
 
 
 def _seed_segment(db_session: Session, segment_key: str, room_size: int, tenant_id=None, workspace_id=None) -> None:
@@ -149,3 +150,69 @@ def test_compute_segment_status_raises_for_unknown_segment(db_session: Session) 
         raise AssertionError("Expected KeyError for missing segment")
     except KeyError:
         pass
+
+
+def test_segment_student_status_uses_the_latest_form_response(db_session: Session) -> None:
+    import uuid
+    tenant_id = uuid.uuid4()
+    workspace_id = uuid.uuid4()
+    segment_key = "M_1st_year_AC_2"
+    _seed_segment(db_session, segment_key, room_size=2, tenant_id=tenant_id, workspace_id=workspace_id)
+    _add_students(db_session, segment_key, count=2, tenant_id=tenant_id, workspace_id=workspace_id)
+
+    students = {
+        student.admission_number: student
+        for student in db_session.query(Student).all()
+    }
+    # ADM001: an older valid response followed by a newer invalid one.
+    # ADM002: the reverse, an older invalid response followed by a newer valid one.
+    db_session.add_all(
+        [
+            FormResponse(
+                tenant_id=tenant_id,
+                workspace_id=workspace_id,
+                student_id=students["ADM001"].id,
+                submitted_admission_number="ADM001",
+                submitted_phone_last4="3210",
+                submitted_at=datetime(2026, 3, 29, 12, 0, tzinfo=timezone.utc),
+                validation_status="valid",
+            ),
+            FormResponse(
+                tenant_id=tenant_id,
+                workspace_id=workspace_id,
+                student_id=students["ADM001"].id,
+                submitted_admission_number="ADM001",
+                submitted_phone_last4="9999",
+                submitted_at=datetime(2026, 3, 30, 12, 0, tzinfo=timezone.utc),
+                validation_status="invalid",
+                invalid_reason="phone_mismatch",
+            ),
+            FormResponse(
+                tenant_id=tenant_id,
+                workspace_id=workspace_id,
+                student_id=students["ADM002"].id,
+                submitted_admission_number="ADM002",
+                submitted_phone_last4="9999",
+                submitted_at=datetime(2026, 3, 29, 12, 0, tzinfo=timezone.utc),
+                validation_status="invalid",
+                invalid_reason="phone_mismatch",
+            ),
+            FormResponse(
+                tenant_id=tenant_id,
+                workspace_id=workspace_id,
+                student_id=students["ADM002"].id,
+                submitted_admission_number="ADM002",
+                submitted_phone_last4="3210",
+                submitted_at=datetime(2026, 3, 30, 12, 0, tzinfo=timezone.utc),
+                validation_status="valid",
+            ),
+        ]
+    )
+    db_session.commit()
+
+    result = get_segment_students_preference_status(db_session, segment_key, workspace_id)
+
+    assert {row.admission_number: row.preference_status for row in result.students} == {
+        "ADM001": "invalid",
+        "ADM002": "missing",
+    }
