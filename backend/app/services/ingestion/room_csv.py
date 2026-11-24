@@ -133,7 +133,7 @@ def plan_room_import(
 
     # Load existing active rooms, keyed by (segment_key, room_id)
     existing_rooms: dict[tuple[str, str], Room] = {}
-    
+
     rows = db.execute(
         select(Room, Segment.segment_key)
         .join(Segment, Room.segment_id == Segment.id)

@@ -141,4 +141,3 @@ def test_double_submission_unique_conflict_still_reports_success(
     assert calls["count"] >= 1
     assert resp.status_code == 200
     assert resp.json() == {"status": "submitted", "valid": True}
-
