@@ -14,6 +14,14 @@ def test_health_endpoint_returns_ok() -> None:
     assert "environment" in payload
 
 
+def test_health_live_returns_ok_without_touching_the_database() -> None:
+    client = TestClient(app)
+    response = client.get("/health/live")
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
+
+
 def test_health_returns_503_when_database_is_unavailable(
     client: TestClient, db_session, monkeypatch
 ) -> None:

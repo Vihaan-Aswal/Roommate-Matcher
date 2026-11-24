@@ -133,6 +133,10 @@ def create_app(*, frontend_dist_dir: Path | None = None) -> FastAPI:
         logger.exception("Unhandled application error: %s", exc)
         return JSONResponse(status_code=500, content={"detail": "Internal server error."})
 
+    @application.get("/health/live", include_in_schema=False)
+    def health_live() -> dict[str, str]:
+        return {"status": "ok"}
+
     @application.get("/health")
     def health(db: Session = Depends(get_db)) -> dict[str, str]:
         try:
