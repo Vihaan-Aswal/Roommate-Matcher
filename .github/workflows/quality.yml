@@ -11,7 +11,7 @@ concurrency:
 jobs:
   backend:
     name: Backend tests and coverage
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     services:
       postgres:
@@ -52,7 +52,7 @@ jobs:
 
   frontend:
     name: Frontend typecheck, unit and build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     defaults:
       run:
@@ -91,7 +91,7 @@ jobs:
 
   e2e:
     name: Playwright E2E
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [backend, frontend]
     timeout-minutes: 30
     defaults:
