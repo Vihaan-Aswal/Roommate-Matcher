@@ -5,8 +5,10 @@ import {
   buildRun,
   FACTORS,
   labelForScore,
+  sampleCase,
   scorePair,
   formatCount,
+  selectSampleCase,
   type Run,
 } from "../../components/home/simulate";
 
@@ -105,5 +107,77 @@ describe("seeded homepage sample run", () => {
   it("formats large counts without locale drift", () => {
     expect(formatCount(1104)).toBe("1,104");
     expect(formatCount(96)).toBe("96");
+  });
+});
+
+describe("sampleCase selectors", () => {
+  it("selects R-12, the risk pair and its floor evidence", () => {
+    expect(sampleCase.risk.room.id).toBe("R-12");
+    expect(sampleCase.risk.students.map((student) => student.id)).toEqual([
+      "S-009",
+      "S-021",
+    ]);
+    expect(sampleCase.risk.pair.score).toBeCloseTo(0.416, 3);
+    expect(sampleCase.risk.room.score).toBeCloseTo(0.416, 3);
+    expect(sampleCase.risk.atRisk).toHaveLength(2);
+    expect(sampleCase.risk.missingFactors.map((factor) => factor.label)).toEqual([
+      "Sleep schedule",
+    ]);
+    expect(
+      sampleCase.risk.lowestFactors.slice(0, 4).map((factor) => [factor.label, factor.raw]),
+    ).toEqual([
+      ["Cleanliness", 0],
+      ["Room use", 0],
+      ["Night activity", 0],
+      ["Lifestyle tolerance", 0.25],
+    ]);
+    expect(sampleCase.risk.segment.mean).toBeCloseTo(0.827, 3);
+  });
+
+  it("selects R-15 as the healthy contrast with the same rules", () => {
+    expect(sampleCase.healthy.room.id).toBe("R-15");
+    expect(sampleCase.healthy.students.map((student) => student.id)).toEqual([
+      "S-035",
+      "S-047",
+    ]);
+    expect(sampleCase.healthy.pair.score).toBeCloseTo(0.733, 3);
+    expect(
+      sampleCase.healthy.lowestFactors.slice(0, 3).map((factor) => [factor.label, factor.raw]),
+    ).toEqual([
+      ["Cleanliness", 0.25],
+      ["Late return time", 0.25],
+      ["Smoking preference", 0.55],
+    ]);
+    expect(sampleCase.healthy.pair.factors).toHaveLength(FACTORS.length);
+  });
+
+  it("keeps the published boundary, label and audit figures", () => {
+    expect(sampleCase.boundary).toMatchObject({
+      students: 96,
+      rooms: 38,
+      segments: 4,
+      possible: 4560,
+      rejected: 3456,
+      scored: 1104,
+    });
+    expect(sampleCase.labels).toEqual({ Excellent: 25, Good: 65, Okay: 4, Poor: 2 });
+    expect(sampleCase.audit.swapPasses).toBe(3);
+    expect(sampleCase.audit.swapsAccepted).toBe(3);
+    expect(sampleCase.audit.newPoorFromSwaps).toBe(0);
+    expect(sampleCase.audit.runId).toBe("RM-D1C916");
+    expect(sampleCase.audit.digest).toBe("D1C9167C");
+    expect(sampleCase.notes.length).toBeGreaterThan(0);
+    expect(sampleCase.notes.some(({ student }) => student.id === "S-009")).toBe(true);
+  });
+
+  it("is deterministic across builds", () => {
+    const again = selectSampleCase(buildRun());
+    expect(again.risk.room.id).toBe(sampleCase.risk.room.id);
+    expect(again.risk.pair.score).toBe(sampleCase.risk.pair.score);
+    expect(again.healthy.students.map((student) => student.id)).toEqual(
+      sampleCase.healthy.students.map((student) => student.id),
+    );
+    expect(again.labels).toEqual(sampleCase.labels);
+    expect(again.audit).toEqual(sampleCase.audit);
   });
 });

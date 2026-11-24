@@ -34,20 +34,22 @@ describe("HomePage interactions", () => {
     expect(document.title).toBe("Previous title");
   });
 
-  it("plays the sample run and scrolls to the stage", () => {
+  it("plays the sample run and scrolls to the film", () => {
     renderHome();
 
     fireEvent.click(screen.getByRole("button", { name: /^play the sample run$/i }));
 
     expect(Element.prototype.scrollIntoView).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole("button", { name: /replay the sample run/i })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: /sample run film/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Replay film" })).toBeInTheDocument();
   });
 
-  it("replays the sample run from the stage control", () => {
+  it("replays the film from the stage control", () => {
     renderHome();
 
-    fireEvent.click(screen.getByRole("button", { name: /replay the sample run/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Replay film" }));
 
+    expect(screen.getByText(/cold open · the desk at night/i)).toBeInTheDocument();
     expect(screen.getByRole("figure")).toBeInTheDocument();
   });
 
