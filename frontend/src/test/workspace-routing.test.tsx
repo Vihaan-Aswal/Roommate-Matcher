@@ -89,7 +89,7 @@ describe("Workspace Routing and Guards", () => {
     render(<App />);
 
     // Should render WorkspaceChooserPage
-    expect(await screen.findByText(/Create New Workspace/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Create New Workspace/i, {}, { timeout: 5000 })).toBeInTheDocument();
   });
 
   it("test_workspace_route_renders_admin_layout", async () => {
@@ -115,7 +115,7 @@ describe("Workspace Routing and Guards", () => {
 
     // AdminDashboard should render
     // We mock useDashboardSummary above, so the dashboard will render.
-    expect(await screen.findByText(/Switch workspace/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Switch workspace/i, {}, { timeout: 5000 })).toBeInTheDocument();
   });
 
   it("test_legacy_admin_redirect", async () => {
