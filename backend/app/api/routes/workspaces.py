@@ -66,12 +66,19 @@ def create_workspace(
 ) -> WorkspaceResponse:
     user, tenant = tenant_ctx
 
+    if user.auth_kind == "supabase":
+        created_by = uuid.UUID(user.supabase_user_id)
+    elif user.supabase_user_id.startswith("impersonate:"):
+        created_by = uuid.UUID(user.supabase_user_id.removeprefix("impersonate:"))
+    else:
+        created_by = None
+
     workspace = Workspace(
         tenant_id=tenant.id,
         name=body.name,
         status="draft",
         source="manual",
-        created_by_supabase_user_id=uuid.UUID(user.supabase_user_id) if not user.is_demo else None,
+        created_by_supabase_user_id=created_by,
     )
     db.add(workspace)
     db.commit()

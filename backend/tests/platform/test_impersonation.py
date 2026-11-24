@@ -15,6 +15,7 @@ from app.config import get_settings
 from app.models.tenant import Tenant
 from app.models.workspace import Workspace
 from app.models.platform_audit_event import PlatformAuditEvent
+from app.services.platform.impersonation import issue_impersonation_token
 
 @pytest.fixture(autouse=True)
 def setup_platform_env():
@@ -226,3 +227,26 @@ def test_impersonation_token_grants_workspace_access(
         headers={"Authorization": f"Bearer {impersonation_token}"}
     )
     assert dash_res.status_code == 200
+
+
+def test_impersonation_token_can_create_workspace(
+    client: TestClient, db_session: Session, seeded_tenant_and_workspace
+):
+    admin_id = uuid.uuid4()
+    token = issue_impersonation_token(
+        admin_email="admin@platform.com",
+        admin_supabase_user_id=str(admin_id),
+        tenant=seeded_tenant_and_workspace["tenant"],
+        workspace=seeded_tenant_and_workspace["workspace"],
+        db=db_session,
+    )
+
+    res = client.post(
+        "/api/workspaces",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"name": "Created While Impersonating"},
+    )
+    assert res.status_code == 201, res.text
+
+    workspace = db_session.query(Workspace).filter_by(name="Created While Impersonating").one()
+    assert workspace.created_by_supabase_user_id == admin_id

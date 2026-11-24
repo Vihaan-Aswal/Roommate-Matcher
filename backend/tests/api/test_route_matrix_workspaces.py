@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.models.segment import Segment
+from app.models.student import Student
 from app.models.workspace import Workspace
 
 STUDENT_CSV_HEADER = (
@@ -215,6 +216,30 @@ def test_student_upload_rejects_invalid_csv(
     )
     assert apply_response.status_code == 400
     assert "Missing required columns" in apply_response.json()["detail"]
+
+
+def test_student_upload_apply_rejects_header_only_csv_without_touching_roster(
+    client: TestClient, db_session: Session, seed_tenant_and_user
+) -> None:
+    workspace_id = seed_tenant_and_user["workspace_id"]
+    headers = seed_tenant_and_user["headers"]
+    url = f"/api/workspaces/{workspace_id}/students/upload/apply"
+
+    seeded = client.post(
+        url, headers=headers, files={"file": ("students.csv", _student_csv(), "text/csv")}
+    )
+    assert seeded.status_code == 200, seeded.text
+
+    empty = client.post(
+        url,
+        headers=headers,
+        files={"file": ("students.csv", _student_csv(rows=""), "text/csv")},
+    )
+    assert empty.status_code == 400
+    assert "no valid rows" in empty.json()["detail"]
+
+    student = db_session.query(Student).filter_by(admission_number="ADM900").one()
+    assert student.is_active is True
 
 
 def test_room_upload_preview_then_apply_round_trip(

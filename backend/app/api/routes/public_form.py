@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field, field_validator
 
 from app.rate_limit import limiter
 
-RATE_LIMIT_SUBMIT = "120/minute"
+RATE_LIMIT_SUBMIT = "300/minute"
 from sqlalchemy import select, desc
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session

@@ -31,6 +31,7 @@ from app.api.deps.run_access import resolve_run_or_403
 router = APIRouter(prefix="/api/workspaces/{workspace_id}/matching", tags=["matching"])
 
 
+# shortcut: matching runs synchronously in the request; above ~300 students per segment it can outlast a free-tier request, move it to a worker before that.
 @router.post("/runs", response_model=MatchingRunResponse)
 async def run_matching(
     workspace_id: uuid.UUID,
