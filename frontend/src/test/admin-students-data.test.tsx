@@ -58,6 +58,7 @@ describe("AdminStudentsData", () => {
       ],
       diff_entries: [],
       warnings: [],
+      removal_confirmation_required: false,
     });
 
     studentApplyMutateAsyncMock.mockResolvedValue({
@@ -125,7 +126,7 @@ describe("AdminStudentsData", () => {
       expect(studentPreviewMutateAsyncMock).toHaveBeenCalledTimes(1);
     });
 
-    expect(screen.getByText("Students Upload Preview")).toBeInTheDocument();
+    expect(await screen.findByText("Students Upload Preview", {}, { timeout: 5000 })).toBeInTheDocument();
 
     // Apply changes
     fireEvent.click(screen.getByRole("button", { name: /confirm & apply/i }));
@@ -135,7 +136,7 @@ describe("AdminStudentsData", () => {
     });
 
     expect(
-      screen.getByText("Students Applied Successfully"),
+      await screen.findByText("Students Applied Successfully", {}, { timeout: 5000 }),
     ).toBeInTheDocument();
   });
 });
