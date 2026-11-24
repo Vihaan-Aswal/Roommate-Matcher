@@ -1,11 +1,21 @@
 import pytest
 from sqlalchemy.orm import Session
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from datetime import datetime
 
 from app.models.workspace import Workspace
 from app.models.student import Student
 from app.models.form_response import FormResponse
+
+VALID_ANSWERS = {
+    "q1_raw": "Before 11 PM (early)", "q2_raw": "Very tidy - I like things clean and organized",
+    "q3_raw": "Before 10 PM", "q4a_raw": "Mainly for sleeping/studying, not for hanging out",
+    "q4b_raw": "Very uncomfortable", "q5a_raw": "Almost never",
+    "q5b_raw": "Very uncomfortable", "q6_raw": "I need a 100% smoke-free room",
+    "q7_raw": "I require an alcohol-free room", "q8_raw": "I am strict vegetarian and require a meat-free room",
+    "q9_raw": "Budget-conscious - prefer to keep costs low", "q10_raw": "I prefer someone very similar to me"
+}
 
 def test_cross_workspace_isolation_token_cannot_resolve_students_in_other_workspace(client, test_setup, db_session):
     tenant = test_setup["tenant"]
@@ -103,3 +113,32 @@ def test_resubmission_idempotency(client, test_setup, db_session):
     
     frs = db_session.scalars(select(FormResponse)).all()
     assert len(frs) == 2
+
+
+def test_double_submission_unique_conflict_still_reports_success(
+    client, test_setup, db_session, monkeypatch
+):
+    original_commit = db_session.commit
+    calls = {"count": 0}
+
+    def flaky_commit():
+        calls["count"] += 1
+        if calls["count"] == 1:
+            raise IntegrityError("INSERT ...", {}, Exception("one active profile per student"))
+        return original_commit()
+
+    monkeypatch.setattr(db_session, "commit", flaky_commit)
+
+    resp = client.post(
+        "/api/public/forms/VALID_TOKEN/submit",
+        json={
+            "submitted_admission_number": "ADM001",
+            "submitted_phone_last4": "7890",
+            "answers": VALID_ANSWERS,
+        },
+    )
+
+    assert calls["count"] >= 1
+    assert resp.status_code == 200
+    assert resp.json() == {"status": "submitted", "valid": True}
+

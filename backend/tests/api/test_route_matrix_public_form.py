@@ -224,7 +224,7 @@ def test_submit_invalid_option_is_rejected(
 def test_submit_valid_answers_creates_active_profile(
     client: TestClient, db_session: Session, form_setup
 ) -> None:
-    response = _submit(client, "PF-TOKEN", answers={**VALID_ANSWERS, "unexpected_key": "x"})
+    response = _submit(client, "PF-TOKEN", answers=dict(VALID_ANSWERS))
     assert response.status_code == 200, response.text
     assert response.json() == {"status": "submitted", "valid": True}
 

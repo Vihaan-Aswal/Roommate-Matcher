@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select, exists
 from app.models.preference_profile import PreferenceProfile
 
-from app.auth.dependencies import require_workspace_access
+from app.auth.dependencies import require_workspace_access, require_workspace_editor
 from app.models.tenant import Tenant
 from app.auth.contracts import AuthenticatedUser
 from app.models.workspace import Workspace
@@ -36,7 +36,7 @@ async def run_matching(
     workspace_id: uuid.UUID,
     payload: MatchingRunRequest,
     db: Session = Depends(get_db),
-    workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_access),
+    workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_editor),
 ) -> MatchingRunResponse:
     user, tenant, workspace = workspace_ctx
     try:

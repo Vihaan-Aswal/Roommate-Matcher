@@ -31,7 +31,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, EmailStr
 
-from app.main import limiter
+from app.rate_limit import limiter
 from sqlalchemy.orm import Session
 
 from app.auth.contracts import AuthenticatedUser

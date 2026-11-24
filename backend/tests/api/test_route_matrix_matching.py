@@ -805,8 +805,6 @@ def test_checker_service_rejects_duplicate_student_ids(
             workspace_id=workspace_id,
             room_size=2,
             student_ids=["DQ001", "DQ001"],
-            precomputed_satisfaction=None,
-            precomputed_labels=None,
         )
 
 
@@ -842,7 +840,7 @@ def test_checker_unknown_segment_is_400(
     assert segment.id is not None
 
 
-def test_checker_accepts_precomputed_scores_and_labels(
+def test_checker_ignores_client_supplied_scores_and_labels(
     client: TestClient, db_session: Session, seed_tenant_and_user
 ) -> None:
     tenant_id = seed_tenant_and_user["tenant_id"]
@@ -864,17 +862,82 @@ def test_checker_accepts_precomputed_scores_and_labels(
             "segment_key": "F_1st_year_AC_2",
             "room_size": 2,
             "student_ids": ["CP001", "CP002"],
-            "precomputed_satisfaction": {"CP001": 0.9, "CP002": 0.4},
-            "precomputed_labels": {"CP001": "Excellent", "CP002": "Poor"},
+            "precomputed_satisfaction": {"CP001": 0.4, "CP002": 0.4},
+            "precomputed_labels": {"CP001": "Poor", "CP002": "Poor"},
         },
         headers=headers,
     )
     assert response.status_code == 200, response.text
     payload = response.json()
-    assert payload["at_risk_students"] == ["CP002"]
+
+    # The seeded profiles are identical, so the real pair score is 1.0. The
+    # client-supplied 0.4 / "Poor" values must be ignored.
+    assert payload["at_risk_students"] == []
     by_student = {row["admission_number"]: row for row in payload["students"]}
+    assert by_student["CP001"]["satisfaction_score"] == 1.0
+    assert by_student["CP002"]["satisfaction_score"] == 1.0
     assert by_student["CP001"]["satisfaction_label"] == "Excellent"
-    assert by_student["CP002"]["satisfaction_score"] == 0.4
+    assert by_student["CP002"]["satisfaction_label"] == "Excellent"
+
+
+def test_checker_client_scores_cannot_force_excellent_for_a_mismatched_pair(
+    client: TestClient, db_session: Session, seed_tenant_and_user
+) -> None:
+    tenant_id = seed_tenant_and_user["tenant_id"]
+    workspace_id = seed_tenant_and_user["workspace_id"]
+    headers = seed_tenant_and_user["headers"]
+
+    _seed_segment(
+        db_session,
+        tenant_id,
+        workspace_id,
+        segment_key="F_1st_year_AC_2",
+        gender="F",
+        admission_prefix="CX",
+    )
+
+    second_student = (
+        db_session.query(Student).filter_by(admission_number="CX002").one()
+    )
+    db_session.execute(
+        update(PreferenceProfile)
+        .where(PreferenceProfile.student_id == second_student.id)
+        .values(
+            q1_enc=4.0,
+            q2_enc=3.0,
+            q3_enc=3.0,
+            q4a_enc=2.0,
+            q4b_enc=0.0,
+            q5a_enc=2.0,
+            q5b_enc=0.0,
+            q6_enc=3.0,
+            q7_enc=3.0,
+            q8_enc=3.0,
+            q9_enc=3.0,
+            q10_enc=3.0,
+        )
+    )
+    db_session.commit()
+
+    response = client.post(
+        f"/api/workspaces/{workspace_id}/checker/compatibility",
+        json={
+            "segment_key": "F_1st_year_AC_2",
+            "room_size": 2,
+            "student_ids": ["CX001", "CX002"],
+            "precomputed_satisfaction": {"CX001": 0.95, "CX002": 0.95},
+            "precomputed_labels": {"CX001": "Excellent", "CX002": "Excellent"},
+        },
+        headers=headers,
+    )
+    assert response.status_code == 200, response.text
+    payload = response.json()
+
+    labels = [row["satisfaction_label"] for row in payload["students"]]
+    assert "Excellent" not in labels, labels
+    assert payload["group_label"] != "Excellent"
+    assert payload["at_risk_students"] == ["CX001", "CX002"]
+
 
 
 def test_results_routes_scope_to_the_requested_workspace(

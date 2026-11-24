@@ -9,8 +9,6 @@ class CheckerRequest(BaseModel):
     segment_key: str
     room_size: int
     student_ids: list[str]
-    precomputed_satisfaction: dict[str, float] | None = None
-    precomputed_labels: dict[str, Literal["Excellent", "Good", "Okay", "Poor"]] | None = None
 
 
 class CheckerStudentResult(BaseModel):

@@ -32,6 +32,9 @@ from app.models import Tenant, TenantMembership, Workspace
 # Internal helpers
 # ---------------------------------------------------------------------------
 
+_EDITOR_ROLES = frozenset({"owner", "admin"})
+
+
 def _parse_bearer(authorization: str) -> str:
     """
     Extract the raw token string from an 'Authorization: Bearer <token>' header.
@@ -266,9 +269,46 @@ async def require_workspace_access(
 
 
 # ---------------------------------------------------------------------------
-# Privileged dependency: require_platform_admin
+# Editor gates: write routes only
 # ---------------------------------------------------------------------------
 
+async def require_tenant_editor(
+    ctx: Annotated[tuple[AuthenticatedUser, Tenant], Depends(get_tenant_context)],
+) -> tuple[AuthenticatedUser, Tenant]:
+    """
+    Allows only owners and admins to modify tenant-level state (e.g. create a
+    workspace).  Viewers keep their read access through get_tenant_context.
+    """
+    user, _tenant = ctx
+    if user.role not in _EDITOR_ROLES:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your role cannot modify this tenant.",
+        )
+    return ctx
+
+
+async def require_workspace_editor(
+    workspace_ctx: Annotated[
+        tuple[AuthenticatedUser, Tenant, Workspace], Depends(require_workspace_access)
+    ],
+) -> tuple[AuthenticatedUser, Tenant, Workspace]:
+    """
+    Allows only owners and admins to modify workspace state (uploads, matching,
+    form-link regeneration, magic fill).
+    """
+    user, _tenant, _workspace = workspace_ctx
+    if user.role not in _EDITOR_ROLES:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your role cannot modify this workspace.",
+        )
+    return workspace_ctx
+
+
+# ---------------------------------------------------------------------------
+# Privileged dependency: require_platform_admin
+# ---------------------------------------------------------------------------
 async def require_platform_admin(
     user: Annotated[AuthenticatedUser, Depends(get_authenticated_user)],
 ) -> AuthenticatedUser:

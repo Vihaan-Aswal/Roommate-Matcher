@@ -11,7 +11,7 @@ from app.models.student import Student
 from app.services.explainability.contracts import HypotheticalGroupInput
 from app.services.explainability.service import explain_hypothetical_group
 from app.services.matching.adapter import profile_to_scoring_profile
-from app.services.matching.labels import derive_satisfaction_label
+from app.services.matching.labels import classify_student, derive_satisfaction_label
 from app.services.matching.satisfaction import compute_group_score, compute_student_satisfaction_scores
 from app.services.scoring.segment_matrix import compute_segment_pair_scores
 from app.services.scoring.types import ScoringProfile
@@ -85,8 +85,6 @@ def run_manual_checker(
     workspace_id: uuid.UUID,
     room_size: int,
     student_ids: list[str],
-    precomputed_satisfaction: dict[str, float] | None,
-    precomputed_labels: dict[str, str] | None,
 ) -> CheckerResult:
     if not student_ids:
         raise ValueError("student_ids must not be empty")
@@ -136,21 +134,17 @@ def run_manual_checker(
 
     pair_results = compute_segment_pair_scores(scoring_profiles)
 
-    if precomputed_satisfaction is None:
-        student_satisfaction = compute_student_satisfaction_scores(ordered_student_ids, pair_results)
-    else:
-        student_satisfaction = {student_id: float(precomputed_satisfaction[student_id]) for student_id in ordered_student_ids}
+    student_satisfaction = compute_student_satisfaction_scores(ordered_student_ids, pair_results)
 
-    if precomputed_labels is None:
-        student_labels = {
-            student_id: derive_satisfaction_label(
-                student_satisfaction[student_id],
-                safety_passed=True,
-            )
-            for student_id in ordered_student_ids
-        }
-    else:
-        student_labels = {student_id: str(precomputed_labels[student_id]) for student_id in ordered_student_ids}
+    student_labels = {
+        student_id: classify_student(
+            student_id,
+            [other for other in ordered_student_ids if other != student_id],
+            student_satisfaction[student_id],
+            pair_results,
+        )[0]
+        for student_id in ordered_student_ids
+    }
 
     explanations = explain_hypothetical_group(
         HypotheticalGroupInput(

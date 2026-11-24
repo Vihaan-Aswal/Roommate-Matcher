@@ -16,7 +16,7 @@ services:
     plan: free
     rootDir: backend
     buildCommand: pip install -e ".[dev]"
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips="*"
     healthCheckPath: /health
     autoDeploy: true             # Redeploy on every push to the deploy branch.
 

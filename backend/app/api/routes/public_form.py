@@ -3,12 +3,13 @@ from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
-from app.main import limiter
+from app.rate_limit import limiter
 
-RATE_LIMIT_SUBMIT = "10/minute"
+RATE_LIMIT_SUBMIT = "120/minute"
 from sqlalchemy import select, desc
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -19,6 +20,7 @@ from app.models.student import Student
 from app.models.form_response import FormResponse
 from app.models.preference_profile import PreferenceProfile
 from app.services.ingestion.form_response import (
+    QUESTION_KEYS,
     _normalize_raw_answers,
     _validate_answer_options,
     _find_missing_answer_keys,
@@ -31,9 +33,22 @@ router = APIRouter()
 
 
 class PublicFormSubmitPayload(BaseModel):
-    submitted_admission_number: str
-    submitted_phone_last4: str
+    submitted_admission_number: str = Field(min_length=1, max_length=64)
+    submitted_phone_last4: str = Field(min_length=4, max_length=4, pattern=r"^\d{4}$")
     answers: dict[str, str | None]
+
+    @field_validator("answers")
+    @classmethod
+    def _validate_answers(cls, answers: dict[str, str | None]) -> dict[str, str | None]:
+        unknown_keys = sorted(set(answers) - set(QUESTION_KEYS))
+        if unknown_keys:
+            raise ValueError(f"Unknown answer keys: {unknown_keys}")
+        too_long = sorted(
+            key for key, value in answers.items() if value is not None and len(value) > 200
+        )
+        if too_long:
+            raise ValueError(f"Answer values exceed 200 characters: {too_long}")
+        return answers
 
 
 @router.get("/{public_form_token}")
@@ -203,6 +218,12 @@ def submit_public_form(
         **encoded_answers,
     )
     db.add(profile)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        # A concurrent submission won the one-active-profile index; that
+        # request's profile is the canonical one, so report success here too.
+        db.rollback()
+        return {"status": "submitted", "valid": True}
 
     return {"status": "submitted", "valid": True}

@@ -33,17 +33,17 @@ def test_checker_scope(db_session: Session, seed_tenant_and_user):
     # Admission number from WS2 cannot be checked in WS1 context
     # Admission number from WS2 cannot be checked in WS1 context
     with pytest.raises(ValueError, match="One or more student_ids are invalid, not in the target segment, or inactive"):
-        run_manual_checker(db_session, segment_key="WS1-M", workspace_id=ws1.id, room_size=2, student_ids=["STU-1", "STU-2"], precomputed_satisfaction=None, precomputed_labels=None)
+        run_manual_checker(db_session, segment_key="WS1-M", workspace_id=ws1.id, room_size=2, student_ids=["STU-1", "STU-2"])
 
     # Inactive student cannot be checked
     # Inactive student cannot be checked
     with pytest.raises(ValueError, match="One or more student_ids are invalid, not in the target segment, or inactive"):
-        run_manual_checker(db_session, segment_key="WS1-M", workspace_id=ws1.id, room_size=2, student_ids=["STU-1", "STU-3"], precomputed_satisfaction=None, precomputed_labels=None)
+        run_manual_checker(db_session, segment_key="WS1-M", workspace_id=ws1.id, room_size=2, student_ids=["STU-1", "STU-3"])
 
     # Correct workspace only
     # Correct workspace only
     try:
-        run_manual_checker(db_session, segment_key="WS1-M", workspace_id=ws1.id, room_size=1, student_ids=["STU-1"], precomputed_satisfaction=None, precomputed_labels=None)
+        run_manual_checker(db_session, segment_key="WS1-M", workspace_id=ws1.id, room_size=1, student_ids=["STU-1"])
     except ValueError as e:
         # Ignore matching algo errors if room_size 1 causes it
         pass

@@ -36,8 +36,6 @@ def check_compatibility(
             workspace_id=workspace_id,
             room_size=payload.room_size,
             student_ids=payload.student_ids,
-            precomputed_satisfaction=payload.precomputed_satisfaction,
-            precomputed_labels=payload.precomputed_labels,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

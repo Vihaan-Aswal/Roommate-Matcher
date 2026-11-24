@@ -38,6 +38,9 @@ class Settings(BaseSettings):
     form_link_ttl_days: int = 30
     demo_rate_limit: str = "10/minute"
 
+    # --- Rate limiting ---
+    rate_limit_storage_uri: str = "memory://"
+
     # --- Cleanup Job ---
     cleanup_job_secret: str | None = None
 

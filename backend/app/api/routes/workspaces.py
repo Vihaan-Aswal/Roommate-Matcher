@@ -7,7 +7,12 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.auth.contracts import AuthenticatedUser
-from app.auth.dependencies import get_tenant_context, require_workspace_access
+from app.auth.dependencies import (
+    get_tenant_context,
+    require_tenant_editor,
+    require_workspace_access,
+    require_workspace_editor,
+)
 from app.database import get_db
 from app.config import MAX_CSV_UPLOAD_BYTES
 from app.models.tenant import Tenant
@@ -57,7 +62,7 @@ def list_workspaces(
 def create_workspace(
     body: WorkspaceCreateRequest,
     db: Session = Depends(get_db),
-    tenant_ctx: tuple[AuthenticatedUser, Tenant] = Depends(get_tenant_context),
+    tenant_ctx: tuple[AuthenticatedUser, Tenant] = Depends(require_tenant_editor),
 ) -> WorkspaceResponse:
     user, tenant = tenant_ctx
 
@@ -121,7 +126,7 @@ def get_form_link(
 def regenerate_form_link(
     workspace_id: uuid.UUID,
     db: Session = Depends(get_db),
-    workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_access),
+    workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_editor),
 ) -> FormLinkResponse:
     user, tenant, workspace = workspace_ctx
     token = regenerate_token(db, workspace.id, tenant.id)
@@ -227,7 +232,7 @@ def apply_student_upload(
     request: Request,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_access),
+    workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_editor),
 ) -> StudentImportApplyResponse:
     """
     Parse the uploaded CSV in-memory and apply the upsert.
@@ -316,7 +321,7 @@ def apply_room_upload(
     request: Request,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_access),
+    workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_editor),
 ) -> RoomImportApplyResponse:
     user, tenant, workspace = workspace_ctx
 
@@ -411,7 +416,7 @@ def run_magic_fill(
     workspace_id: uuid.UUID,
     body: MagicFillRequest = MagicFillRequest(),
     db: Session = Depends(get_db),
-    workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_access),
+    workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_editor),
 ) -> MagicFillResponse:
     """
     Generate synthetic preference profiles for active students
