@@ -129,6 +129,7 @@ export function AdminStudentsData(): JSX.Element {
               toSoftDelete={studentDiff.to_soft_delete}
               unchanged={studentDiff.unchanged}
               validCsvRows={studentDiff.valid_csv_rows}
+              removalConfirmationRequired={studentDiff.removal_confirmation_required}
               validationErrors={studentDiff.validation_errors}
               workspaceWarnings={studentDiff.warnings}
               isApplying={applyStudents.isPending}
@@ -137,8 +138,11 @@ export function AdminStudentsData(): JSX.Element {
                 setStudentDiff(null);
                 setStudentFile(null);
               }}
-              onConfirm={async () => {
-                const res = await applyStudents.mutateAsync(studentFile);
+              onConfirm={async (confirmed) => {
+                const res = await applyStudents.mutateAsync({
+                  file: studentFile,
+                  confirmRemovals: Boolean(confirmed),
+                });
                 setStudentResult(res);
                 setStudentStep("applied");
               }}

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -230,6 +230,7 @@ def preview_student_upload(
             StudentDiffEntry(**e) for e in diff.to_insert + diff.to_update + diff.to_soft_delete
         ],
         warnings=diff.workspace_warnings,
+        removal_confirmation_required=diff.requires_removal_confirmation,
     )
 
 
@@ -238,6 +239,7 @@ def apply_student_upload(
     workspace_id: uuid.UUID,
     request: Request,
     file: UploadFile = File(...),
+    confirm_removals: bool = Query(False),
     db: Session = Depends(get_db),
     workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_editor),
 ) -> StudentImportApplyResponse:
@@ -262,7 +264,9 @@ def apply_student_upload(
     csv_bytes = b"".join(chunks)
 
     try:
-        apply_result = apply_student_import(db, workspace.id, tenant.id, csv_bytes)
+        apply_result = apply_student_import(
+            db, workspace.id, tenant.id, csv_bytes, confirm_removals=confirm_removals
+        )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 

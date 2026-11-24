@@ -322,6 +322,61 @@ def test_student_apply_still_updates_inserts_and_soft_deletes_for_a_valid_file(
     assert gone.is_active is False
 
 
+def test_student_apply_requires_confirmation_for_a_mass_removal(
+    db_session: Session,
+) -> None:
+    tenant_id, workspace_id = _workspace(db_session)
+    for index in range(12):
+        _student(db_session, tenant_id, workspace_id, admission_number=f"MASS{index:03d}")
+
+    csv_bytes = (
+        STUDENT_HEADER + "MASS000,Edge Student,F,1st_year,AC,2,2005-01-01,9876543210\n"
+    ).encode("utf-8")
+
+    plan = plan_student_import(db_session, workspace_id, tenant_id, csv_bytes)
+    assert plan.requires_removal_confirmation is True
+
+    with pytest.raises(ValueError, match="confirm_removals=true"):
+        apply_student_import(db_session, workspace_id, tenant_id, csv_bytes)
+
+    assert (
+        db_session.query(Student)
+        .filter_by(workspace_id=workspace_id, is_active=True)
+        .count()
+        == 12
+    )
+
+    result = apply_student_import(
+        db_session, workspace_id, tenant_id, csv_bytes, confirm_removals=True
+    )
+
+    assert result.soft_deleted == 11
+    assert (
+        db_session.query(Student)
+        .filter_by(workspace_id=workspace_id, is_active=True)
+        .count()
+        == 1
+    )
+
+
+def test_student_apply_one_removal_needs_no_confirmation(db_session: Session) -> None:
+    tenant_id, workspace_id = _workspace(db_session)
+    for index in range(6):
+        _student(db_session, tenant_id, workspace_id, admission_number=f"SMALL{index:03d}")
+
+    rows = "".join(
+        f"SMALL{index:03d},Edge Student,F,1st_year,AC,2,2005-01-01,9876543210\n"
+        for index in range(5)
+    )
+    csv_bytes = (STUDENT_HEADER + rows).encode("utf-8")
+
+    plan = plan_student_import(db_session, workspace_id, tenant_id, csv_bytes)
+    assert plan.requires_removal_confirmation is False
+
+    result = apply_student_import(db_session, workspace_id, tenant_id, csv_bytes)
+    assert result.soft_deleted == 1
+
+
 def test_student_preview_and_apply_agree_on_a_mixed_file(db_session: Session) -> None:
     tenant_id, workspace_id = _workspace(db_session)
     _student(db_session, tenant_id, workspace_id, admission_number="MIX001")

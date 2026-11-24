@@ -24,7 +24,8 @@ export interface DiffPreviewPanelProps {
   validationErrors: InvalidRow[];
   diffEntries: UnifiedDiffEntry[];
   workspaceWarnings: string[];
-  onConfirm: () => void | Promise<void>;
+  removalConfirmationRequired?: boolean;
+  onConfirm: (confirmed?: boolean) => void | Promise<void>;
   onCancel: () => void;
   isApplying: boolean;
 }
@@ -56,11 +57,13 @@ export function DiffPreviewPanel({
   validationErrors,
   diffEntries,
   workspaceWarnings,
+  removalConfirmationRequired = false,
   onConfirm,
   onCancel,
   isApplying,
 }: DiffPreviewPanelProps): JSX.Element {
   const [showValidationErrors, setShowValidationErrors] = useState(false);
+  const [removalsConfirmed, setRemovalsConfirmed] = useState(false);
 
   const diffColumns: DataTableColumn<UnifiedDiffEntry>[] = [
     {
@@ -139,11 +142,15 @@ export function DiffPreviewPanel({
           </Button>
           <Button
             onClick={() => {
-              void Promise.resolve(onConfirm()).catch(() => {
+              void Promise.resolve(onConfirm(removalConfirmationRequired ? true : undefined)).catch(() => {
                 // The caller renders the apply error next to the preview.
               });
             }}
-            disabled={isApplying || validCsvRows === 0}
+            disabled={
+              isApplying ||
+              validCsvRows === 0 ||
+              (removalConfirmationRequired && !removalsConfirmed)
+            }
           >
             {isApplying ? "Applying…" : "Confirm & Apply"}
           </Button>
@@ -161,6 +168,23 @@ export function DiffPreviewPanel({
         <StatCard label="Removing" value={toSoftDelete} />
         <StatCard label="Unchanged" value={unchanged} />
       </div>
+
+      {removalConfirmationRequired ? (
+        <div className="desk-stack-sm">
+          <p className="desk-note-title">
+            This file removes {toSoftDelete} of the {toSoftDelete + toUpdate + unchanged} students
+            currently active.
+          </p>
+          <label className="desk-row" style={{ gap: 8 }}>
+            <input
+              type="checkbox"
+              checked={removalsConfirmed}
+              onChange={(event) => setRemovalsConfirmed(event.target.checked)}
+            />
+            <span>I have reviewed the students that will be removed.</span>
+          </label>
+        </div>
+      ) : null}
 
       {validCsvRows === 0 ? (
         <InlineAlert

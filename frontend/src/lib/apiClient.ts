@@ -65,6 +65,7 @@ export interface StudentImportDiffResponse {
   validation_errors: InvalidRow[];
   diff_entries: StudentDiffEntry[];
   warnings: string[];
+  removal_confirmation_required: boolean;
 }
 
 export interface StudentImportApplyResponse {
@@ -610,11 +611,13 @@ export async function previewStudentUpload(
 export async function applyStudentUpload(
   workspaceId: string,
   file: File,
+  confirmRemovals = false,
 ): Promise<StudentImportApplyResponse> {
   const formData = new FormData();
   formData.append("file", file);
+  const query = confirmRemovals ? "?confirm_removals=true" : "";
   return requestJson<StudentImportApplyResponse>(
-    `/api/workspaces/${encodeURIComponent(workspaceId)}/students/upload/apply`,
+    `/api/workspaces/${encodeURIComponent(workspaceId)}/students/upload/apply${query}`,
     { method: "POST", body: formData },
   );
 }

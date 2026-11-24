@@ -27,6 +27,7 @@ class StudentImportDiffResponse(BaseModel):
     validation_errors: list[InvalidRowSchema]
     diff_entries: list[StudentDiffEntry]
     warnings: list[str]  # workspace-level warnings
+    removal_confirmation_required: bool = False
 
 class StudentImportApplyResponse(BaseModel):
     workspace_id: str

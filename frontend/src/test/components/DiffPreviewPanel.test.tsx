@@ -22,6 +22,7 @@ describe("DiffPreviewPanel", () => {
     validation_errors: [],
     diff_entries: [],
     warnings: ["Warning 1"],
+    removal_confirmation_required: false,
   };
 
   beforeEach(() => {
@@ -84,5 +85,35 @@ describe("DiffPreviewPanel", () => {
 
     expect(screen.getByRole("alert")).toHaveTextContent(/no valid rows/i);
     expect(screen.getByRole("button", { name: /confirm & apply/i })).toBeDisabled();
+  });
+
+  it("requires a checked confirmation before a mass removal", () => {
+    render(
+      <DiffPreviewPanel
+        title="Students Upload Preview"
+        toInsert={0}
+        toUpdate={0}
+        toSoftDelete={11}
+        unchanged={1}
+        validCsvRows={1}
+        removalConfirmationRequired
+        validationErrors={[]}
+        workspaceWarnings={[]}
+        diffEntries={[]}
+        onConfirm={mockOnConfirm}
+        onCancel={mockOnCancel}
+        isApplying={false}
+      />,
+    );
+
+    expect(screen.getByText(/removes 11 of the 12/i)).toBeInTheDocument();
+    const confirm = screen.getByRole("button", { name: /confirm & apply/i });
+    expect(confirm).toBeDisabled();
+
+    fireEvent.click(screen.getByRole("checkbox", { name: /reviewed/i }));
+    expect(confirm).not.toBeDisabled();
+
+    fireEvent.click(confirm);
+    expect(mockOnConfirm).toHaveBeenCalledWith(true);
   });
 });

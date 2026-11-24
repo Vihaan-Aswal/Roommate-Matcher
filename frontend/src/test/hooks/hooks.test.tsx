@@ -316,10 +316,10 @@ describe("upload mutations", () => {
     const { result } = renderHook(() => useApplyStudentUploadMutation("ws-1"), { wrapper });
 
     await act(async () => {
-      await result.current.mutateAsync(file);
+      await result.current.mutateAsync({ file, confirmRemovals: true });
     });
 
-    expect(api.applyStudentUpload).toHaveBeenCalledWith("ws-1", file);
+    expect(api.applyStudentUpload).toHaveBeenCalledWith("ws-1", file, true);
     await waitFor(() =>
       expect(result.current.data).toEqual({ workspace_id: "ws-1", inserted: 3 }),
     );

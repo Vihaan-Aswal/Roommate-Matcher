@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import io
+import math
 import re
 from dataclasses import dataclass, field as dc_field
 from datetime import date
@@ -16,6 +17,20 @@ from app.models.student import Student
 from app.models.form_response import FormResponse
 from app.models.matching_run import MatchingRun
 from app.services.ingestion.csv_utils import RowError, parse_csv_bytes, safe_text
+
+REMOVAL_CONFIRMATION_FLOOR = 5
+REMOVAL_CONFIRMATION_RATIO = 0.30
+
+
+def requires_removal_confirmation(removals: int, active_students: int) -> bool:
+    """True when an apply would remove enough active students to need a second look."""
+    if removals <= 0:
+        return False
+    threshold = max(
+        REMOVAL_CONFIRMATION_FLOOR,
+        math.ceil(active_students * REMOVAL_CONFIRMATION_RATIO),
+    )
+    return removals >= threshold
 
 REQUIRED_COLUMNS = {
     "admission_number",
@@ -205,6 +220,7 @@ class StudentDiffResult:
     unchanged: list[str] = dc_field(default_factory=list)
     validation_errors: list[dict] = dc_field(default_factory=list)
     workspace_warnings: list[str] = dc_field(default_factory=list)
+    requires_removal_confirmation: bool = False
 
 
 def plan_student_import(
@@ -322,6 +338,10 @@ def plan_student_import(
             "Historical matching runs and form responses will be preserved."
         )
 
+    result.requires_removal_confirmation = requires_removal_confirmation(
+        len(result.to_soft_delete), len(existing_students)
+    )
+
     return result
 
 
@@ -340,6 +360,8 @@ def apply_student_import(
     workspace_id: UUID,
     tenant_id: UUID,
     csv_bytes: bytes,
+    *,
+    confirm_removals: bool = False,
 ) -> StudentApplyResult:
     """
     Parse the CSV in-memory and apply upsert changes to the workspace.
@@ -365,6 +387,13 @@ def apply_student_import(
         .where(Student.workspace_id == workspace_id, Student.is_active == True)
     ).all():
         existing_students[s.admission_number] = s
+
+    removals = sum(1 for adm in existing_students if adm not in csv_admissions)
+    if requires_removal_confirmation(removals, len(existing_students)) and not confirm_removals:
+        raise ValueError(
+            f"This file would remove {removals} of the {len(existing_students)} active students. "
+            "Review the removals, then re-apply with confirm_removals=true."
+        )
 
     # Load existing segments
     existing_segments: dict[str, Segment] = {}

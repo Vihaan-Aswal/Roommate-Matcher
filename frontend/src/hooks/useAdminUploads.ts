@@ -33,8 +33,13 @@ export function usePreviewStudentUploadMutation(workspaceId: string) {
 
 export function useApplyStudentUploadMutation(workspaceId: string) {
   const queryClient = useQueryClient();
-  return useMutation<StudentImportApplyResponse, Error, File>({
-    mutationFn: (file) => applyStudentUpload(workspaceId, file),
+  return useMutation<
+    StudentImportApplyResponse,
+    Error,
+    { file: File; confirmRemovals: boolean }
+  >({
+    mutationFn: ({ file, confirmRemovals }) =>
+      applyStudentUpload(workspaceId, file, confirmRemovals),
     onSuccess: async () => {
       await invalidateUploadDependents(
         (queryKey) => queryClient.invalidateQueries({ queryKey }),

@@ -242,6 +242,50 @@ def test_student_upload_apply_rejects_header_only_csv_without_touching_roster(
     assert student.is_active is True
 
 
+def test_student_upload_requires_confirmation_for_a_mass_removal(
+    client: TestClient, seed_tenant_and_user
+) -> None:
+    workspace_id = seed_tenant_and_user["workspace_id"]
+    headers = seed_tenant_and_user["headers"]
+    apply_url = f"/api/workspaces/{workspace_id}/students/upload/apply"
+    preview_url = f"/api/workspaces/{workspace_id}/students/upload/preview"
+
+    twelve_rows = "".join(
+        f"MASS{index:03d},Student {index},F,1st_year,AC,2,2005-01-01,9876543210\n"
+        for index in range(12)
+    )
+    seeded = client.post(
+        apply_url,
+        headers=headers,
+        files={"file": ("students.csv", _student_csv(rows=twelve_rows), "text/csv")},
+    )
+    assert seeded.status_code == 200, seeded.text
+    assert seeded.json()["inserted"] == 12
+
+    one_row = _student_csv(rows="MASS000,Student 0,F,1st_year,AC,2,2005-01-01,9876543210\n")
+    preview = client.post(
+        preview_url,
+        headers=headers,
+        files={"file": ("students.csv", one_row, "text/csv")},
+    )
+    assert preview.status_code == 200, preview.text
+    assert preview.json()["removal_confirmation_required"] is True
+
+    blocked = client.post(
+        apply_url, headers=headers, files={"file": ("students.csv", one_row, "text/csv")}
+    )
+    assert blocked.status_code == 400, blocked.text
+    assert "confirm_removals=true" in blocked.json()["detail"]
+
+    confirmed = client.post(
+        f"{apply_url}?confirm_removals=true",
+        headers=headers,
+        files={"file": ("students.csv", one_row, "text/csv")},
+    )
+    assert confirmed.status_code == 200, confirmed.text
+    assert confirmed.json()["soft_deleted"] == 11
+
+
 def test_room_upload_preview_then_apply_round_trip(
     client: TestClient, seed_tenant_and_user
 ) -> None:

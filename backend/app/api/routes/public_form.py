@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -7,8 +7,10 @@ from pydantic import BaseModel, Field, field_validator
 
 from app.rate_limit import limiter
 
-RATE_LIMIT_SUBMIT = "300/minute"
-from sqlalchemy import select, desc
+RATE_LIMIT_SUBMIT = "600/minute"
+MAX_SUBMISSIONS_PER_ADMISSION = 5
+SUBMISSION_WINDOW = timedelta(minutes=1)
+from sqlalchemy import func, select, desc
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -124,6 +126,22 @@ def submit_public_form(
         )
         db.commit()
         return {"status": "recorded", "valid": False, "error": "Verification failed"}
+
+    recent_submissions = db.scalar(
+        select(func.count())
+        .select_from(FormResponse)
+        .where(
+            FormResponse.workspace_id == workspace_id,
+            FormResponse.submitted_admission_number == payload.submitted_admission_number,
+            FormResponse.submitted_at >= submitted_at - SUBMISSION_WINDOW,
+        )
+    ) or 0
+    if recent_submissions >= MAX_SUBMISSIONS_PER_ADMISSION:
+        raise HTTPException(
+            status_code=429,
+            detail="Too many submissions for this admission number. Wait a minute and try again.",
+            headers={"Retry-After": "60"},
+        )
 
     if student.phone_last4 != payload.submitted_phone_last4:
         db.add(
