@@ -179,8 +179,16 @@ export function HeroRunStage({ run, playKey, onReplay }: HeroRunStageProps): JSX
   }, [lite]);
 
   useEffect(() => {
-    if (reduced || lite) {
+    const explicitPlay = playKey > 0;
+
+    if (!explicitPlay && (reduced || lite)) {
       setStage(5);
+      return;
+    }
+
+    if (explicitPlay && lite) {
+      // An explicit play is a request for motion; retry without the low-FPS fallback.
+      setLite(false);
       return;
     }
 
@@ -206,9 +214,12 @@ export function HeroRunStage({ run, playKey, onReplay }: HeroRunStageProps): JSX
           const average = (time - firstFrame) / (frames - 1);
           // A deliberate fallback for low-end devices: if the boundary beat
           // cannot hold a useful frame rate, resolve to the finished run.
+          // An explicit play is the user asking for motion, so let it run.
           if (average > 28) {
-            cancelled = true;
-            setLite(true);
+            if (!explicitPlay) {
+              cancelled = true;
+              setLite(true);
+            }
             return;
           }
           return;
@@ -499,6 +510,7 @@ export function HeroRunStage({ run, playKey, onReplay }: HeroRunStageProps): JSX
       <figcaption className="mm-stage-caption">
         Illustrative sample data. The same inputs produce the same rooms on every load from this page:
         {` ${run.students.length} students, ${run.rooms.length} rooms, ${formatCount(run.pairsScored)} pair scores.`}
+        {reduced ? " Motion is reduced on this device; play the sample run to watch the sequence." : ""}
       </figcaption>
     </figure>
   );

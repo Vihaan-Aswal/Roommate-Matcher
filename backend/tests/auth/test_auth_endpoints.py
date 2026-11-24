@@ -4,15 +4,21 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.main import app
 from app.config import get_settings
+from app.models.tenant import Tenant
 
 @pytest.fixture(autouse=True)
 def set_env(monkeypatch):
     monkeypatch.setenv("APP_JWT_SECRET", "test-secret-32-chars-xxxxxxxxxxx")
     monkeypatch.setenv("SUPABASE_JWT_SECRET", "test-secret-32-chars-xxxxxxxxxxx")
     monkeypatch.setenv("ADMIN_EMAILS", "")
+    get_settings.cache_clear()
+    yield
+    # monkeypatch restores the env after this fixture; drop the cached Settings
+    # object so the next module does not verify against this module's secret.
     get_settings.cache_clear()
 
 
@@ -25,6 +31,26 @@ def test_demo_endpoint_creates_session(client: TestClient):
     assert "tenant_id" in data
     assert "workspace_id" in data
     assert "expires_at" in data
+
+
+def test_demo_database_failure_returns_503_and_cleans_up(
+    client: TestClient, db_session, monkeypatch
+):
+    def _fail(*args, **kwargs):
+        raise SQLAlchemyError("database down")
+
+    monkeypatch.setattr("app.api.routes.auth.seed_demo_workspace", _fail)
+
+    resp = client.post(
+        "/api/auth/demo",
+        json={"email": "database-down@example.com"},
+        headers={"Origin": "http://localhost:5173"},
+    )
+
+    assert resp.status_code == 503
+    assert "demo database" in resp.json()["detail"].lower()
+    assert resp.headers.get("access-control-allow-origin") == "http://localhost:5173"
+    assert db_session.query(Tenant).count() == 0
 
 
 def test_me_endpoint_with_demo_token(client: TestClient):

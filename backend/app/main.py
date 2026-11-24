@@ -5,17 +5,20 @@ from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
-from app.database import SessionLocal
+from app.database import SessionLocal, get_db
 from app.rate_limit import limiter
 from app.services.orchestration.run_workflow import sweep_stale_runs
 
@@ -125,8 +128,20 @@ def create_app(*, frontend_dist_dir: Path | None = None) -> FastAPI:
     application.include_router(exports_router)
     application.include_router(internal_router)
 
+    @application.exception_handler(Exception)
+    async def unhandled_exception(_request: Request, exc: Exception) -> JSONResponse:
+        logger.exception("Unhandled application error: %s", exc)
+        return JSONResponse(status_code=500, content={"detail": "Internal server error."})
+
     @application.get("/health")
-    def health() -> dict[str, str]:
+    def health(db: Session = Depends(get_db)) -> dict[str, str]:
+        try:
+            db.execute(text("SELECT 1"))
+        except SQLAlchemyError as exc:
+            raise HTTPException(
+                status_code=503,
+                detail="Database unavailable.",
+            ) from exc
         return {"status": "ok", "environment": settings.app_env}
 
     _configure_showcase_routes(

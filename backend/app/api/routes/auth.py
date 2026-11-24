@@ -23,6 +23,7 @@ GET /api/auth/me
 """
 from __future__ import annotations
 
+import logging
 import secrets
 import uuid
 from datetime import UTC, datetime, timedelta
@@ -30,6 +31,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, EmailStr
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.rate_limit import limiter
 from sqlalchemy.orm import Session
@@ -44,6 +46,22 @@ from app.models import Tenant, TenantMembership, Workspace
 from app.services.demo_seed.service import seed_demo_workspace
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
+
+logger = logging.getLogger(__name__)
+
+
+def _discard_demo_tenant(db: Session, tenant_id: uuid.UUID | None) -> None:
+    """Best-effort cleanup when a demo session fails after its first commit."""
+    if tenant_id is None:
+        return
+    try:
+        tenant = db.get(Tenant, tenant_id)
+        if tenant is not None:
+            db.delete(tenant)
+            db.commit()
+    except SQLAlchemyError:
+        db.rollback()
+        logger.warning("Could not discard the partially created demo tenant", exc_info=True)
 
 RATE_LIMIT_DEMO = get_settings().demo_rate_limit
 
@@ -175,59 +193,79 @@ def create_demo_session(
     ttl_hours = settings.demo_ttl_hours
     demo_expires_at = now + timedelta(hours=ttl_hours)
 
-    # Create demo Tenant
-    slug = f"demo-{secrets.token_hex(6)}"   # e.g. "demo-a1b2c3"
-    tenant = Tenant(
-        slug=slug,
-        display_name="Demo Workspace",
-        contact_email=body.email,
-        is_demo=True,
-        demo_expires_at=demo_expires_at,
-    )
-    db.add(tenant)
-    db.flush()  # get tenant.id without committing
+    tenant_id: uuid.UUID | None = None
+    seed_result = None
 
-    # Create demo Workspace
-    workspace = Workspace(
-        tenant_id=tenant.id,
-        name="Demo — Spring 2025",
-        status="draft",
-        source="demo_seed",
-        is_demo_seeded=False,  # Phase 6 sets this to True after seeding
-    )
-    db.add(workspace)
-    db.flush()  # get workspace.id
-
-    # Create TenantMembership (placeholder sub for demo)
-    membership = TenantMembership(
-        tenant_id=tenant.id,
-        supabase_user_id=uuid.uuid4(),  # placeholder — demo users are not in Supabase auth
-        email=body.email,
-        role="owner",
-    )
-    db.add(membership)
-    db.commit()
-
-    # --- Phase 6: Seed demo workspace with sample data ---
-    import logging
     try:
-        seed_result = seed_demo_workspace(db, workspace.id, tenant.id)
-    except FileNotFoundError as exc:
-        # Don't fail the demo session — just log and leave workspace empty
-        logging.getLogger(__name__).warning("Demo seed files missing: %s", exc)
-        seed_result = None
+        # Create demo Tenant
+        slug = f"demo-{secrets.token_hex(6)}"   # e.g. "demo-a1b2c3"
+        tenant = Tenant(
+            slug=slug,
+            display_name="Demo Workspace",
+            contact_email=body.email,
+            is_demo=True,
+            demo_expires_at=demo_expires_at,
+        )
+        db.add(tenant)
+        db.flush()  # get tenant.id without committing
+        tenant_id = tenant.id
 
-    # Mark workspace as seeded
-    workspace.is_demo_seeded = True
-    workspace.status = "active"
-    db.commit()
+        # Create demo Workspace
+        workspace = Workspace(
+            tenant_id=tenant.id,
+            name="Demo — Spring 2025",
+            status="draft",
+            source="demo_seed",
+            is_demo_seeded=False,  # Phase 6 sets this to True after seeding
+        )
+        db.add(workspace)
+        db.flush()  # get workspace.id
 
-    # Issue demo app JWT
-    token = issue_demo_token(
-        tenant_id=tenant.id,
-        workspace_id=workspace.id,
-        email=body.email,
-    )
+        # Create TenantMembership (placeholder sub for demo)
+        membership = TenantMembership(
+            tenant_id=tenant.id,
+            supabase_user_id=uuid.uuid4(),  # placeholder — demo users are not in Supabase auth
+            email=body.email,
+            role="owner",
+        )
+        db.add(membership)
+        db.commit()
+
+        # --- Phase 6: Seed demo workspace with sample data ---
+        try:
+            seed_result = seed_demo_workspace(db, workspace.id, tenant.id)
+        except FileNotFoundError as exc:
+            # Don't fail the demo session — just log and leave workspace empty
+            logger.warning("Demo seed files missing: %s", exc)
+            seed_result = None
+
+        # Mark workspace as seeded
+        workspace.is_demo_seeded = True
+        workspace.status = "active"
+        db.commit()
+
+        # Issue demo app JWT
+        token = issue_demo_token(
+            tenant_id=tenant.id,
+            workspace_id=workspace.id,
+            email=body.email,
+        )
+    except SQLAlchemyError as exc:
+        db.rollback()
+        _discard_demo_tenant(db, tenant_id)
+        logger.warning("Demo session hit a database error", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="The demo database is unavailable right now. Please try again shortly.",
+        ) from exc
+    except Exception as exc:
+        db.rollback()
+        _discard_demo_tenant(db, tenant_id)
+        logger.exception("Demo session could not be prepared")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="The demo workspace could not be prepared. Please try again shortly.",
+        ) from exc
 
     return DemoResponse(
         token=token,
