@@ -461,6 +461,29 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   return data as T;
 }
 
+// ---------------------------------------------------------------------------
+// Backend warm-up
+// ---------------------------------------------------------------------------
+// Render's free instance sleeps after ~15 minutes idle and takes about a minute
+// to boot. A liveness ping on an entry page starts that boot while the visitor
+// reads, without blocking render or surfacing an error if it fails.
+
+let backendWarmUp: Promise<void> | null = null;
+
+export function warmBackend(): Promise<void> {
+  if (!backendWarmUp) {
+    backendWarmUp = fetch(buildUrl("/health/live"), {
+      signal: AbortSignal.timeout(12_000),
+    })
+      .then(() => undefined)
+      .catch(() => undefined)
+      .finally(() => {
+        backendWarmUp = null;
+      });
+  }
+  return backendWarmUp;
+}
+
 function parseCsvFileName(
   contentDisposition: string | null,
   fallback: string,
