@@ -4,12 +4,13 @@ import csv
 import io
 import math
 import re
+import uuid
 from dataclasses import dataclass, field as dc_field
 from datetime import date
 from pathlib import Path
 from uuid import UUID
 
-from sqlalchemy import select, func
+from sqlalchemy import insert, select, func
 from sqlalchemy.orm import Session
 
 from app.models.segment import Segment
@@ -404,6 +405,27 @@ def apply_student_import(
 
     mutable_fields = ("full_name", "gender", "year_group", "ac_type", "room_size", "dob", "phone_number", "phone_last4")
 
+    # Soft-deleted rows are looked up once per import, not once per row.
+    missing_admissions = [
+        payload["admission_number"]
+        for _row_number, payload in payloads
+        if payload["admission_number"] not in existing_students
+    ]
+    inactive_students: dict[str, Student] = {}
+    if missing_admissions:
+        inactive_students = {
+            s.admission_number: s
+            for s in db.scalars(
+                select(Student).where(
+                    Student.workspace_id == workspace_id,
+                    Student.admission_number.in_(missing_admissions),
+                    Student.is_active == False,
+                )
+            ).all()
+        }
+
+    new_student_rows: list[dict] = []
+
     for _row_number, payload in payloads:
         adm = payload["admission_number"]
         assert isinstance(adm, str)
@@ -451,13 +473,7 @@ def apply_student_import(
                 result.unchanged += 1
         else:
             # Check if there's an inactive student with same admission_number — reactivate
-            inactive = db.scalar(
-                select(Student).where(
-                    Student.workspace_id == workspace_id,
-                    Student.admission_number == adm,
-                    Student.is_active == False,
-                )
-            )
+            inactive = inactive_students.get(adm)
             if inactive:
                 # Reactivate and update
                 for f in mutable_fields:
@@ -466,23 +482,33 @@ def apply_student_import(
                 inactive.is_active = True
                 result.updated += 1
             else:
-                # Insert brand new
-                db.add(Student(
-                    tenant_id=tenant_id,
-                    workspace_id=workspace_id,
-                    segment_id=segment.id,
-                    admission_number=adm,
-                    full_name=payload["full_name"],
-                    gender=payload["gender"],
-                    year_group=payload["year_group"],
-                    ac_type=payload["ac_type"],
-                    room_size=payload["room_size"],
-                    dob=payload["dob"],
-                    phone_number=payload["phone_number"],
-                    phone_last4=payload["phone_last4"],
-                    is_active=True,
-                ))
+                # Insert brand new. One multi-row INSERT keeps a 96-student
+                # import to a single round trip through a pooled connection.
+                new_student_rows.append(
+                    {
+                        "id": uuid.uuid4(),
+                        "tenant_id": tenant_id,
+                        "workspace_id": workspace_id,
+                        "segment_id": segment.id,
+                        "admission_number": adm,
+                        "full_name": payload["full_name"],
+                        "gender": payload["gender"],
+                        "year_group": payload["year_group"],
+                        "ac_type": payload["ac_type"],
+                        "room_size": payload["room_size"],
+                        "dob": payload["dob"],
+                        "phone_number": payload["phone_number"],
+                        "phone_last4": payload["phone_last4"],
+                        "is_active": True,
+                    }
+                )
                 result.inserted += 1
+
+    if new_student_rows:
+        # Chunked so a large admin upload stays under Postgres's bind-parameter
+        # limit; the demo's 96 rows are still a single INSERT.
+        for start in range(0, len(new_student_rows), 500):
+            db.execute(insert(Student).values(new_student_rows[start : start + 500]))
 
     # Soft-delete students not in CSV
     for adm, student in existing_students.items():

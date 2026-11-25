@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session
 
 from app.services.ingestion.student_csv import apply_student_import
 from app.services.ingestion.room_csv import apply_room_import
-from app.services.ingestion.form_response_csv import ingest_form_responses_csv
+from app.services.ingestion.form_response_csv import ingest_form_responses_csv_bulk
 
 
 # Resolve CSV paths relative to the repository root.
@@ -67,7 +67,8 @@ def seed_demo_workspace(
         room_result = apply_room_import(db, workspace_id, tenant_id, f.read())
 
     # 3. Seed form responses (creates preference profiles)
-    form_result = ingest_form_responses_csv(db, workspace_id, str(FORM_RESPONSES_CSV))
+    #    Bulk path: 96 responses in one transaction instead of 96 commits.
+    form_result = ingest_form_responses_csv_bulk(db, workspace_id, str(FORM_RESPONSES_CSV))
 
     return DemoSeedResult(
         students_inserted=student_result.inserted,

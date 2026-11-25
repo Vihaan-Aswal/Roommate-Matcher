@@ -5,15 +5,38 @@
  * a real account. The demo is primary because a first-time visitor has no
  * credentials and nothing to lose; sign-in is the returning user's path.
  */
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 
 import { useAuth } from "../providers/AuthProvider";
+import { warmBackend } from "../lib/apiClient";
+
+// If the prewarm answered before the click, the backend is already awake and a
+// warm request should finish in a few seconds: stay quiet for 5.5s so the cold
+// notice never flashes on a warm load. If the prewarm is still pending or
+// failed, the instance is probably asleep: explain the wait after 1.5s.
+const DEMO_WARM_GRACE_MS = 5500;
+const DEMO_COLD_GRACE_MS = 1500;
+// Measured: the optimized seed is a few seconds warm; Render's documented
+// free-tier cold start is about 50s. 60s is the honest combined estimate.
+const DEMO_COLD_START_SECONDS = 60;
 
 export function LoginPage(): JSX.Element {
   const { signInWithEmail, startDemoSession, user } = useAuth();
   const navigate = useNavigate();
+  const prewarmReady = useRef(false);
+
+  useEffect(() => {
+    // Wake the sleeping free-tier instance while the visitor reads the page.
+    let cancelled = false;
+    void warmBackend().then((ready) => {
+      if (!cancelled) prewarmReady.current = ready;
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (user) {
@@ -31,6 +54,35 @@ export function LoginPage(): JSX.Element {
   const [demoError, setDemoError] = useState<string | null>(null);
   const [loginLoading, setLoginLoading] = useState(false);
   const [demoLoading, setDemoLoading] = useState(false);
+  const [demoSlow, setDemoSlow] = useState(false);
+  const [demoSecondsLeft, setDemoSecondsLeft] = useState(DEMO_COLD_START_SECONDS);
+  const [demoGraceMs, setDemoGraceMs] = useState(DEMO_COLD_GRACE_MS);
+
+  useEffect(() => {
+    if (!demoLoading) return;
+
+    setDemoSlow(false);
+    setDemoSecondsLeft(DEMO_COLD_START_SECONDS);
+
+    let intervalId: ReturnType<typeof setInterval> | undefined;
+    const graceId = setTimeout(() => {
+      setDemoSlow(true);
+      intervalId = setInterval(() => {
+        setDemoSecondsLeft((seconds) => {
+          if (seconds <= 1) {
+            if (intervalId) clearInterval(intervalId);
+            return 0;
+          }
+          return seconds - 1;
+        });
+      }, 1000);
+    }, demoGraceMs);
+
+    return () => {
+      clearTimeout(graceId);
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [demoLoading, demoGraceMs]);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -47,6 +99,7 @@ export function LoginPage(): JSX.Element {
 
   async function handleDemo() {
     setDemoError(null);
+    setDemoGraceMs(prewarmReady.current ? DEMO_WARM_GRACE_MS : DEMO_COLD_GRACE_MS);
     setDemoLoading(true);
     try {
       await startDemoSession("demo@example.com");
@@ -117,6 +170,11 @@ export function LoginPage(): JSX.Element {
               style={{ marginTop: 16 }}
               type="button"
               onClick={() => void handleDemo()}
+              onPointerDown={() =>
+                void warmBackend().then((ready) => {
+                  prewarmReady.current = ready;
+                })
+              }
               disabled={demoLoading}
             >
               {demoLoading ? (
@@ -128,6 +186,27 @@ export function LoginPage(): JSX.Element {
                 </>
               )}
             </button>
+
+            {demoLoading && demoSlow ? (
+              <div style={{ marginTop: 14 }}>
+                <p className="desk-note" data-tone="attention" role="status">
+                  <span className="desk-note-body">
+                    {demoSecondsLeft > 0
+                      ? "The demo server sleeps when idle, so the first load can take about a minute. This page will open the workspace by itself — keep it open."
+                      : "Almost there — finishing the seeded workspace."}
+                  </span>
+                </p>
+                {demoSecondsLeft > 0 ? (
+                  <p
+                    className="desk-mono"
+                    aria-hidden="true"
+                    style={{ margin: "6px 0 0", color: "var(--ink-faint)" }}
+                  >
+                    About {demoSecondsLeft}s left
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
 
             <hr className="desk-rule" style={{ margin: "22px 0 18px" }} />
 

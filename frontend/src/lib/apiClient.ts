@@ -461,6 +461,39 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   return data as T;
 }
 
+// ---------------------------------------------------------------------------
+// Backend warm-up
+// ---------------------------------------------------------------------------
+// Render's free instance sleeps after ~15 minutes idle and takes about a minute
+// to boot. A liveness ping on an entry page starts that boot while the visitor
+// reads, without blocking render or surfacing an error if it fails.
+//
+// The timeout covers the documented ~50s cold start: a shorter abort would cut
+// the prewarm off before the instance finishes booting, so its "ready" state
+// would almost always be false. Aborting does not cancel Render's boot, but a
+// request that is still pending when the visitor clicks is treated as cold.
+
+const BACKEND_WARM_TIMEOUT_MS = 60_000;
+
+let backendWarmUp: Promise<boolean> | null = null;
+
+export function warmBackend(): Promise<boolean> {
+  if (!backendWarmUp) {
+    // cache: no-store and a unique query keep browser and edge caches from
+    // answering with a stale liveness response without waking the instance.
+    backendWarmUp = fetch(buildUrl(`/health/live?warm=${Date.now()}`), {
+      cache: "no-store",
+      signal: AbortSignal.timeout(BACKEND_WARM_TIMEOUT_MS),
+    })
+      .then((response) => response.ok)
+      .catch(() => false)
+      .finally(() => {
+        backendWarmUp = null;
+      });
+  }
+  return backendWarmUp;
+}
+
 function parseCsvFileName(
   contentDisposition: string | null,
   fallback: string,
