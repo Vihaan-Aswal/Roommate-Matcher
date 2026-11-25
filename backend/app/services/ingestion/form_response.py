@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import uuid
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
-from typing import Any
+from typing import Any, Sequence
 
-from sqlalchemy import desc, select
+from sqlalchemy import desc, insert, select, update
 from sqlalchemy.orm import Session
 
 from app.models.form_response import FormResponse
@@ -203,6 +204,211 @@ def _deactivate_active_profiles(db: Session, student_id: uuid.UUID) -> None:
     ).all()
     for profile in active_profiles:
         profile.is_active = False
+
+
+@dataclass(frozen=True)
+class BulkFormSubmission:
+    admission_number: str
+    phone_last4: str
+    raw_answers: dict[str, str | None]
+
+
+def _invalid_response_row(
+    student: Student,
+    admission_number: str,
+    phone_last4: str,
+    submitted_at: datetime,
+    reason: str,
+    answers: dict[str, str | None],
+) -> dict[str, Any]:
+    return {
+        "id": uuid.uuid4(),
+        "tenant_id": student.tenant_id,
+        "workspace_id": student.workspace_id,
+        "student_id": student.id,
+        "submitted_admission_number": admission_number,
+        "submitted_phone_last4": phone_last4,
+        "submitted_at": submitted_at,
+        "validation_status": "invalid",
+        "invalid_reason": reason,
+        **answers,
+    }
+
+
+def ingest_form_responses_bulk(
+    db: Session,
+    workspace_id: uuid.UUID,
+    submissions: Sequence[BulkFormSubmission],
+) -> list[str | None]:
+    """Ingest many responses in a single transaction (demo seed fast path).
+
+    Returns one code per submission, in order: None when accepted, otherwise
+    the FormIntakeError code the per-row path would have raised.
+
+    Same rules as ingest_form_response: the same invalid rows are recorded and
+    the same row is rejected. The only difference is that rows are written with
+    two multi-row INSERTs and one commit instead of a flush and commit per row.
+    """
+    if not submissions:
+        return []
+
+    students = {
+        student.admission_number: student
+        for student in db.scalars(
+            select(Student).where(
+                Student.workspace_id == workspace_id,
+                Student.is_active == True,
+            )
+        ).all()
+    }
+
+    submitted_at = _to_utc_naive(datetime.now(tz=timezone.utc))
+
+    # Latest valid wins: an active profile whose source response is newer than
+    # this batch must stay active. One query instead of two per row.
+    newer_active_students = {
+        student_id
+        for student_id, previous_at in db.execute(
+            select(PreferenceProfile.student_id, FormResponse.submitted_at)
+            .join(FormResponse, PreferenceProfile.source_form_response_id == FormResponse.id)
+            .where(
+                PreferenceProfile.workspace_id == workspace_id,
+                PreferenceProfile.is_active == True,
+            )
+        ).all()
+        if _to_utc_naive(previous_at) > submitted_at
+    }
+
+    codes: list[str | None] = []
+    response_rows: list[dict[str, Any]] = []
+    pending_profiles: list[tuple[Student, uuid.UUID, dict[str, str | None], bool]] = []
+
+    for submission in submissions:
+        student = students.get(submission.admission_number)
+        if student is None:
+            codes.append("admission_number_not_found")
+            continue
+
+        normalized_answers = _normalize_raw_answers(submission.raw_answers)
+
+        if student.phone_last4 != submission.phone_last4:
+            response_rows.append(
+                _invalid_response_row(
+                    student,
+                    submission.admission_number,
+                    submission.phone_last4,
+                    submitted_at,
+                    "phone_mismatch",
+                    normalized_answers,
+                )
+            )
+            codes.append("phone_mismatch")
+            continue
+
+        if _find_missing_answer_keys(normalized_answers):
+            response_rows.append(
+                _invalid_response_row(
+                    student,
+                    submission.admission_number,
+                    student.phone_last4,
+                    submitted_at,
+                    "incomplete_form_submission",
+                    normalized_answers,
+                )
+            )
+            codes.append("incomplete_form_submission")
+            continue
+
+        option_validation = _validate_answer_options(normalized_answers)
+        if not option_validation.is_valid:
+            response_rows.append(
+                _invalid_response_row(
+                    student,
+                    submission.admission_number,
+                    student.phone_last4,
+                    submitted_at,
+                    str(option_validation.invalid_reason),
+                    normalized_answers,
+                )
+            )
+            codes.append("invalid_form_option")
+            continue
+
+        form_response_id = uuid.uuid4()
+        response_rows.append(
+            {
+                "id": form_response_id,
+                "tenant_id": student.tenant_id,
+                "workspace_id": student.workspace_id,
+                "student_id": student.id,
+                "submitted_admission_number": submission.admission_number,
+                "submitted_phone_last4": student.phone_last4,
+                "submitted_at": submitted_at,
+                "validation_status": "valid",
+                "invalid_reason": None,
+                **normalized_answers,
+            }
+        )
+        pending_profiles.append(
+            (student, form_response_id, normalized_answers, student.id not in newer_active_students)
+        )
+        codes.append(None)
+
+    if response_rows:
+        # Chunked for the same bind-parameter reason as the CSV importers.
+        for start in range(0, len(response_rows), 500):
+            db.execute(insert(FormResponse).values(response_rows[start : start + 500]))
+
+    # Repeated submissions for one student in a batch follow the same
+    # latest-valid-wins rule: only the last one stays active.
+    last_active_index = {
+        student.id: index
+        for index, (student, _response_id, _answers, activate) in enumerate(pending_profiles)
+        if activate
+    }
+    pending_profiles = [
+        (
+            student,
+            form_response_id,
+            normalized_answers,
+            activate and last_active_index.get(student.id) == index,
+        )
+        for index, (student, form_response_id, normalized_answers, activate) in enumerate(pending_profiles)
+    ]
+
+    active_student_ids = [student.id for student, _, _, activate in pending_profiles if activate]
+    if active_student_ids:
+        db.execute(
+            update(PreferenceProfile)
+            .where(
+                PreferenceProfile.workspace_id == workspace_id,
+                PreferenceProfile.student_id.in_(active_student_ids),
+                PreferenceProfile.is_active == True,
+            )
+            .values(is_active=False)
+        )
+
+    if pending_profiles:
+        profile_rows = [
+            {
+                "id": uuid.uuid4(),
+                "tenant_id": student.tenant_id,
+                "workspace_id": student.workspace_id,
+                "student_id": student.id,
+                "source_form_response_id": form_response_id,
+                "has_preferences": True,
+                "is_active": should_activate,
+                "is_generated": False,
+                **normalized_answers,
+                **_build_encoded_answers(normalized_answers),
+            }
+            for student, form_response_id, normalized_answers, should_activate in pending_profiles
+        ]
+        for start in range(0, len(profile_rows), 500):
+            db.execute(insert(PreferenceProfile).values(profile_rows[start : start + 500]))
+
+    db.commit()
+    return codes
 
 
 def ingest_form_response(

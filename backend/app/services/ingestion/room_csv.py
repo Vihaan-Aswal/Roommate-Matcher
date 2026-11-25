@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import csv
+import uuid
 from dataclasses import dataclass, field as dc_field
 from pathlib import Path
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import insert, select
 from sqlalchemy.orm import Session
 
 from app.models.room import Room
@@ -231,6 +232,24 @@ def apply_room_import(
     for room, seg_key in rows:
         existing_rooms[(seg_key, room.room_id)] = room
 
+    # Soft-deleted rooms are looked up once per import, not once per row.
+    inactive_rooms: dict[tuple[str, str], Room] = {}
+    missing_keys = {
+        (payload["segment_key"], payload["room_id"])
+        for payload in payloads
+        if (payload["segment_key"], payload["room_id"]) not in existing_rooms
+    }
+    if missing_keys:
+        inactive_rows = db.execute(
+            select(Room, Segment.segment_key)
+            .join(Segment, Room.segment_id == Segment.id)
+            .where(Room.workspace_id == workspace_id, Room.is_active == False)
+        ).all()
+        for room, seg_key in inactive_rows:
+            inactive_rooms[(seg_key, room.room_id)] = room
+
+    new_room_rows: list[dict] = []
+
     for payload in payloads:
         room_id = payload["room_id"]
         segment_key = payload["segment_key"]
@@ -251,26 +270,31 @@ def apply_room_import(
                 result.unchanged += 1
         else:
             # Check for soft-deleted room
-            inactive_row = db.execute(
-                select(Room)
-                .join(Segment, Room.segment_id == Segment.id)
-                .where(Room.workspace_id == workspace_id, Segment.segment_key == segment_key, Room.room_id == room_id, Room.is_active == False)
-            ).scalar_one_or_none()
-            
+            inactive_row = inactive_rooms.get(key)
+
             if inactive_row:
                 inactive_row.capacity = capacity
                 inactive_row.is_active = True
                 result.updated += 1
             else:
-                db.add(Room(
-                    tenant_id=tenant_id,
-                    workspace_id=workspace_id,
-                    segment_id=segment.id,
-                    room_id=room_id,
-                    capacity=capacity,
-                    source="uploaded", is_active=True,
-                ))
+                new_room_rows.append(
+                    {
+                        "id": uuid.uuid4(),
+                        "tenant_id": tenant_id,
+                        "workspace_id": workspace_id,
+                        "segment_id": segment.id,
+                        "room_id": room_id,
+                        "capacity": capacity,
+                        "source": "uploaded",
+                        "is_active": True,
+                    }
+                )
                 result.inserted += 1
+
+    if new_room_rows:
+        # Chunked for the same bind-parameter reason as the student import.
+        for start in range(0, len(new_room_rows), 500):
+            db.execute(insert(Room).values(new_room_rows[start : start + 500]))
 
     for key, room in existing_rooms.items():
         if key not in csv_keys:
