@@ -597,20 +597,31 @@
   right: 5px;
   left: 4px;
   z-index: 4;
-  display: block;
-  height: 16px;
-  padding: 2px 5px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1px;
+  height: 28px;
+  padding: 2px 4px;
   overflow: hidden;
   border: 1px solid #bda77c;
   border-bottom: 0;
   border-radius: 5px 8px 0 0;
   background: #e2cfa8;
   font-family: var(--mono);
-  font-size: 7px;
+  font-size: 10px;
   font-weight: 500;
   letter-spacing: 0.025em;
-  line-height: 1.35;
+  line-height: 1.15;
   color: #544c3a;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.film-folder-tab > span {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1767,8 +1778,8 @@
 
 .film-note-list li {
   display: grid;
-  grid-template-columns: 68px minmax(0, 1fr);
-  gap: 7px;
+  grid-template-columns: 90px minmax(0, 1fr);
+  gap: 5px;
   padding: 6px 0;
   border-bottom: 1px solid rgba(29, 37, 25, 0.1);
 }
@@ -2600,6 +2611,94 @@
   }
 }
 
+/* Evidence type floor: unique evidence is never smaller than 10px. */
+.mm-film-tag,
+.mm-film-meta,
+.mm-film-run,
+.film-mono,
+.film-ledger-label,
+.film-brass-stamp,
+.film-fan-label,
+.film-folder-tab,
+.film-folder-count,
+.film-open-note,
+.film-verdict,
+.film-score-caption,
+.film-score-side,
+.film-side-room,
+.film-weight-caption,
+.film-weight-foot,
+.film-factor-name,
+.film-factor-weight,
+.film-factor-raw,
+.film-plan-caption,
+.film-plan-alt-note,
+.film-plan-alt-note strong,
+.film-plan-risk,
+.film-plan-risk-note,
+.film-strategy-label,
+.film-strategy-detail,
+.film-swap-row,
+.film-swap-stays,
+.film-fair-legend,
+.film-fair-rule span,
+.film-fair-room-id,
+.film-student-id,
+.film-student-note,
+.film-fair-stamp span,
+.film-note-id,
+.film-note-text,
+.film-envelope-note,
+.film-sign-run,
+.film-sign-data dt,
+.film-sign-data dd,
+.film-sign-caption,
+.film-audit-strip,
+.film-audit-title,
+.film-end-kicker,
+.film-end-line,
+.film-end-foot,
+.mm-film-scene-label,
+.mm-film-section-link,
+.mm-film-chapter-number,
+.mm-film-chapter-label,
+.mm-film-scene-count {
+  font-size: 10px;
+}
+
+.film-plan-risk-id {
+  font-size: 12px;
+}
+
+.film-fair-stamp strong {
+  font-size: 12px;
+}
+
+.film-folder-tab {
+  right: 2px;
+  left: 2px;
+  padding: 1px 3px;
+}
+
+.film-factor-row {
+  grid-template-columns: minmax(0, 1fr) 28px minmax(36px, 0.9fr) 28px;
+}
+
+.film-factor-rows.is-compact .film-factor-row {
+  grid-template-columns: minmax(0, 1fr) 22px 48px 26px;
+  min-height: 18px;
+}
+
+.film-factor-rows.is-compact .film-factor-name,
+.film-factor-rows.is-compact .film-factor-weight,
+.film-factor-rows.is-compact .film-factor-raw {
+  font-size: 10px;
+}
+
+.film-weight-row {
+  grid-template-columns: 80px minmax(0, 1fr);
+}
+
 /* Responsive -------------------------------------------------------------- */
 
 @media (max-width: 767px) {
@@ -2721,12 +2820,12 @@
   }
 
   .film-factor-name {
-    font-size: 9px;
+    font-size: 10px;
   }
 
   .film-factor-weight,
   .film-factor-raw {
-    font-size: 7.5px;
+    font-size: 10px;
   }
 
   .film-score-big {
@@ -3006,15 +3105,15 @@
     top: 3px;
     right: 3px;
     left: 3px;
-    height: 25px;
+    height: 30px;
     padding: 2px 4px;
     font-size: 10px;
-    line-height: 1.2;
+    line-height: 1.15;
     white-space: normal;
   }
 
   .film-card-stack {
-    top: 31px;
+    top: 36px;
     bottom: 30px;
   }
 
@@ -3301,12 +3400,45 @@
     font-size: 11px;
   }
 
+  .film-sheet-head.is-fair {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px 8px;
+    align-items: end;
+  }
+
+  .film-sheet-head.is-fair > div {
+    display: contents;
+  }
+
+  .film-sheet-head.is-fair .film-mono {
+    grid-column: 1 / -1;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+  }
+
+  .film-sheet-head.is-fair .film-sheet-title {
+    grid-column: 1;
+  }
+
+  .film-sheet-head.is-fair .film-fair-legend {
+    grid-column: 2;
+    align-self: end;
+    white-space: nowrap;
+  }
+
+  .film-fair-body {
+    --chart-h: 214px;
+    --card-gap: 24px;
+    padding-top: 7px;
+  }
+
   .film-reasons {
     padding: 7px 8px 6px;
   }
 
   .film-note-list li {
-    grid-template-columns: 88px minmax(0, 1fr);
+    grid-template-columns: 90px minmax(0, 1fr);
     gap: 5px;
     padding: 4px 0;
   }
@@ -3499,8 +3631,8 @@
   }
 
   .film-fair-body {
-    --chart-h: 128px;
-    --card-gap: 28px;
+    --chart-h: 214px;
+    --card-gap: 24px;
   }
 
   .film-fair-stamp strong {
@@ -3508,7 +3640,7 @@
   }
 
   .film-note-list li {
-    grid-template-columns: 88px minmax(0, 1fr);
+    grid-template-columns: 90px minmax(0, 1fr);
     gap: 5px;
   }
 

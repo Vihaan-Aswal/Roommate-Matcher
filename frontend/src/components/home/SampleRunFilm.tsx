@@ -332,8 +332,11 @@ function BoundaryScene({ data }: { data: SampleCase }): JSX.Element {
               </span>
               <span className="film-folder-front" />
               <span className="film-folder-tab">
-                {segment.gender} {segment.year === "1st year" ? "1st" : "2–4"} ·{" "}
-                {segment.ac} · {segment.size}-bed
+                <span>
+                  {segment.gender} {segment.year === "1st year" ? "1st" : "2–4"} ·{" "}
+                  {segment.ac}
+                </span>
+                <span>{segment.size}-bed</span>
               </span>
               <span className="film-folder-count">{segment.members.length} students</span>
               {isRisk ? (
