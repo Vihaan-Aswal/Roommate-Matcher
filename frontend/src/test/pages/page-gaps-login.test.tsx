@@ -12,7 +12,7 @@ vi.mock("../../providers/AuthProvider", () => ({
 }));
 
 vi.mock("../../lib/apiClient", () => ({
-  warmBackend: vi.fn(() => Promise.resolve()),
+  warmBackend: vi.fn(() => Promise.resolve(false)),
 }));
 
 const signInWithEmailMock = vi.fn();
@@ -61,7 +61,8 @@ describe("LoginPage", () => {
     useAuthMock.mockReset();
     signInWithEmailMock.mockReset();
     startDemoSessionMock.mockReset();
-    vi.mocked(warmBackend).mockClear();
+    vi.mocked(warmBackend).mockReset();
+    vi.mocked(warmBackend).mockResolvedValue(false);
     sessionStorage.clear();
 
     useAuthMock.mockReturnValue({
@@ -265,7 +266,7 @@ describe("LoginPage", () => {
     expect(screen.queryByRole("status")).toBeNull();
   });
 
-  it("shows the sleeping-server notice after the grace period and counts down", () => {
+  it("shows the sleeping-server notice after the cold grace period and counts down", () => {
     vi.useFakeTimers();
     startDemoSessionMock.mockReturnValue(new Promise<void>(() => {}));
 
@@ -301,6 +302,62 @@ describe("LoginPage", () => {
       "Almost there — finishing the seeded workspace.",
     );
     expect(screen.queryByText(/left$/)).toBeNull();
+  });
+
+  it("shows no notice for a 3.5s response when the prewarm already woke the backend", async () => {
+    vi.useFakeTimers();
+    vi.mocked(warmBackend).mockResolvedValue(true);
+    const pending = deferred();
+    startDemoSessionMock.mockImplementation(async () => {
+      await pending.promise;
+      sessionStorage.setItem("demo_token", "demo-token");
+      sessionStorage.setItem("demo_workspace_id", "ws-warm-demo");
+    });
+
+    renderPage();
+    await act(async () => {});
+
+    fireEvent.click(screen.getByRole("button", { name: /open the demo workspace/i }));
+    act(() => {
+      vi.advanceTimersByTime(3500);
+    });
+
+    expect(screen.queryByRole("status")).toBeNull();
+
+    await act(async () => {
+      pending.resolve();
+      await Promise.resolve();
+    });
+    expect(screen.queryByRole("status")).toBeNull();
+  });
+
+  it("waits 5.5s on a warm prewarm before showing the notice", async () => {
+    vi.useFakeTimers();
+    vi.mocked(warmBackend).mockResolvedValue(true);
+    startDemoSessionMock.mockReturnValue(new Promise<void>(() => {}));
+
+    renderPage();
+    await act(async () => {});
+
+    fireEvent.click(screen.getByRole("button", { name: /open the demo workspace/i }));
+
+    act(() => {
+      vi.advanceTimersByTime(5499);
+    });
+    expect(screen.queryByRole("status")).toBeNull();
+
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "The demo server sleeps when idle, so the first load can take about a minute.",
+    );
+    expect(screen.getByText("About 60s left")).toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+    expect(screen.getByText("About 59s left")).toBeInTheDocument();
   });
 
   it("clears the countdown timers when the page unmounts", () => {
