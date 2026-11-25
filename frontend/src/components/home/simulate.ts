@@ -849,4 +849,152 @@ export function formatCount(value: number): string {
 
 export const run = buildRun();
 
+export interface SampleCasePair {
+  pair: PairResult;
+  room: Room;
+  segment: Segment;
+  students: [Student, Student];
+  lowestFactors: FactorResult[];
+  missingFactors: FactorResult[];
+}
+
+export interface SampleCaseAlternative {
+  pair: PairResult;
+  students: [Student, Student];
+  anchorStudent: Student;
+  anchorRoom: Room;
+  anchorScore: number;
+}
+
+export interface SampleCase {
+  boundary: {
+    students: number;
+    rooms: number;
+    segments: number;
+    possible: number;
+    rejected: number;
+    scored: number;
+  };
+  risk: SampleCasePair & { atRisk: Student[] };
+  healthy: SampleCasePair;
+  alternative: SampleCaseAlternative;
+  segments: Segment[];
+  labels: Record<Label, number>;
+  audit: Run["audit"];
+  notes: Array<{ student: Student; reasons: string[] }>;
+}
+
+function casePair(source: Run, pair: PairResult, room: Room, segment: Segment): SampleCasePair {
+  const ordered = [...pair.factors]
+    .filter((factor) => !factor.missing)
+    .sort((left, right) => left.raw - right.raw);
+  return {
+    pair,
+    room,
+    segment,
+    students: [source.students[pair.a], source.students[pair.b]],
+    lowestFactors: ordered,
+    missingFactors: pair.factors.filter((factor) => factor.missing),
+  };
+}
+
+/**
+ * The named exhibits used by the homepage film. Pure selection over the run;
+ * it never recomputes a score.
+ */
+export function selectSampleCase(source: Run = run): SampleCase {
+  const atRiskStudent = source.atRiskStudents[0];
+  const riskRoom = atRiskStudent
+    ? source.rooms.find((room) => room.id === atRiskStudent.roomId)
+    : undefined;
+  if (!atRiskStudent || !riskRoom) {
+    throw new Error("The sample run has no at-risk room.");
+  }
+  const riskSegment = source.segments[riskRoom.segmentIndex];
+  const riskEdge = [...riskRoom.edges].sort((left, right) => left.score - right.score)[0];
+
+  const chosenPairs = new Set(
+    riskSegment.rooms.map((room) => pairKey(room.members[0], room.members[1])),
+  );
+  // The strongest eligible pair involving an R-12 student that the matching left out.
+  let losingPair: PairResult | undefined;
+  for (let i = 0; i < riskSegment.members.length; i += 1) {
+    for (let j = i + 1; j < riskSegment.members.length; j += 1) {
+      const a = riskSegment.members[i];
+      const b = riskSegment.members[j];
+      if (chosenPairs.has(pairKey(a, b))) continue;
+      if (!riskRoom.members.includes(a) && !riskRoom.members.includes(b)) continue;
+      const outcome = scorePair(source.students[a].answers, source.students[b].answers);
+      const candidate: PairResult = { a, b, ...outcome };
+      if (
+        !losingPair ||
+        candidate.score > losingPair.score + 1e-12 ||
+        (Math.abs(candidate.score - losingPair.score) <= 1e-12 &&
+          pairKey(candidate.a, candidate.b) < pairKey(losingPair.a, losingPair.b))
+      ) {
+        losingPair = candidate;
+      }
+    }
+  }
+  if (!losingPair) {
+    throw new Error("The sample run has no losing alternative pair.");
+  }
+  const alternativeStudents: [Student, Student] = [
+    source.students[losingPair.a],
+    source.students[losingPair.b],
+  ];
+  const anchorStudent =
+    alternativeStudents.find((student) => !riskRoom.members.includes(student.index)) ??
+    alternativeStudents[0];
+  const anchorRoom = riskSegment.rooms.find((room) =>
+    room.members.includes(anchorStudent.index),
+  );
+  if (!anchorRoom) {
+    throw new Error("The losing alternative has no chosen room.");
+  }
+  const alternative: SampleCaseAlternative = {
+    pair: losingPair,
+    students: alternativeStudents,
+    anchorStudent,
+    anchorRoom,
+    anchorScore: anchorRoom.score,
+  };
+
+  const healthyPair = source.samplePair;
+  const healthySegment = source.segments[healthyPair.room.segmentIndex];
+
+  const noteStudents = [
+    atRiskStudent,
+    ...source.students.filter((student) => riskRoom.members.includes(student.index)),
+    source.students[healthyPair.a],
+    source.students[healthyPair.b],
+  ];
+  const notes = noteStudents
+    .filter((student, index, all) => all.findIndex((other) => other.id === student.id) === index)
+    .map((student) => ({ student, reasons: source.studentReasons[student.index] ?? [] }));
+
+  return {
+    boundary: {
+      students: source.students.length,
+      rooms: source.rooms.length,
+      segments: source.segments.length,
+      possible: source.pairsPossible,
+      rejected: source.pairsRejected,
+      scored: source.pairsScored,
+    },
+    risk: {
+      ...casePair(source, riskEdge, riskRoom, riskSegment),
+      atRisk: riskRoom.atRisk.map((member) => source.students[member]),
+    },
+    healthy: casePair(source, healthyPair, healthyPair.room, healthySegment),
+    alternative,
+    segments: source.segments,
+    labels: source.labelCounts,
+    audit: source.audit,
+    notes,
+  };
+}
+
+export const sampleCase = selectSampleCase(run);
+
 

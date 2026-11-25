@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Play } from "lucide-react";
 
-import { HeroRunStage } from "../components/home/HeroRunStage";
+import { SampleRunFilm } from "../components/home/SampleRunFilm";
 import { BoundarySection } from "../components/home/BoundarySection";
 import { CompatibilitySection } from "../components/home/CompatibilitySection";
 import { ArtifactSection } from "../components/home/ArtifactSection";
@@ -32,7 +32,7 @@ export function HomePage(): JSX.Element {
     const target = document.getElementById("sample-run");
     target?.scrollIntoView({
       behavior: prefersReducedMotion() ? "auto" : "smooth",
-      block: "center",
+      block: "start",
     });
   };
 
@@ -99,7 +99,7 @@ export function HomePage(): JSX.Element {
               </p>
             </div>
 
-            <HeroRunStage run={run} playKey={playKey} onReplay={replay} />
+            <SampleRunFilm run={run} playKey={playKey} onReplay={replay} />
           </div>
         </section>
 

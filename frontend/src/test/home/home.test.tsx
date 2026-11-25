@@ -32,6 +32,10 @@ describe("public homepage route", () => {
     expect(
       screen.getByRole("button", { name: /^play the sample run$/i }),
     ).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: /sample run film/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /chapter 1: the boundary decides first/i }),
+    ).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: /sign in/i })).not.toBeInTheDocument();
     expect(fetchSpy).not.toHaveBeenCalled();
 
