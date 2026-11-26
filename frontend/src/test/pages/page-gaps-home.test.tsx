@@ -9,10 +9,10 @@ describe("HomePage interactions", () => {
     Element.prototype.scrollIntoView = vi.fn();
   });
 
-  function renderHome() {
+  function renderHome(path = "/") {
     return render(
       <MemoryRouter
-        initialEntries={["/"]}
+        initialEntries={[path]}
         future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
       >
         <HomePage />
@@ -40,12 +40,14 @@ describe("HomePage interactions", () => {
     fireEvent.click(screen.getByRole("button", { name: /^play the sample run$/i }));
 
     expect(Element.prototype.scrollIntoView).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole("group", { name: /sample run film/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Replay film" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("group", { name: /cohort pipeline animation/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Pause pipeline" })).toBeInTheDocument();
   });
 
-  it("replays the film from the stage control", () => {
-    renderHome();
+  it("replays the classic film from the comparison flag", () => {
+    renderHome("/?classic=1");
 
     fireEvent.click(screen.getByRole("button", { name: "Replay film" }));
 

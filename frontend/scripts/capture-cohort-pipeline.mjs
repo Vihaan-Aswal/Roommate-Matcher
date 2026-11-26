@@ -1,6 +1,7 @@
 /**
- * Capture the cohort-pipeline spike: review frames at the four test widths and
- * a ten-second VP9 screen take assembled from exact playhead samples.
+ * Capture the full cohort-pipeline explainer: station-hold frames at the four
+ * review widths and a fifty-second VP9 screen take assembled from exact
+ * playhead samples.
  *
  * Start the dev server first:
  *   npm run dev
@@ -22,9 +23,22 @@ const repoRoot = path.resolve(__dirname, "..", "..");
 const outputDir = path.join(repoRoot, "docs", "evidence", "cohort-pipeline");
 const framesDir = path.join(outputDir, "shots");
 const baseUrl = process.env.PIPELINE_BASE_URL ?? "http://127.0.0.1:5173";
-const times = [0.5, 2, 3.5, 5, 7, 8.5, 9.5];
 const VIDEO_FPS = 25;
+const VIDEO_SECONDS = 50;
 
+const STATIONS = [
+  { id: "inputs", time: 2.5 },
+  { id: "form", time: 7.5 },
+  { id: "boundaries", time: 13 },
+  { id: "score", time: 19 },
+  { id: "match", time: 26.5 },
+  { id: "fairness", time: 34 },
+  { id: "documents", time: 40.5 },
+  { id: "signoff", time: 47.5 },
+];
+
+// Replace the 10-second spike frame set with the full-film station holds.
+await fs.rm(framesDir, { recursive: true, force: true });
 await fs.mkdir(framesDir, { recursive: true });
 
 const browser = await chromium.launch({ headless: true });
@@ -36,7 +50,7 @@ async function openPage(width, height) {
     deviceScaleFactor: 1,
   });
   const page = await context.newPage();
-  await page.goto(`${baseUrl}/?pipeline=1`, { waitUntil: "networkidle" });
+  await page.goto(`${baseUrl}/`, { waitUntil: "networkidle" });
   await page.evaluate(() => document.fonts.ready);
   await page.locator(".cp-film").scrollIntoViewIfNeeded();
   return { context, page };
@@ -56,12 +70,15 @@ async function seek(page, time) {
   await page.waitForTimeout(80);
 }
 
-async function captureFrames(name, width, height, selectedTimes = times) {
+async function captureFrames(name, width, height, selectedIds = null) {
   const { context, page } = await openPage(width, height);
-  for (const time of selectedTimes) {
-    await seek(page, time);
+  const stations = selectedIds
+    ? STATIONS.filter((station) => selectedIds.includes(station.id))
+    : STATIONS;
+  for (const station of stations) {
+    await seek(page, station.time);
     await page.locator(".cp-film").screenshot({
-      path: path.join(framesDir, `${name}-frame-${time.toFixed(1)}.png`),
+      path: path.join(framesDir, `${name}-${station.id}.png`),
     });
   }
   await context.close();
@@ -70,8 +87,8 @@ async function captureFrames(name, width, height, selectedTimes = times) {
 
 await captureFrames("1440", 1440, 900);
 await captureFrames("375", 375, 812);
-await captureFrames("912x672", 912, 672, [7, 8.5, 9.5]);
-await captureFrames("1280", 1280, 800, [9.5]);
+await captureFrames("912x672", 912, 672, ["score", "fairness", "signoff"]);
+await captureFrames("1280", 1280, 800, ["signoff"]);
 
 function findFfmpeg() {
   const local = process.env.LOCALAPPDATA;
@@ -91,7 +108,7 @@ function findFfmpeg() {
 }
 
 const ffmpeg = findFfmpeg();
-const videoPath = path.join(outputDir, "cohort-pipeline-10s.webm");
+const videoPath = path.join(outputDir, "cohort-pipeline-50s.webm");
 
 if (!ffmpeg) {
   console.warn("ffmpeg not found; skipped the video capture.");
@@ -110,7 +127,7 @@ if (!ffmpeg) {
       "-c:v",
       "libvpx-vp9",
       "-b:v",
-      "1.4M",
+      "900k",
       "-pix_fmt",
       "yuv420p",
       "-vf",
@@ -125,7 +142,7 @@ if (!ffmpeg) {
     console.warn("video pipe closed:", error.message);
   });
 
-  const frameCount = 10 * VIDEO_FPS;
+  const frameCount = VIDEO_SECONDS * VIDEO_FPS;
   for (let frame = 0; frame < frameCount; frame += 1) {
     await seek(page, frame / VIDEO_FPS);
     const jpeg = await page.locator(".cp-film").screenshot({

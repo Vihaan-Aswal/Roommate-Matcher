@@ -21,21 +21,34 @@ import {
   batchAt,
   cameraAt,
   cardArrivalAt,
+  documentSealAt,
+  documentsAt,
+  fairnessBarsAt,
+  fairnessMeanAt,
+  fairnessRiskAt,
+  fairnessSwapAt,
+  fairnessThreadAt,
   foldersAt,
   formatFilmTime,
   inputsRevealAt,
+  keyAt,
   ledgerAt,
+  matchAt,
   normalisedAt,
+  notesAt,
   openAt,
+  roomsAt,
   sealAt,
+  signSlipAt,
+  signatureAt,
   stampAt,
   stationOpacityAt,
   stepIndexAt,
+  strategyAt,
   travelAt,
+  waxAt,
 } from "./pipelineTimeline";
 import "./cohort-pipeline.css";
-
-const STATION_COUNT = 4;
 
 function vars(values: Record<string, string | number>): CSSProperties {
   return values as CSSProperties;
@@ -45,6 +58,44 @@ function score3(value: number): string {
   return value.toFixed(3);
 }
 
+function StrategyGlyph({ beds }: { beds: 2 | 3 | 4 }): JSX.Element {
+  if (beds === 2) {
+    return (
+      <svg viewBox="0 0 44 24" className="cp-strategy-glyph" aria-hidden="true" focusable="false">
+        <line x1="10" y1="12" x2="34" y2="12" />
+        <circle cx="10" cy="12" r="3.2" />
+        <circle cx="34" cy="12" r="3.2" />
+      </svg>
+    );
+  }
+  if (beds === 3) {
+    return (
+      <svg viewBox="0 0 44 24" className="cp-strategy-glyph" aria-hidden="true" focusable="false">
+        <line x1="10" y1="17" x2="22" y2="6" />
+        <line x1="22" y1="6" x2="34" y2="17" />
+        <line x1="10" y1="17" x2="34" y2="17" />
+        <circle className="is-seed" cx="10" cy="17" r="3.2" />
+        <circle cx="22" cy="6" r="3.2" />
+        <circle cx="34" cy="17" r="3.2" />
+      </svg>
+    );
+  }
+  return (
+    <svg viewBox="0 0 44 24" className="cp-strategy-glyph" aria-hidden="true" focusable="false">
+      <line x1="10" y1="7" x2="34" y2="7" />
+      <line x1="10" y1="17" x2="34" y2="17" />
+      <line x1="10" y1="7" x2="10" y2="17" />
+      <line x1="34" y1="7" x2="34" y2="17" />
+      <line x1="10" y1="7" x2="34" y2="17" />
+      <line x1="34" y1="7" x2="10" y2="17" />
+      <circle cx="10" cy="7" r="2.7" />
+      <circle cx="34" cy="7" r="2.7" />
+      <circle cx="10" cy="17" r="2.7" />
+      <circle cx="34" cy="17" r="2.7" />
+    </svg>
+  );
+}
+
 interface CohortPipelineProps {
   run: Run;
   playKey: number;
@@ -52,6 +103,23 @@ interface CohortPipelineProps {
 
 export function CohortPipeline({ run, playKey }: CohortPipelineProps): JSX.Element {
   const data = useMemo(() => selectSampleCase(run), [run]);
+  const strategyCounts = useMemo(() => {
+    const countFor = (size: 2 | 3 | 4) =>
+      data.segments
+        .filter((segment) => segment.size === size)
+        .reduce((total, segment) => total + segment.rooms.length, 0);
+    return { 2: countFor(2), 3: countFor(3), 4: countFor(4) };
+  }, [data]);
+  const fairnessRooms = useMemo(
+    () =>
+      [...data.risk.segment.rooms].sort(
+        (left, right) => left.score - right.score || left.id.localeCompare(right.id),
+      ),
+    [data],
+  );
+  const riskBarIndex = fairnessRooms.findIndex((room) => room.id === data.risk.room.id);
+  const riskBarX = ((riskBarIndex + 0.5) / fairnessRooms.length) * 100;
+  const notes = data.notes.slice(0, 3);
   const [playing, setPlaying] = useState(false);
   const [ended, setEnded] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
@@ -61,6 +129,10 @@ export function CohortPipeline({ run, playKey }: CohortPipelineProps): JSX.Eleme
   const inputsRef = useRef<HTMLDivElement>(null);
   const formRef = useRef<HTMLDivElement>(null);
   const boundaryRef = useRef<HTMLDivElement>(null);
+  const matchRef = useRef<HTMLDivElement>(null);
+  const fairnessRef = useRef<HTMLDivElement>(null);
+  const documentsRef = useRef<HTMLDivElement>(null);
+  const signoffRef = useRef<HTMLDivElement>(null);
   const batchRef = useRef<HTMLDivElement>(null);
   const sliderRef = useRef<HTMLInputElement>(null);
   const timecodeRef = useRef<HTMLSpanElement>(null);
@@ -101,6 +173,33 @@ export function CohortPipeline({ run, playKey }: CohortPipelineProps): JSX.Eleme
       }
     }
 
+    if (matchRef.current) {
+      matchRef.current.style.setProperty("--match", matchAt(time).toFixed(4));
+      matchRef.current.style.setProperty("--strategy", strategyAt(time).toFixed(4));
+      matchRef.current.style.setProperty("--rooms", roomsAt(time).toFixed(4));
+    }
+
+    if (fairnessRef.current) {
+      fairnessRef.current.style.setProperty("--bars", fairnessBarsAt(time).toFixed(4));
+      fairnessRef.current.style.setProperty("--mean", fairnessMeanAt(time).toFixed(4));
+      fairnessRef.current.style.setProperty("--thread", fairnessThreadAt(time).toFixed(4));
+      fairnessRef.current.style.setProperty("--risk", fairnessRiskAt(time).toFixed(4));
+      fairnessRef.current.style.setProperty("--swap", fairnessSwapAt(time).toFixed(4));
+    }
+
+    if (documentsRef.current) {
+      documentsRef.current.style.setProperty("--docs", documentsAt(time).toFixed(4));
+      documentsRef.current.style.setProperty("--notes", notesAt(time).toFixed(4));
+      documentsRef.current.style.setProperty("--sealed", documentSealAt(time).toFixed(4));
+    }
+
+    if (signoffRef.current) {
+      signoffRef.current.style.setProperty("--slip", signSlipAt(time).toFixed(4));
+      signoffRef.current.style.setProperty("--sign", signatureAt(time).toFixed(4));
+      signoffRef.current.style.setProperty("--waxed", waxAt(time).toFixed(4));
+      signoffRef.current.style.setProperty("--key", keyAt(time).toFixed(4));
+    }
+
     if (batchRef.current) {
       batchRef.current.style.setProperty("--batch", batchAt(time).toFixed(4));
       batchRef.current.style.setProperty("--travel", travelAt(time).toFixed(4));
@@ -118,7 +217,7 @@ export function CohortPipeline({ run, playKey }: CohortPipelineProps): JSX.Eleme
       sliderRef.current.setAttribute("aria-valuenow", time.toFixed(1));
       sliderRef.current.setAttribute(
         "aria-valuetext",
-        `${formatFilmTime(time)} of 00:10`,
+        `${formatFilmTime(time)} of 00:50`,
       );
     }
     if (timecodeRef.current) {
@@ -284,6 +383,18 @@ export function CohortPipeline({ run, playKey }: CohortPipelineProps): JSX.Eleme
 
   const step = PIPELINE_STEPS[stepIndex];
   const risk = data.risk;
+  const CHART_MIN = 0.3;
+  const chartHeight = (score: number) =>
+    Math.max(2, Math.min(100, ((score - CHART_MIN) / (1 - CHART_MIN)) * 100));
+  const meanHeight = chartHeight(risk.segment.mean);
+  const floorHeight = chartHeight(0.55);
+  const threadDesktop = `M ${(riskBarX * 0.62).toFixed(1)} 72 C ${(
+    riskBarX * 0.62 +
+    12
+  ).toFixed(1)} 72, 46 22, 66 22`;
+  const threadMobile = `M ${riskBarX.toFixed(1)} 34 C ${riskBarX.toFixed(
+    1,
+  )} 48, 30 58, 50 62`;
 
   return (
     <figure className="mm-film cp-film" id="sample-run">
@@ -291,9 +402,9 @@ export function CohortPipeline({ run, playKey }: CohortPipelineProps): JSX.Eleme
         <div className="mm-film-head">
           <span className="mm-film-tag">Cohort pipeline</span>
           <span className="mm-film-meta mm-film-meta-full">
-            One cohort · eight stations · steps 1–4 of 8
+            One cohort · eight stations · 50 seconds
           </span>
-          <span className="mm-film-meta mm-film-meta-short">Steps 1–4 · 10s</span>
+          <span className="mm-film-meta mm-film-meta-short">8 stations · 50s</span>
           <span className="mm-film-run">{data.audit.runId}</span>
         </div>
 
@@ -311,7 +422,7 @@ export function CohortPipeline({ run, playKey }: CohortPipelineProps): JSX.Eleme
             <div className="cp-desk" />
             <div className="cp-rule" />
 
-            <section className="cp-station" style={vars({ "--i": 0, "--on": 1 })} ref={(node) => { stationRefs.current[0] = node; }}>
+            <section className="cp-station" data-station="inputs" style={vars({ "--i": 0, "--on": 1 })} ref={(node) => { stationRefs.current[0] = node; }}>
               <header className="cp-bay-head">
                 <span className="cp-bay-num">01</span>
                 <h2 className="cp-bay-name">Inputs</h2>
@@ -361,7 +472,7 @@ export function CohortPipeline({ run, playKey }: CohortPipelineProps): JSX.Eleme
               </div>
             </section>
 
-            <section className="cp-station" style={vars({ "--i": 1, "--on": 0 })} ref={(node) => { stationRefs.current[1] = node; }}>
+            <section className="cp-station" data-station="form" style={vars({ "--i": 1, "--on": 0 })} ref={(node) => { stationRefs.current[1] = node; }}>
               <header className="cp-bay-head">
                 <span className="cp-bay-num">02</span>
                 <h2 className="cp-bay-name">Form</h2>
@@ -410,7 +521,7 @@ export function CohortPipeline({ run, playKey }: CohortPipelineProps): JSX.Eleme
               </div>
             </section>
 
-            <section className="cp-station" style={vars({ "--i": 2, "--on": 0 })} ref={(node) => { stationRefs.current[2] = node; }}>
+            <section className="cp-station" data-station="boundaries" style={vars({ "--i": 2, "--on": 0 })} ref={(node) => { stationRefs.current[2] = node; }}>
               <header className="cp-bay-head">
                 <span className="cp-bay-num">03</span>
                 <h2 className="cp-bay-name">Boundaries</h2>
@@ -490,7 +601,7 @@ export function CohortPipeline({ run, playKey }: CohortPipelineProps): JSX.Eleme
               </div>
             </section>
 
-            <section className="cp-station" style={vars({ "--i": 3, "--on": 0 })} ref={(node) => { stationRefs.current[3] = node; }}>
+            <section className="cp-station" data-station="score" style={vars({ "--i": 3, "--on": 0 })} ref={(node) => { stationRefs.current[3] = node; }}>
               <header className="cp-bay-head">
                 <span className="cp-bay-num">04</span>
                 <h2 className="cp-bay-name">Score</h2>
@@ -560,6 +671,296 @@ export function CohortPipeline({ run, playKey }: CohortPipelineProps): JSX.Eleme
               </div>
             </section>
 
+            <section className="cp-station" data-station="match" style={vars({ "--i": 4, "--on": 0 })} ref={(node) => { stationRefs.current[4] = node; }}>
+              <header className="cp-bay-head">
+                <span className="cp-bay-num">05</span>
+                <h2 className="cp-bay-name">Match</h2>
+                <span className="cp-bay-note">chosen pairs</span>
+              </header>
+              <div className="cp-bay-body">
+                <div className="cp-match-layout" ref={matchRef}>
+                  <article className="cp-paper cp-pair-graph">
+                    <header className="cp-graph-head">
+                      <span className="cp-mono">Pair graph · 2-bed segment</span>
+                      <span>{risk.segment.rooms.length} rooms</span>
+                    </header>
+                    <div className="cp-graph-grid">
+                      {risk.segment.rooms.map((room) => (
+                        <div
+                          className={`cp-graph-room ${
+                            room.id === risk.room.id ? "is-risk" : ""
+                          }`}
+                          key={room.id}
+                        >
+                          <span className="cp-graph-node is-top" />
+                          <span className="cp-graph-line" />
+                          <span className="cp-graph-node is-bottom" />
+                          <span className="cp-graph-id">{room.id}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="cp-graph-note">
+                      One line = one chosen pair · 2-bed segment · R-12 marked.
+                    </p>
+                  </article>
+
+                  <div className="cp-match-side">
+                    <div className="cp-rooms-proposed">
+                      <strong>{data.boundary.rooms}</strong>
+                      <span>rooms proposed</span>
+                    </div>
+                    <div className="cp-strategy-list">
+                      {[
+                        {
+                          beds: 2 as const,
+                          label: "2-bed",
+                          detail: `maximum weight · ${
+                            data.segments.filter((segment) => segment.size === 2).length
+                          } segments`,
+                          count: strategyCounts[2],
+                        },
+                        {
+                          beds: 3 as const,
+                          label: "3-bed",
+                          detail: "seed and grow",
+                          count: strategyCounts[3],
+                        },
+                        {
+                          beds: 4 as const,
+                          label: "4-bed",
+                          detail: "pair, then merge",
+                          count: strategyCounts[4],
+                        },
+                      ].map((strategy) => (
+                        <div className="cp-strategy" key={strategy.beds}>
+                          <StrategyGlyph beds={strategy.beds} />
+                          <div>
+                            <b>{strategy.label}</b>
+                            <span>{strategy.detail}</span>
+                          </div>
+                          <strong>
+                            {strategy.count}
+                            <small>rooms</small>
+                          </strong>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="cp-station" data-station="fairness" style={vars({ "--i": 5, "--on": 0 })} ref={(node) => { stationRefs.current[5] = node; }}>
+              <header className="cp-bay-head">
+                <span className="cp-bay-num">06</span>
+                <h2 className="cp-bay-name">Fairness</h2>
+                <span className="cp-bay-note">the floor</span>
+              </header>
+              <div className="cp-bay-body">
+                <div className="cp-fair-layout" ref={fairnessRef}>
+                  <article className="cp-paper cp-fair-chart">
+                    <header className="cp-fair-head">
+                      <span className="cp-mono">
+                        Fairness statement · {risk.segment.short}
+                      </span>
+                      <span>{risk.atRisk.length} at risk</span>
+                    </header>
+                    <div className="cp-fair-plot">
+                      <span
+                        className="cp-fair-rule is-mean"
+                        style={vars({ "--y": meanHeight })}
+                      >
+                        <span>mean {score3(risk.segment.mean)}</span>
+                      </span>
+                      <span
+                        className="cp-fair-rule is-floor"
+                        style={vars({ "--y": floorHeight })}
+                      >
+                        <span>floor 0.55</span>
+                      </span>
+                      <div className="cp-fair-bars">
+                        {fairnessRooms.map((room) => (
+                          <span
+                            className={`cp-fair-bar ${
+                              room.id === risk.room.id ? "is-risk" : ""
+                            }`}
+                            key={room.id}
+                            style={vars({ "--h": chartHeight(room.score) })}
+                          >
+                            <span className="cp-fair-fill" />
+                            {room.id === risk.room.id ? (
+                              <b>{score3(room.score)}</b>
+                            ) : null}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="cp-fair-foot">
+                      <span>12 rooms · sorted by score</span>
+                      <span>mean {score3(risk.segment.mean)}</span>
+                    </div>
+                  </article>
+
+                  <div className="cp-fair-side">
+                    <div className="cp-risk-cards">
+                      {risk.atRisk.map((student) => (
+                        <div className="cp-risk-card" key={student.id}>
+                          <span>{student.id}</span>
+                          <strong>{score3(student.satisfaction)}</strong>
+                          <span>{student.roomId} · below 0.55</span>
+                        </div>
+                      ))}
+                    </div>
+                    <article className="cp-fair-statement">
+                      <span className="cp-mono">Fairness statement</span>
+                      <strong>{risk.atRisk.length} at risk · review required</strong>
+                      <span>
+                        floor {score3(risk.room.score)} · {risk.room.id}
+                      </span>
+                    </article>
+                  </div>
+
+                  <div className="cp-swap-ledger">
+                    <span className="cp-mono">Swap pass</span>
+                    <span>
+                      <strong>{data.audit.swapPasses}</strong> passes
+                    </span>
+                    <span>
+                      <strong>{data.audit.swapsAccepted}</strong> accepted
+                    </span>
+                    <span>
+                      <strong>{data.audit.newPoorFromSwaps}</strong> new Poor
+                    </span>
+                  </div>
+
+                  <svg
+                    className="cp-fair-thread"
+                    viewBox="0 0 100 100"
+                    preserveAspectRatio="none"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path className="is-desktop" d={threadDesktop} pathLength={1} />
+                    <path className="is-mobile" d={threadMobile} pathLength={1} />
+                  </svg>
+                </div>
+              </div>
+            </section>
+
+            <section className="cp-station" data-station="documents" style={vars({ "--i": 6, "--on": 0 })} ref={(node) => { stationRefs.current[6] = node; }}>
+              <header className="cp-bay-head">
+                <span className="cp-bay-num">07</span>
+                <h2 className="cp-bay-name">Documents</h2>
+                <span className="cp-bay-note">the run pack</span>
+              </header>
+              <div className="cp-bay-body">
+                <div className="cp-docs-layout" ref={documentsRef}>
+                  <div className="cp-doc-grid">
+                    <article className="cp-paper cp-doc-card">
+                      <span className="cp-mono">Assignments</span>
+                      <strong>{data.boundary.rooms}</strong>
+                      <span>rooms · {data.boundary.students} beds</span>
+                    </article>
+                    <article className="cp-paper cp-doc-card">
+                      <span className="cp-mono">Reasons</span>
+                      <strong>{data.boundary.students}</strong>
+                      <span>notes · one per student</span>
+                      <p>
+                        {notes[0]?.student.id} · {notes[0]?.reasons[0]}
+                      </p>
+                    </article>
+                    <article className="cp-paper cp-doc-card">
+                      <span className="cp-mono">Fairness statement</span>
+                      <strong>{score3(risk.room.score)}</strong>
+                      <span>floor · {risk.atRisk.length} at risk</span>
+                    </article>
+                    <article className="cp-paper cp-doc-card">
+                      <span className="cp-mono">Audit trail</span>
+                      <strong>{data.audit.runId}</strong>
+                      <span>digest {data.audit.digest}</span>
+                      <span>
+                        {formatCount(data.boundary.scored)} pairs · {data.audit.swapPasses}/
+                        {data.audit.swapsAccepted}/{data.audit.newPoorFromSwaps}
+                      </span>
+                    </article>
+                  </div>
+
+                  <div className="cp-docs-sealed">
+                    <span className="cp-mono">Raw answers</span>
+                    <strong>Sealed</strong>
+                    <span>not read on the desk</span>
+                    <span className="cp-docs-wax">RM</span>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="cp-station" data-station="signoff" style={vars({ "--i": 7, "--on": 0 })} ref={(node) => { stationRefs.current[7] = node; }}>
+              <header className="cp-bay-head">
+                <span className="cp-bay-num">08</span>
+                <h2 className="cp-bay-name">Sign-off</h2>
+                <span className="cp-bay-note">a person signs</span>
+              </header>
+              <div className="cp-bay-body">
+                <div className="cp-sign-layout" ref={signoffRef}>
+                  <article className="cp-paper cp-sign-slip">
+                    <header className="cp-sign-head">
+                      <span className="cp-mono">Sign-off slip</span>
+                      <span>{data.audit.runId} · sample</span>
+                    </header>
+                    <dl className="cp-sign-data">
+                      <div>
+                        <dt>Proposal</dt>
+                        <dd>
+                          {data.boundary.rooms} rooms · {data.boundary.students} beds
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>At risk</dt>
+                        <dd>
+                          {risk.atRisk.length} · {risk.room.id} · review required
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>Floor</dt>
+                        <dd>{score3(risk.room.score)}</dd>
+                      </div>
+                    </dl>
+                    <div className="cp-signature">
+                      <svg
+                        className="cp-sign-stroke"
+                        viewBox="0 0 200 24"
+                        preserveAspectRatio="none"
+                        aria-hidden="true"
+                        focusable="false"
+                      >
+                        <path
+                          d="M6 18 C 22 4, 32 4, 40 14 C 48 23, 58 20, 66 10 C 72 3, 80 8, 86 16 C 92 23, 104 6, 116 12 C 126 18, 136 20, 154 10 C 168 2, 182 12, 194 16"
+                          pathLength={1}
+                        />
+                      </svg>
+                      <span className="cp-sign-rule" />
+                      <span className="cp-sign-caption">Signed by a person</span>
+                      <span className="cp-wax-sign">RM</span>
+                    </div>
+                  </article>
+
+                  <div className="cp-keys">
+                    <span className="cp-mono">Keys</span>
+                    <svg viewBox="0 0 44 24" aria-hidden="true" focusable="false">
+                      <circle cx="11" cy="12" r="5" />
+                      <line x1="16" y1="12" x2="36" y2="12" />
+                      <line x1="30" y1="12" x2="30" y2="17" />
+                      <line x1="35" y1="12" x2="35" y2="16" />
+                    </svg>
+                    <strong>After the signature</strong>
+                    <span>not issued by the desk</span>
+                    <span className="cp-key-seal">held</span>
+                  </div>
+                </div>
+              </div>
+            </section>
+
           </div>
 
           <div
@@ -597,18 +998,14 @@ export function CohortPipeline({ run, playKey }: CohortPipelineProps): JSX.Eleme
           <ol className="cp-rail-list">
             {PIPELINE_STEPS.map((item, index) => {
               const active = index === stepIndex;
-              const built = item.seekAt !== null;
               return (
                 <li key={item.id}>
                   <button
                     type="button"
-                    className={`cp-rail-step ${active ? "is-active" : ""} ${built ? "" : "is-future"}`}
-                    onClick={() => {
-                      if (item.seekAt !== null) seek(item.seekAt);
-                    }}
-                    disabled={!built}
+                    className={`cp-rail-step ${active ? "is-active" : ""}`}
+                    onClick={() => seek(item.seekAt)}
                     aria-current={active ? "step" : undefined}
-                    aria-label={`Step ${index + 1}: ${item.label}${built ? "" : " (not in this preview)"}`}
+                    aria-label={`Step ${index + 1}: ${item.label}`}
                     title={item.caption}
                   >
                     <span className="cp-rail-num">{String(index + 1).padStart(2, "0")}</span>
@@ -653,7 +1050,7 @@ export function CohortPipeline({ run, playKey }: CohortPipelineProps): JSX.Eleme
               Replay
             </button>
             <span className="cp-timecode">
-              <span ref={timecodeRef}>00:00.0</span> / 00:10
+              <span ref={timecodeRef}>00:00.0</span> / 00:50
             </span>
             {ended ? <span className="cp-ended">End of take</span> : null}
           </div>
@@ -667,7 +1064,7 @@ export function CohortPipeline({ run, playKey }: CohortPipelineProps): JSX.Eleme
             step={0.1}
             defaultValue={0}
             aria-label="Pipeline position"
-            aria-valuetext="00:00.0 of 00:10"
+            aria-valuetext="00:00.0 of 00:50"
             onChange={(event) => seek(Number(event.currentTarget.value))}
           />
         </div>
@@ -678,9 +1075,11 @@ export function CohortPipeline({ run, playKey }: CohortPipelineProps): JSX.Eleme
         {data.boundary.rooms} rooms, {formatCount(data.boundary.possible)} possible pairs,{" "}
         {formatCount(data.boundary.rejected)} never compared,{" "}
         {formatCount(data.boundary.scored)} scored. R-12 · {risk.students[0].id} ×{" "}
-        {risk.students[1].id} · {score3(risk.pair.score)}. This 10-second spike covers steps 1–4;
-        the rail shows the remaining stations. No raw student answers appear.{" "}
-        <Link className="cp-compare-link" to="/">
+        {risk.students[1].id} · {score3(risk.pair.score)} · {risk.atRisk.length} at risk.{" "}
+        {data.audit.swapPasses} swap passes · {data.audit.swapsAccepted} accepted ·{" "}
+        {data.audit.newPoorFromSwaps} new Poor. {data.boundary.students} notes. No raw student
+        answers appear.{" "}
+        <Link className="cp-compare-link" to="/?classic=1">
           Compare the classic film
         </Link>
       </figcaption>

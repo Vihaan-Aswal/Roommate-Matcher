@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { ArrowRight, Play } from "lucide-react";
 
 import { SampleRunFilm } from "../components/home/SampleRunFilm";
@@ -17,7 +17,8 @@ import "../components/home/home.css";
 export function HomePage(): JSX.Element {
   const [playKey, setPlayKey] = useState(0);
   const { progressRef, railRef } = useScrollThread();
-  const pipelinePreview = new URLSearchParams(window.location.search).get("pipeline") === "1";
+  const location = useLocation();
+  const classicPreview = new URLSearchParams(location.search).get("classic") === "1";
 
   useEffect(() => {
     const previous = document.title;
@@ -101,10 +102,10 @@ export function HomePage(): JSX.Element {
               </p>
             </div>
 
-            {pipelinePreview ? (
-              <CohortPipeline run={run} playKey={playKey} />
-            ) : (
+            {classicPreview ? (
               <SampleRunFilm run={run} playKey={playKey} onReplay={replay} />
+            ) : (
+              <CohortPipeline run={run} playKey={playKey} />
             )}
           </div>
         </section>

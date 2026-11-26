@@ -1,42 +1,51 @@
-# Cohort pipeline — 10-second spike evidence
+# Cohort pipeline — full explainer evidence
 
-Phase 1 of the whole-cohort explainer. Open it at **`/?pipeline=1`**; the classic film stays at `/`.
+The full one-camera, eight-station explainer. It is the default on this branch at **`/`**;
+the classic film is kept at **`/?classic=1`**. Production `main` is untouched.
 
 - Concept and beat sheet: [CONCEPT.md](./CONCEPT.md)
-- Ten-second take: [cohort-pipeline-10s.webm](./cohort-pipeline-10s.webm) (VP9, 864×810, 25 fps, 10.0 s)
+- **Full 50-second take:** [cohort-pipeline-50s.webm](./cohort-pipeline-50s.webm)
+  (VP9, 864×810, 25 fps, 50.0 s)
+- Approved 10-second spike: [cohort-pipeline-10s.webm](./cohort-pipeline-10s.webm)
 
-## Frames
+## Station holds
 
-The 1440 set covers the full required sampling. The 375 and 912×672 frames are the
-readability checks for the score ledger and boundary folders.
+| Time | Station | What is fully framed | 1440 | 375 |
+|---|---|---|---|---|
+| 2.5 s | 01 Inputs | 96 students, 38 rooms, private 12-question form | [frame](./shots/1440-inputs.png) | [frame](./shots/375-inputs.png) |
+| 7.5 s | 02 Form | 96 responses, sealed envelope, normalised preferences | [frame](./shots/1440-form.png) | [frame](./shots/375-form.png) |
+| 13.0 s | 03 Boundaries | four stamps, four segments, 4,560 → 3,456 → 1,104, R-12 open | [frame](./shots/1440-boundaries.png) | [frame](./shots/375-boundaries.png) |
+| 19.0 s | 04 Score | 0.416, ten factor rows, raw scores, weights, three zeros, one blank | [frame](./shots/1440-score.png) | [frame](./shots/375-score.png) |
+| 26.5 s | 05 Match | chosen pair lines, 38 rooms, 24/8/6 by strategy | [frame](./shots/1440-match.png) | [frame](./shots/375-match.png) |
+| 34.0 s | 06 Fairness | 0.827 mean, R-12 0.416, 2 at risk, 3/3/0 swap, floor statement | [frame](./shots/1440-fairness.png) | [frame](./shots/375-fairness.png) |
+| 40.5 s | 07 Documents | assignments, 96 notes, fairness, audit, sealed raw answers | [frame](./shots/1440-documents.png) | [frame](./shots/375-documents.png) |
+| 47.5 s | 08 Sign-off | signed slip, wax seal, held keys | [frame](./shots/1440-signoff.png) | [frame](./shots/375-signoff.png) |
 
-| Time | Beat | 1440 | 375 |
-|---|---|---|---|
-| 0.5 s | Inputs entering | [frame](./shots/1440-frame-0.5.png) | [frame](./shots/375-frame-0.5.png) |
-| 2.0 s | Inputs settled: 96 students, 38 rooms, 12-question form | [frame](./shots/1440-frame-2.0.png) | [frame](./shots/375-frame-2.0.png) |
-| 3.5 s | 96 response cards arriving | [frame](./shots/1440-frame-3.5.png) | [frame](./shots/375-frame-3.5.png) |
-| 5.0 s | Raw answers sealed; normalised preferences out | [frame](./shots/1440-frame-5.0.png) | [frame](./shots/375-frame-5.0.png) |
-| 7.0 s | Four folders settled with room counts; 4,560 → 3,456 → 1,104; R-12 open | [frame](./shots/1440-frame-7.0.png) | [frame](./shots/375-frame-7.0.png) |
-| 8.5 s | Score ledger: 0.416, raw scores, weights and bars | [frame](./shots/1440-frame-8.5.png) | [frame](./shots/375-frame-8.5.png) |
-| 9.5 s | Same ledger, 1.0 s into the 1.5 s score hold | [frame](./shots/1440-frame-9.5.png) | [frame](./shots/375-frame-9.5.png) |
-
-Extra readability checks: [912×672 boundaries](./shots/912x672-frame-7.0.png) ·
-[912×672 score](./shots/912x672-frame-8.5.png) ·
-[1280 score](./shots/1280-frame-9.5.png).
+Extra readability checks: [912×672 score](./shots/912x672-score.png) ·
+[912×672 fairness](./shots/912x672-fairness.png) ·
+[912×672 sign-off](./shots/912x672-signoff.png) ·
+[1280 sign-off](./shots/1280-signoff.png).
 
 ## Score station
 
-The ledger now shows the raw factor score per row alongside the effective weight and a bar that
-encodes the raw score. Cleanliness 0.00, Room use 0.00 and Night activity 0.00 are tinted and marked
-in wax; Sleep schedule is the blank row. The ledger is fully framed from 8.5 s to 10.0 s (1.5 s).
+The ledger shows the raw factor score beside the effective weight; the bar encodes the raw score.
+Cleanliness 0.00, Room use 0.00 and Night activity 0.00 are tinted and marked in wax; Sleep schedule
+is the blank row. The score is fully framed from 16.64 s to 22.96 s (6.3 s), with 0.416 large enough
+to read at 375.
+
+## Matching and fairness
+
+- The match graph draws the twelve chosen pairs of the 2-bed segment as vertical lines; R-12 is
+  marked. The 24/8/6 strategy counts sum to 38 rooms proposed.
+- Fairness is the only station with the red thread. It runs from the R-12 bar to the two at-risk
+  student cards. The chart is sorted by room score, with mean 0.827 and floor 0.55 marked.
 
 ## Capture notes
 
-- The WebM is assembled from exact playhead samples at 25 fps so every sampled frame is
-  deterministic. The transport therefore reads *Play* in the recording; the live page
-  autoplays on mount and the E2E suite verifies that.
-- The bundled Playwright ffmpeg build has no GIF muxer, so the capture ships WebM plus
-  the frame set rather than a GIF. No new dependency was added to encode one.
-- Regenerate with `npm run dev` followed by
-  `node scripts/capture-cohort-pipeline.mjs` from `frontend/`. The script also accepts
-  `PIPELINE_BASE_URL`.
+- The WebM is assembled from exact playhead samples at 25 fps, so every sampled frame is
+  deterministic. The transport therefore reads *Play* in the recording; the live page autoplays and
+  the E2E suite verifies that.
+- The bundled Playwright ffmpeg build has no GIF muxer, so the capture ships WebM plus the frame set
+  rather than a GIF. No new dependency was added to encode one.
+- Regenerate with `npm run dev` followed by `node scripts/capture-cohort-pipeline.mjs` from
+  `frontend/`. The script also accepts `PIPELINE_BASE_URL`.

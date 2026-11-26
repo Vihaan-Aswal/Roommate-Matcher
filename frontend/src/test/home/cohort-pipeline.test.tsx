@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -86,7 +86,7 @@ afterEach(() => {
 });
 
 describe("CohortPipeline", () => {
-  it("starts on mount and advances through the four beats", () => {
+  it("starts on mount and advances through all eight stations", () => {
     renderPipeline();
 
     expect(screen.getByText("A roster, a room list, a private form.")).toBeInTheDocument();
@@ -96,7 +96,7 @@ describe("CohortPipeline", () => {
       "1",
     );
 
-    frames.advance(3000);
+    frames.advance(5200);
     expect(
       screen.getByText("Students answer once. Raw answers stay sealed."),
     ).toBeInTheDocument();
@@ -104,39 +104,79 @@ describe("CohortPipeline", () => {
       "data-step",
       "2",
     );
-    expect(timecode()).toMatch(/00:03\.\d/);
+    expect(timecode()).toMatch(/00:05\.\d/);
 
-    frames.advance(3000);
+    frames.advance(5200);
     expect(
       screen.getByText("Four boundaries decide who can be compared."),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText("4,560 possible pairs → 3,456 never compared → 1,104 scored."),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "Cohort pipeline animation" })).toHaveAttribute(
+      "data-step",
+      "3",
+    );
 
-    frames.advance(3500);
-    expect(
-      screen.getByText("Every eligible pair is scored on ten weighted factors."),
-    ).toBeInTheDocument();
+    const slider = screen.getByRole("slider", { name: "Pipeline position" });
+    const stage = screen.getByRole("group", { name: "Cohort pipeline animation" });
+
+    fireEvent.change(slider, { target: { value: "13" } });
+    const boundaries = document.querySelector('[data-station="boundaries"]') as HTMLElement;
+    expect(within(boundaries).getByText("4,560")).toBeInTheDocument();
+    expect(within(boundaries).getByText("3,456")).toBeInTheDocument();
+    expect(within(boundaries).getByText("1,104")).toBeInTheDocument();
+    expect(within(boundaries).getByText("Open · R-12 · 12 rooms")).toBeInTheDocument();
+
+    fireEvent.change(slider, { target: { value: "19" } });
+    const score = document.querySelector('[data-station="score"]') as HTMLElement;
     expect(
       screen.getByText(
         "Three zeros and one blank answer. The remaining weights renormalise.",
       ),
     ).toBeInTheDocument();
-    expect(screen.getByText("0.416")).toBeInTheDocument();
+    expect(within(score).getByText("0.416")).toBeInTheDocument();
     expect(
-      screen.getByText("Bar = raw factor score · weights are effective."),
+      within(score).getByText("Bar = raw factor score · weights are effective."),
     ).toBeInTheDocument();
-    expect(document.querySelectorAll(".cp-factor.is-zero")).toHaveLength(3);
-    expect(document.querySelectorAll(".cp-factor.is-missing")).toHaveLength(1);
-    expect(document.querySelectorAll(".cp-factor-score b")).toHaveLength(10);
-    expect(screen.getByText("0.25")).toBeInTheDocument();
-    expect(screen.getByRole("group", { name: "Cohort pipeline animation" })).toHaveAttribute(
-      "data-step",
-      "4",
-    );
+    expect(score.querySelectorAll(".cp-factor.is-zero")).toHaveLength(3);
+    expect(score.querySelectorAll(".cp-factor.is-missing")).toHaveLength(1);
+    expect(score.querySelectorAll(".cp-factor-score b")).toHaveLength(10);
+    expect(within(score).getByText("0.25")).toBeInTheDocument();
+    expect(stage).toHaveAttribute("data-step", "4");
 
-    frames.advance(1000);
+    fireEvent.change(slider, { target: { value: "26.5" } });
+    const match = document.querySelector('[data-station="match"]') as HTMLElement;
+    expect(within(match).getByText("38")).toBeInTheDocument();
+    expect(within(match).getByText("2-bed")).toBeInTheDocument();
+    expect(within(match).getByText("3-bed")).toBeInTheDocument();
+    expect(within(match).getByText("4-bed")).toBeInTheDocument();
+    expect(within(match).getByText("R-12")).toBeInTheDocument();
+    expect(stage).toHaveAttribute("data-step", "5");
+
+    fireEvent.change(slider, { target: { value: "34" } });
+    const fairness = document.querySelector('[data-station="fairness"]') as HTMLElement;
+    expect(within(fairness).getByText("2 at risk · review required")).toBeInTheDocument();
+    expect(within(fairness).getAllByText("0.416").length).toBeGreaterThan(1);
+    expect(within(fairness).getAllByText("mean 0.827").length).toBeGreaterThan(0);
+    expect(within(fairness).getAllByText("3").length).toBeGreaterThan(1);
+    expect(within(fairness).getByText("0")).toBeInTheDocument();
+    expect(stage).toHaveAttribute("data-step", "6");
+
+    fireEvent.change(slider, { target: { value: "40.5" } });
+    const documents = document.querySelector('[data-station="documents"]') as HTMLElement;
+    expect(within(documents).getByText("96")).toBeInTheDocument();
+    expect(within(documents).getByText("RM-D1C916")).toBeInTheDocument();
+    expect(within(documents).getByText(/D1C9167C/)).toBeInTheDocument();
+    expect(stage).toHaveAttribute("data-step", "7");
+
+    fireEvent.change(slider, { target: { value: "47.5" } });
+    const signoff = document.querySelector('[data-station="signoff"]') as HTMLElement;
+    expect(within(signoff).getByText("38 rooms · 96 beds")).toBeInTheDocument();
+    expect(within(signoff).getByText("2 · R-12 · review required")).toBeInTheDocument();
+    expect(within(signoff).getByText("Signed by a person")).toBeInTheDocument();
+    expect(within(signoff).getByText("After the signature")).toBeInTheDocument();
+    expect(within(signoff).getByText("0.416")).toBeInTheDocument();
+    expect(stage).toHaveAttribute("data-step", "8");
+
+    fireEvent.change(slider, { target: { value: "50" } });
     expect(screen.getByText("End of take")).toBeInTheDocument();
   });
 
@@ -154,14 +194,15 @@ describe("CohortPipeline", () => {
     frames.advance(500);
     expect(timecode()).not.toBe(pausedAt);
 
-    fireEvent.click(screen.getByRole("button", { name: "Step 3: Boundaries" }));
+    fireEvent.click(screen.getByRole("button", { name: "Step 6: Fairness" }));
     expect(
-      screen.getByText("Four boundaries decide who can be compared."),
+      screen.getByText("The average hides the room. The fairness statement puts it first."),
     ).toBeInTheDocument();
+    expect(timecode()).toBe("00:34.0 / 00:50");
     expect(screen.getByRole("button", { name: "Play pipeline" })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Replay pipeline" }));
-    expect(timecode()).toBe("00:00.0 / 00:10");
+    expect(timecode()).toBe("00:00.0 / 00:50");
     expect(screen.getByRole("button", { name: "Pause pipeline" })).toBeInTheDocument();
   });
 
@@ -169,9 +210,9 @@ describe("CohortPipeline", () => {
     renderPipeline();
     const slider = screen.getByRole("slider", { name: "Pipeline position" });
 
-    fireEvent.change(slider, { target: { value: "7.5" } });
+    fireEvent.change(slider, { target: { value: "26.5" } });
     expect(
-      screen.getByText("Four boundaries decide who can be compared."),
+      screen.getByText("The matcher chooses rooms from all pairs."),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Play pipeline" })).toBeInTheDocument();
 
@@ -182,22 +223,24 @@ describe("CohortPipeline", () => {
     expect(screen.getByRole("button", { name: "Play pipeline" })).toBeInTheDocument();
 
     fireEvent.keyDown(stage, { key: "ArrowRight" });
-    expect(timecode()).toMatch(/00:0[78]\.\d/);
+    expect(timecode()).toMatch(/00:2[67]\.\d/);
   });
 
-  it("disables the stations that are not in this preview", () => {
+  it("makes every station reachable from the rail", () => {
     renderPipeline();
 
-    expect(
-      screen.getByRole("button", { name: /Step 5: Match \(not in this preview\)/ }),
-    ).toBeDisabled();
-    expect(
-      screen.getByRole("button", { name: /Step 8: Sign-off \(not in this preview\)/ }),
-    ).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Step 5: Match" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Step 8: Sign-off" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Step 1: Inputs" })).toHaveAttribute(
       "aria-current",
       "step",
     );
+
+    fireEvent.click(screen.getByRole("button", { name: "Step 8: Sign-off" }));
+    expect(timecode()).toBe("00:47.0 / 00:50");
+    expect(
+      screen.getByText("A person signs before keys are issued."),
+    ).toBeInTheDocument();
   });
 
   it("runs with reduced motion reported, and never shows a static fallback", () => {
@@ -206,7 +249,7 @@ describe("CohortPipeline", () => {
 
     expect(screen.getByRole("button", { name: "Pause pipeline" })).toBeInTheDocument();
     frames.advance(1500);
-    expect(timecode()).not.toBe("00:00.0 / 00:10");
+    expect(timecode()).not.toBe("00:00.0 / 00:50");
     expect(screen.getByRole("slider", { name: "Pipeline position" })).toBeInTheDocument();
   });
 
@@ -217,7 +260,7 @@ describe("CohortPipeline", () => {
     });
     renderPipeline();
     expect(screen.getByRole("button", { name: "Play pipeline" })).toBeInTheDocument();
-    expect(timecode()).toBe("00:00.0 / 00:10");
+    expect(timecode()).toBe("00:00.0 / 00:50");
 
     Object.defineProperty(document, "visibilityState", {
       configurable: true,

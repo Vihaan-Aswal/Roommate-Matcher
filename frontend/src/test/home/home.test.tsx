@@ -32,27 +32,19 @@ describe("public homepage route", () => {
     expect(
       screen.getByRole("button", { name: /^play the sample run$/i }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("group", { name: /sample run film/i })).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /chapter 1: the boundary decides first/i }),
+      screen.getByRole("group", { name: /cohort pipeline animation/i }),
     ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Step 1: Inputs" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: /sign in/i })).not.toBeInTheDocument();
     expect(fetchSpy).not.toHaveBeenCalled();
 
     fetchSpy.mockRestore();
   });
 
-  it("keeps the classic film by default and serves the pipeline spike at ?pipeline=1", () => {
+  it("serves the full pipeline by default and keeps the classic film at ?classic=1", () => {
     window.history.pushState({}, "Homepage", "/");
-    const classic = render(<App />);
-    expect(screen.getByRole("group", { name: /sample run film/i })).toBeInTheDocument();
-    expect(
-      screen.queryByRole("group", { name: /cohort pipeline animation/i }),
-    ).not.toBeInTheDocument();
-    classic.unmount();
-
-    window.history.pushState({}, "Pipeline", "/?pipeline=1");
-    render(<App />);
+    const pipeline = render(<App />);
     expect(
       screen.getByRole("group", { name: /cohort pipeline animation/i }),
     ).toBeInTheDocument();
@@ -60,6 +52,14 @@ describe("public homepage route", () => {
     expect(
       screen.getByText("A roster, a room list, a private form."),
     ).toBeInTheDocument();
+    pipeline.unmount();
+
+    window.history.pushState({}, "Classic", "/?classic=1");
+    render(<App />);
+    expect(screen.getByRole("group", { name: /sample run film/i })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("group", { name: /cohort pipeline animation/i }),
+    ).not.toBeInTheDocument();
   });
 });
 
