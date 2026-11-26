@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { ArrowRight, Play } from "lucide-react";
 
+import { ContinuousFilm } from "../components/home/ContinuousFilm";
 import { SampleRunFilm } from "../components/home/SampleRunFilm";
 import { BoundarySection } from "../components/home/BoundarySection";
 import { CompatibilitySection } from "../components/home/CompatibilitySection";
@@ -15,6 +16,8 @@ import "../components/home/home.css";
 
 export function HomePage(): JSX.Element {
   const [playKey, setPlayKey] = useState(0);
+  const { search } = useLocation();
+  const continuous = new URLSearchParams(search).get("continuous") === "1";
   const { progressRef, railRef } = useScrollThread();
 
   useEffect(() => {
@@ -99,7 +102,11 @@ export function HomePage(): JSX.Element {
               </p>
             </div>
 
-            <SampleRunFilm run={run} playKey={playKey} onReplay={replay} />
+            {continuous ? (
+              <ContinuousFilm run={run} playKey={playKey} />
+            ) : (
+              <SampleRunFilm run={run} playKey={playKey} onReplay={replay} />
+            )}
           </div>
         </section>
 
