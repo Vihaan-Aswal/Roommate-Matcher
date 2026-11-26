@@ -1,5 +1,6 @@
 import { formatScore, formatCount, type Run } from "./simulate";
 import { useInView } from "./motion";
+import { StationMark } from "./StationMark";
 import type { CSSProperties } from "react";
 
 interface ArtifactSectionProps {
@@ -26,10 +27,13 @@ export function ArtifactSection({ run }: ArtifactSectionProps): JSX.Element {
     <section
       ref={ref}
       id="artifacts"
-      className={`mm-section mm-artifacts ${inView ? "is-in" : ""}`}
+      className={`mm-section mm-rail mm-artifacts ${inView ? "is-in" : ""}`}
       aria-labelledby="artifacts-heading"
+      data-home-station="07"
+      data-home-label="Documents"
     >
       <div className="mm-wrap">
+        <StationMark station="07" label="Write the file" note="four working documents" />
         <div className="mm-split-head">
           <h2 id="artifacts-heading">
             A run leaves{" "}
@@ -69,7 +73,7 @@ export function ArtifactSection({ run }: ArtifactSectionProps): JSX.Element {
                     <th scope="col">Room</th>
                     <th scope="col">Beds</th>
                     <th scope="col">Segment</th>
-                    <th scope="col">Score</th>
+                    <th scope="col">Room score</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -89,6 +93,9 @@ export function ArtifactSection({ run }: ArtifactSectionProps): JSX.Element {
                   })}
                 </tbody>
               </table>
+              <p className="mm-file-note">
+                Room means, not pair scores · shown to three decimals.
+              </p>
             </article>
 
             <article className="mm-file" style={{ "--i": 1, "--tilt": "0.3deg" } as CSSProperties}>

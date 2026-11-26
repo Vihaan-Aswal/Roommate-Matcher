@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Suspense, lazy, useEffect, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { ArrowRight, Play } from "lucide-react";
 
-import { SampleRunFilm } from "../components/home/SampleRunFilm";
+import { CohortPipeline } from "../components/home/CohortPipeline";
+import { StationPath } from "../components/home/StationPath";
 import { BoundarySection } from "../components/home/BoundarySection";
 import { CompatibilitySection } from "../components/home/CompatibilitySection";
 import { ArtifactSection } from "../components/home/ArtifactSection";
@@ -13,9 +14,68 @@ import { prefersReducedMotion, useScrollThread } from "../components/home/motion
 import { run } from "../components/home/simulate";
 import "../components/home/home.css";
 
+const SampleRunFilm = lazy(() =>
+  import("../components/home/SampleRunFilm").then((module) => ({
+    default: module.SampleRunFilm,
+  })),
+);
+
+function HeaderStation(): JSX.Element {
+  const [active, setActive] = useState({ station: "01–02", label: "Inputs & Form" });
+
+  useEffect(() => {
+    const sections = Array.from(
+      document.querySelectorAll<HTMLElement>("[data-home-station]"),
+    );
+    if (sections.length === 0) return;
+
+    let frame = 0;
+    let cancelled = false;
+    const read = () => {
+      if (cancelled) return;
+      frame = 0;
+      const marker = window.innerHeight * 0.28;
+      let current = sections[0];
+      for (const section of sections) {
+        if (section.getBoundingClientRect().top <= marker) current = section;
+      }
+      const station = current.dataset.homeStation ?? "";
+      const label = current.dataset.homeLabel ?? "";
+      setActive((previous) =>
+        previous.station === station && previous.label === label
+          ? previous
+          : { station, label },
+      );
+    };
+    const onScroll = () => {
+      if (frame === 0) frame = window.requestAnimationFrame(read);
+    };
+
+    read();
+    document.fonts?.ready.then(read).catch(() => undefined);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, []);
+
+  return (
+    <span className="mm-header-station" aria-hidden="true">
+      <span>{active.station}</span>
+      {active.label}
+    </span>
+  );
+}
+
 export function HomePage(): JSX.Element {
   const [playKey, setPlayKey] = useState(0);
-  const { progressRef, railRef } = useScrollThread();
+  const { progressRef } = useScrollThread();
+  const location = useLocation();
+  const classicPreview = new URLSearchParams(location.search).get("classic") === "1";
 
   useEffect(() => {
     const previous = document.title;
@@ -47,6 +107,7 @@ export function HomePage(): JSX.Element {
           <a className="mm-wordmark" href="#top" aria-label="Roommate Matcher, back to top">
             Roommate Matcher
           </a>
+          <HeaderStation />
           <Link className="mm-header-cta" to="/login">
             Open the desk
             <ArrowRight size={15} strokeWidth={1.8} aria-hidden="true" />
@@ -57,13 +118,13 @@ export function HomePage(): JSX.Element {
         </div>
       </header>
 
-      <div className="mm-thread" aria-hidden="true" ref={railRef}>
-        <span className="mm-thread-line" />
-        <span className="mm-thread-tick" />
-      </div>
-
       <main id="main">
-        <section className="mm-hero" aria-labelledby="hero-heading">
+        <section
+          className="mm-hero"
+          aria-labelledby="hero-heading"
+          data-home-station="01–02"
+          data-home-label="Inputs & Form"
+        >
           <div className="mm-wrap mm-hero-grid">
             <div className="mm-hero-copy">
               <p className="mm-eyebrow">Roommate Matcher · Room allocation desk</p>
@@ -99,19 +160,39 @@ export function HomePage(): JSX.Element {
               </p>
             </div>
 
-            <SampleRunFilm run={run} playKey={playKey} onReplay={replay} />
+            {classicPreview ? (
+              <Suspense
+                fallback={
+                  <div className="mm-classic-loading" id="sample-run">
+                    Loading the classic film…
+                  </div>
+                }
+              >
+                <SampleRunFilm run={run} playKey={playKey} onReplay={replay} />
+              </Suspense>
+            ) : (
+              <CohortPipeline run={run} playKey={playKey} />
+            )}
           </div>
         </section>
 
+        <StationPath run={run} />
+
         <BoundarySection run={run} />
         <CompatibilitySection run={run} />
-        <ArtifactSection run={run} />
         <FairnessSection run={run} />
+        <ArtifactSection run={run} />
         <SignOffSection run={run} />
         <LimitsSection />
 
-        <section className="mm-close" aria-labelledby="close-heading">
+        <section
+          className="mm-close"
+          aria-labelledby="close-heading"
+          data-home-station="—"
+          data-home-label="The desk is ready"
+        >
           <div className="mm-wrap mm-close-inner">
+            <p className="mm-close-kicker">End of file · {run.audit.runId}</p>
             <h2 id="close-heading" className="mm-close-title">
               The desk is ready.
             </h2>

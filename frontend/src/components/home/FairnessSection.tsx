@@ -1,5 +1,6 @@
 import { formatScore, type Run } from "./simulate";
 import { useInView } from "./motion";
+import { StationMark } from "./StationMark";
 import type { CSSProperties } from "react";
 
 interface FairnessSectionProps {
@@ -11,27 +12,28 @@ const CHART_MIN = 0.34;
 
 export function FairnessSection({ run }: FairnessSectionProps): JSX.Element {
   const { ref, inView } = useInView<HTMLElement>();
-  const panels = run.segments.map((segment) => {
+  const rows = run.segments.map((segment) => {
     const students = segment.members
       .map((index) => run.students[index])
       .sort(
         (left, right) =>
           left.satisfaction - right.satisfaction || left.index - right.index,
       );
-    const riskPositions = students
-      .map((student, index) => ({ student, index }))
-      .filter(({ student }) => student.label === "Poor");
-    return { segment, students, riskPositions };
+    const weakest = [...segment.rooms].sort((left, right) => left.score - right.score)[0];
+    return { segment, students, weakest };
   });
 
   return (
     <section
       ref={ref}
       id="fairness"
-      className={`mm-section mm-fairness ${inView ? "is-in" : ""}`}
+      className={`mm-section mm-rail mm-fairness ${inView ? "is-in" : ""}`}
       aria-labelledby="fairness-heading"
+      data-home-station="06"
+      data-home-label="Fairness"
     >
       <div className="mm-wrap">
+        <StationMark station="06" label="Report the floor" note="the weakest room first" />
         <div className="mm-split-head">
           <h2 id="fairness-heading">
             Report the floor,{" "}
@@ -69,87 +71,71 @@ export function FairnessSection({ run }: FairnessSectionProps): JSX.Element {
           </div>
 
           <div
-            className="mm-fair-grid"
-            role="img"
-            aria-label={`Fairness chart: four segments of 24 students each, sorted by satisfaction. ${run.labelCounts.Excellent} excellent, ${run.labelCounts.Good} good, ${run.labelCounts.Okay} okay and ${run.labelCounts.Poor} poor. S-009 and S-021 are below the 0.55 floor.`}
+            className="mm-floor-register"
+            role="table"
+            aria-label="Fairness floor register. Four segments, sorted by satisfaction, with the 0.55 floor marked. S-009 and S-021 are below the floor."
           >
-            {panels.map(({ segment, students, riskPositions }) => {
-              const riskLabel = riskPositions
-                .map(({ student }) => student.id)
-                .join(" · ");
-              const firstRisk = riskPositions[0]?.index ?? 0;
-              const lastRisk = riskPositions[riskPositions.length - 1]?.index ?? 0;
-              const riskCenter =
-                (((firstRisk + lastRisk) / 2 + 0.5) / students.length) * 100;
-              const riskAlign =
-                riskCenter < 20 ? "left" : riskCenter > 80 ? "right" : "center";
-              const riskStyle =
-                riskAlign === "left"
-                  ? { left: "0%", transform: "none" }
-                  : riskAlign === "right"
-                    ? { left: "100%", transform: "translateX(-100%)" }
-                    : { left: `${riskCenter}%`, transform: "translateX(-50%)" };
+            <div className="mm-register-head" role="row">
+              <span role="columnheader">Segment</span>
+              <span role="columnheader">24 students · floor 0.55 marked</span>
+              <span role="columnheader">Mean</span>
+              <span role="columnheader">Weakest room</span>
+              <span role="columnheader">Below floor</span>
+            </div>
 
+            {rows.map(({ segment, students, weakest }) => {
+              const atRisk = segment.atRisk.length;
               return (
-                <div className="mm-fair-panel" key={segment.key}>
-                  <div className="mm-fair-panel-head">
-                    <span>{segment.short}</span>
-                    <span className={segment.atRisk.length > 0 ? "is-risk" : ""}>
-                      {segment.atRisk.length} at risk
-                    </span>
+                <div
+                  className={`mm-register-row ${atRisk > 0 ? "is-risk" : ""}`}
+                  role="row"
+                  key={segment.key}
+                >
+                  <div className="mm-register-seg" role="rowheader">
+                    <b>{segment.short}</b>
+                    <span>{segment.members.length} students</span>
                   </div>
-                  <div className="mm-fair-plot">
-                    <div
-                      className="mm-fair-floor"
-                      style={{
-                        bottom: `${((FLOOR - CHART_MIN) / (1 - CHART_MIN)) * 100}%`,
-                      }}
-                    >
-                      <span>floor 0.55</span>
-                    </div>
-                    <div className="mm-fair-marks">
+
+                  <div className="mm-register-plot" role="cell">
+                    <span className="mm-register-floor" aria-hidden="true" />
+                    <span className="mm-register-marks" aria-hidden="true">
                       {students.map((student) => {
                         const height = Math.max(
-                          0,
+                          0.02,
                           Math.min(
                             1,
                             (student.satisfaction - CHART_MIN) / (1 - CHART_MIN),
                           ),
                         );
                         return (
-                          <span className="mm-fair-cell" key={student.id}>
-                            <span
-                              className="mm-fair-mark"
-                              data-label={student.label}
-                              style={
-                                {
-                                  ["--y" as string]: height,
-                                } as CSSProperties
-                              }
-                            />
-                          </span>
+                          <i
+                            key={student.id}
+                            data-label={student.label}
+                            style={{ ["--y" as string]: height } as CSSProperties}
+                          />
                         );
                       })}
-                    </div>
-                    {riskPositions.length > 0 ? (
-                      <div
-                        className="mm-fair-risk"
-                        style={riskStyle}
-                      >
-                        <span className="mm-fair-risk-rule" aria-hidden="true" />
-                        <span className="mm-fair-risk-label">{riskLabel}</span>
-                      </div>
-                    ) : null}
-                  </div>
-                  <div className="mm-fair-panel-foot">
-                    <span>
-                      floor{" "}
-                      {formatScore(
-                        Math.min(...segment.rooms.map((room) => room.score)),
-                      )}
                     </span>
-                    <span>mean {formatScore(segment.mean)}</span>
+                    <span className="mm-sr">
+                      {segment.short}: {atRisk} below 0.55. Weakest room {weakest.id} at{" "}
+                      {formatScore(weakest.score)}. Mean {formatScore(segment.mean)}.
+                    </span>
                   </div>
+
+                  <p className="mm-register-stat is-mean" role="cell">
+                    <span>mean</span>
+                    <b>{formatScore(segment.mean)}</b>
+                  </p>
+                  <p className="mm-register-stat is-weakest" role="cell">
+                    <span>{weakest.id}</span>
+                    <b className={weakest.score < FLOOR ? "is-risk" : ""}>
+                      {formatScore(weakest.score)}
+                    </b>
+                  </p>
+                  <p className="mm-register-stat is-count" role="cell">
+                    <span>below 0.55</span>
+                    <b className={atRisk > 0 ? "is-risk" : ""}>{atRisk}</b>
+                  </p>
                 </div>
               );
             })}
@@ -162,42 +148,6 @@ export function FairnessSection({ run }: FairnessSectionProps): JSX.Element {
             {run.atRiskStudents[0]?.roomId}. They are the first line of the fairness statement, not
             a footnote.
           </p>
-        </div>
-
-        <div className="mm-floors">
-          <h3>Weakest room, segment by segment</h3>
-          <table className="mm-floor-table">
-            <caption className="mm-sr">
-              Segment means, weakest room scores and at-risk counts for the sample run
-            </caption>
-            <thead>
-              <tr>
-                <th scope="col">Segment</th>
-                <th scope="col">Mean</th>
-                <th scope="col">Weakest room</th>
-                <th scope="col">Room floor</th>
-                <th scope="col">At risk</th>
-              </tr>
-            </thead>
-            <tbody>
-              {run.segments.map((segment) => {
-                const weakest = [...segment.rooms].sort((left, right) => left.score - right.score)[0];
-                return (
-                  <tr key={segment.key}>
-                    <td>{segment.short}</td>
-                    <td>{formatScore(segment.mean)}</td>
-                    <td>{weakest.id}</td>
-                    <td className={weakest.score < FLOOR ? "is-risk" : ""}>
-                      {formatScore(weakest.score)}
-                    </td>
-                    <td className={segment.atRisk.length > 0 ? "is-risk" : ""}>
-                      {segment.atRisk.length}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
         </div>
       </div>
     </section>

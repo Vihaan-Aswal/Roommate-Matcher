@@ -25,6 +25,7 @@ import {
   type SampleCasePair,
 } from "./simulate";
 import { usePrefersReducedMotion } from "./motion";
+import "./film-chrome.css";
 import "./sample-film.css";
 
 const PHASE_DURATION = [2600, 6200, 8400, 8600, 7400, 7400, 3600];

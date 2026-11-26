@@ -1,0 +1,40 @@
+﻿{
+    "viewport":  "912x672",
+    "reducedMotion":  true,
+    "productionBuild":  true,
+    "initialMount":  [
+                         {
+                             "start":  77,
+                             "duration":  128
+                         },
+                         {
+                             "start":  206,
+                             "duration":  461
+                         },
+                         {
+                             "start":  733,
+                             "duration":  124
+                         },
+                         {
+                             "start":  858,
+                             "duration":  83
+                         }
+                     ],
+    "railSeek":  [
+
+                 ],
+    "formToBoundariesToScore":  {
+                                    "start":  {
+                                                  "time":  "00:07.7 / 00:50",
+                                                  "step":  "2"
+                                              },
+                                    "end":  {
+                                                "time":  "00:20.2 / 00:50",
+                                                "step":  "4"
+                                            },
+                                    "longTasks":  [
+
+                                                  ],
+                                    "traceTasksOver50ms":  0
+                                }
+}
