@@ -31,7 +31,7 @@ object is an input or an output, and the camera movement is the hand-off between
 - Station content fades out **before** the camera leaves and fades in **after** it arrives. The stage
   rail is the continuity, not a half-visible previous station. No number is ever cut by the frame.
 - The active station owns the frame. The scoring ledger is composed at full station width: large
-  score, ten readable factor rows, no 273 px compromise.
+  score, ten readable factor rows with a raw score column, no 273 px compromise.
 - The stage rail always shows all eight steps. Steps 5–8 are marked as the rest of the pipeline and
   are disabled in this 10-second spike.
 
@@ -41,20 +41,20 @@ object is an input or an output, and the camera movement is the hand-off between
 |---|---|---|---|
 | 0.0–2.5 | 01 Inputs | Cohort pack rises; intake sheet shows roster 96 and rooms 38; private 12-question form slip. | A roster, a room list, a private form. |
 | 2.5–5.5 | 02 Form | 96 response cards fill the board; raw-answer envelope seals; a normalised-preference slip with ten factor names moves out. | Students answer once. Raw answers stay sealed. |
-| 5.5–9.0 | 03 Boundaries | Four hard stamps land on the pack; four segment folders rise; 4,560 → 3,456 → 1,104; the R-12 folder opens. | Four boundaries decide who can be compared. |
-| 9.0–10.0 | 04 Score hand-off | Camera trucks to the pair ledger; the ledger fades in fully framed; Replay appears. | Every eligible pair is scored on ten weighted factors. |
+| 5.5–8.05 | 03 Boundaries | Four hard stamps land on the pack; four segment folders rise with their room counts; 4,560 → 3,456 → 1,104; the R-12 folder opens. | Four boundaries decide who can be compared. |
+| 8.05–10.0 | 04 Score hand-off | Camera trucks to the pair ledger; 0.416, raw factor scores, weight and bar settle; the ledger holds fully framed for 1.5 s. | Every eligible pair is scored on ten weighted factors. Three zeros and one blank answer. The remaining weights renormalise. |
 
 ## Camera path
 
 Station units: 0 Inputs, 1 Form, 2 Boundaries, 3 Score.
 
-- 0.00–1.85 hold on Inputs.
-- 1.85–2.50 truck to Form.
-- 2.50–4.85 hold on Form.
-- 4.85–5.50 truck to Boundaries.
-- 5.50–8.80 hold on Boundaries.
-- 8.80–9.40 truck to Score.
-- 9.40–10.00 hold on Score, fully framed for review.
+- 0.00–2.15 hold on Inputs.
+- 2.15–2.50 truck to Form.
+- 2.50–5.15 hold on Form.
+- 5.15–5.50 truck to Boundaries.
+- 5.50–8.05 hold on Boundaries.
+- 8.05–8.40 truck to Score.
+- 8.40–10.00 hold on Score; the ledger is fully framed from 8.50, giving 1.5 s of reading time.
 
 All camera motion is an inline `translate3d` written by a `requestAnimationFrame` playhead. Station
 fades are inline opacity. There are no panel swaps, no CSS transitions carrying main motion and no

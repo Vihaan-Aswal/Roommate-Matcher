@@ -16,13 +16,19 @@ readability checks for the score ledger and boundary folders.
 | 2.0 s | Inputs settled: 96 students, 38 rooms, 12-question form | [frame](./shots/1440-frame-2.0.png) | [frame](./shots/375-frame-2.0.png) |
 | 3.5 s | 96 response cards arriving | [frame](./shots/1440-frame-3.5.png) | [frame](./shots/375-frame-3.5.png) |
 | 5.0 s | Raw answers sealed; normalised preferences out | [frame](./shots/1440-frame-5.0.png) | [frame](./shots/375-frame-5.0.png) |
-| 7.0 s | Four boundary stamps; folders rising | [frame](./shots/1440-frame-7.0.png) | [frame](./shots/375-frame-7.0.png) |
-| 8.5 s | 4,560 → 3,456 → 1,104; R-12 folder open | [frame](./shots/1440-frame-8.5.png) | [frame](./shots/375-frame-8.5.png) |
-| 9.5 s | Score ledger fully framed | [frame](./shots/1440-frame-9.5.png) | [frame](./shots/375-frame-9.5.png) |
+| 7.0 s | Four folders settled with room counts; 4,560 → 3,456 → 1,104; R-12 open | [frame](./shots/1440-frame-7.0.png) | [frame](./shots/375-frame-7.0.png) |
+| 8.5 s | Score ledger: 0.416, raw scores, weights and bars | [frame](./shots/1440-frame-8.5.png) | [frame](./shots/375-frame-8.5.png) |
+| 9.5 s | Same ledger, 1.0 s into the 1.5 s score hold | [frame](./shots/1440-frame-9.5.png) | [frame](./shots/375-frame-9.5.png) |
 
-Extra readability checks: [912×672 boundaries](./shots/912x672-frame-8.5.png) ·
-[912×672 score](./shots/912x672-frame-9.5.png) ·
+Extra readability checks: [912×672 boundaries](./shots/912x672-frame-7.0.png) ·
+[912×672 score](./shots/912x672-frame-8.5.png) ·
 [1280 score](./shots/1280-frame-9.5.png).
+
+## Score station
+
+The ledger now shows the raw factor score per row alongside the effective weight and a bar that
+encodes the raw score. Cleanliness 0.00, Room use 0.00 and Night activity 0.00 are tinted and marked
+in wax; Sleep schedule is the blank row. The ledger is fully framed from 8.5 s to 10.0 s (1.5 s).
 
 ## Capture notes
 

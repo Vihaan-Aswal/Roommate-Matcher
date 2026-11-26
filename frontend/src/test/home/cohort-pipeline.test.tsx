@@ -118,7 +118,19 @@ describe("CohortPipeline", () => {
     expect(
       screen.getByText("Every eligible pair is scored on ten weighted factors."),
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Three zeros and one blank answer. The remaining weights renormalise.",
+      ),
+    ).toBeInTheDocument();
     expect(screen.getByText("0.416")).toBeInTheDocument();
+    expect(
+      screen.getByText("Bar = raw factor score · weights are effective."),
+    ).toBeInTheDocument();
+    expect(document.querySelectorAll(".cp-factor.is-zero")).toHaveLength(3);
+    expect(document.querySelectorAll(".cp-factor.is-missing")).toHaveLength(1);
+    expect(document.querySelectorAll(".cp-factor-score b")).toHaveLength(10);
+    expect(screen.getByText("0.25")).toBeInTheDocument();
     expect(screen.getByRole("group", { name: "Cohort pipeline animation" })).toHaveAttribute(
       "data-step",
       "4",

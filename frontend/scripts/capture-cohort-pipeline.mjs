@@ -70,7 +70,7 @@ async function captureFrames(name, width, height, selectedTimes = times) {
 
 await captureFrames("1440", 1440, 900);
 await captureFrames("375", 375, 812);
-await captureFrames("912x672", 912, 672, [8.5, 9.5]);
+await captureFrames("912x672", 912, 672, [7, 8.5, 9.5]);
 await captureFrames("1280", 1280, 800, [9.5]);
 
 function findFfmpeg() {

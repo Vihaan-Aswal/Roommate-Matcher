@@ -441,7 +441,10 @@ export function CohortPipeline({ run, playKey }: CohortPipelineProps): JSX.Eleme
                         >
                           <span className="cp-folder-back" />
                           <span className="cp-folder-front">
-                            <span className="cp-folder-count">{segment.members.length}</span>
+                            <span className="cp-folder-count">
+                              {segment.rooms.length}
+                              <small>rooms</small>
+                            </span>
                           </span>
                           <span className="cp-folder-tab">
                             <span>
@@ -454,7 +457,9 @@ export function CohortPipeline({ run, playKey }: CohortPipelineProps): JSX.Eleme
                           </span>
                           {isRisk ? (
                             <span className="cp-open-slip">
-                              <span className="cp-mono">Open · {risk.room.id}</span>
+                              <span className="cp-mono">
+                                Open · {risk.room.id} · {risk.segment.rooms.length} rooms
+                              </span>
                               <strong>
                                 {risk.students[0].id} × {risk.students[1].id}
                               </strong>
@@ -511,34 +516,45 @@ export function CohortPipeline({ run, playKey }: CohortPipelineProps): JSX.Eleme
                     <span className="cp-score-verdict">Poor · below 0.55</span>
                   </div>
 
+                  <div className="cp-factor-head" aria-hidden="true">
+                    <span>Factor</span>
+                    <span>Wt</span>
+                    <span>Score</span>
+                  </div>
                   <div className="cp-factor-list">
-                    {risk.pair.factors.map((factor) => (
-                      <div
-                        className={`cp-factor ${factor.missing ? "is-missing" : ""}`}
-                        key={factor.key}
-                      >
-                        <span className="cp-factor-name">
-                          {factor.label}
-                          {factor.missing ? <em>blank</em> : null}
-                        </span>
-                        <span className="cp-factor-weight">
-                          {factor.missing ? "—" : `${Math.round(factor.effectiveWeight * 100)}%`}
-                        </span>
-                        <span className="cp-factor-track">
-                          <span
-                            className="cp-factor-fill"
-                            style={vars({
-                              "--w": factor.missing ? 0 : factor.effectiveWeight,
-                            })}
-                          />
-                        </span>
-                      </div>
-                    ))}
+                    {risk.pair.factors.map((factor) => {
+                      const missing = factor.missing;
+                      const zero = !missing && factor.raw === 0;
+                      return (
+                        <div
+                          className={`cp-factor ${missing ? "is-missing" : ""} ${
+                            zero ? "is-zero" : ""
+                          }`}
+                          key={factor.key}
+                        >
+                          <span className="cp-factor-name">
+                            {factor.label}
+                            {missing ? <em>blank</em> : null}
+                          </span>
+                          <span className="cp-factor-weight">
+                            {missing ? "—" : `${Math.round(factor.effectiveWeight * 100)}%`}
+                          </span>
+                          <span className="cp-factor-score">
+                            <b>{missing ? "—" : factor.raw.toFixed(2)}</b>
+                            <span className="cp-factor-track">
+                              <span
+                                className="cp-factor-fill"
+                                style={vars({ "--w": missing ? 0 : factor.raw })}
+                              />
+                            </span>
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
 
-                  <p className="cp-score-note">
-                    Missing answers are excluded; the remaining weights renormalise. No raw answer
-                    appears.
+                  <p className="cp-score-evidence">
+                    Bar = raw factor score · weights are effective.
                   </p>
                 </article>
               </div>

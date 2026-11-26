@@ -47,10 +47,10 @@ export const PIPELINE_STEPS: PipelineStep[] = [
   {
     id: "score",
     label: "Score",
-    at: 9,
-    seekAt: 9.6,
+    at: 8.4,
+    seekAt: 9,
     caption: "Every eligible pair is scored on ten weighted factors.",
-    detail: "Missing answers are excluded; the remaining weights renormalise.",
+    detail: "Three zeros and one blank answer. The remaining weights renormalise.",
   },
   {
     id: "match",
@@ -116,15 +116,15 @@ export function cameraAt(time: number): number {
   const t = Math.min(PIPELINE_DURATION, Math.max(0, time));
   if (t < 2.5) return holdThenMove(t, 2.15, 2.5, 0, 1);
   if (t < 5.5) return holdThenMove(t, 5.15, 5.5, 1, 2);
-  return holdThenMove(t, 9.0, 9.4, 2, 3);
+  return holdThenMove(t, 8.05, 8.4, 2, 3);
 }
 
-/** The step the caption and rail call current. Score is current from 9.0. */
+/** The step the caption and rail call current. Score is current from 8.4. */
 export function stepIndexAt(time: number): number {
   const t = Math.min(PIPELINE_DURATION, Math.max(0, time));
   if (t < 2.5) return 0;
   if (t < 5.5) return 1;
-  if (t < 9) return 2;
+  if (t < 8.4) return 2;
   return 3;
 }
 
@@ -141,10 +141,10 @@ export function stationOpacityAt(time: number, index: number): number {
     return 1 - clamp01((t - 5) / 0.14);
   }
   if (index === 2) {
-    if (t < 8.8) return clamp01((t - 5.5) / 0.14);
-    return 1 - clamp01((t - 8.8) / 0.14);
+    if (t < 7.9) return clamp01((t - 5.5) / 0.14);
+    return 1 - clamp01((t - 7.9) / 0.14);
   }
-  return clamp01((t - 9.4) / 0.08);
+  return clamp01((t - 8.4) / 0.1);
 }
 
 /** 0..1 entrance for the intake papers. */
@@ -162,7 +162,7 @@ export function travelAt(time: number): number {
   const windows: Array<[number, number]> = [
     [2.15, 2.5],
     [5.15, 5.5],
-    [9, 9.4],
+    [8.05, 8.4],
   ];
   for (const [start, end] of windows) {
     if (time >= start && time <= end) {
@@ -189,22 +189,22 @@ export function normalisedAt(time: number): number {
 
 /** 0..1 press for boundary stamp i. */
 export function stampAt(time: number, index: number): number {
-  return easeInOutCubic((time - (5.66 + index * 0.28)) / 0.22);
+  return easeInOutCubic((time - (5.55 + index * 0.24)) / 0.18);
 }
 
 /** 0..1 rise of the four segment folders. */
 export function foldersAt(time: number): number {
-  return easeInOutCubic((time - 6.48) / 0.42);
+  return easeInOutCubic((time - 6.15) / 0.35);
 }
 
 /** 0..1 pair ledger reveal, fully settled before the 7-second frame. */
 export function ledgerAt(time: number): number {
-  return easeInOutCubic((time - 6.66) / 0.3);
+  return easeInOutCubic((time - 6.35) / 0.35);
 }
 
-/** 0..1 opening of the R-12 folder. */
+/** 0..1 opening of the R-12 folder, fully open at the 7-second frame. */
 export function openAt(time: number): number {
-  return easeInOutCubic((time - 7.4) / 0.45);
+  return easeInOutCubic((time - 6.6) / 0.4);
 }
 
 export function formatFilmTime(time: number): string {

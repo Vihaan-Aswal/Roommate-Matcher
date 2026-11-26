@@ -113,25 +113,33 @@ for (const viewport of VIEWPORTS) {
       ).toBeVisible();
 
       await setPipelineTime(page, 7);
-      await expect(stage.getByText("M · 1st · AC", { exact: true })).toBeVisible();
-      await expect(stage.getByText("F · 2nd–4th · Non-AC", { exact: true })).toBeVisible();
-
-      await setPipelineTime(page, 8.5);
       await expect(
         page.getByText("Four boundaries decide who can be compared."),
       ).toBeVisible();
+      await expect(stage.getByText("M · 1st · AC", { exact: true })).toBeVisible();
+      await expect(stage.getByText("F · 2nd–4th · Non-AC", { exact: true })).toBeVisible();
       for (const number of ["4,560", "3,456", "1,104"]) {
         await expectFullyInside(stage.getByText(number, { exact: true }), stage, number);
       }
-      await expect(stage.getByText("Open · R-12", { exact: true })).toBeVisible();
+      await expect(stage.getByText(/Open · R-12 · 12 rooms/)).toBeVisible();
       await expect(
         stage.locator(".cp-open-slip").getByText("S-009 × S-021", { exact: true }),
       ).toBeVisible();
 
-      await setPipelineTime(page, 9.5);
+      await setPipelineTime(page, 8.5);
       await expect(
         page.getByText("Every eligible pair is scored on ten weighted factors."),
       ).toBeVisible();
+      await expect(
+        page.getByText(
+          "Three zeros and one blank answer. The remaining weights renormalise.",
+          { exact: true },
+        ),
+      ).toBeVisible();
+      await expect(
+        stage.getByText("Bar = raw factor score · weights are effective.", { exact: true }),
+      ).toBeVisible();
+
       const score = stage.getByText("0.416", { exact: true });
       await expectFullyInside(score, stage, "pair score");
       const scoreSize = await score.evaluate(
@@ -139,17 +147,49 @@ for (const viewport of VIEWPORTS) {
       );
       expect(scoreSize, "pair score is large enough to read").toBeGreaterThanOrEqual(44);
 
+      const sheet = stage.locator(".cp-score-sheet");
       const factorNames = stage.locator(".cp-factor-name");
+      const factorScores = stage.locator(".cp-factor-score b");
       await expect(factorNames).toHaveCount(10);
-      const factorCount = await factorNames.count();
-      for (let index = 0; index < factorCount; index += 1) {
+      await expect(factorScores).toHaveCount(10);
+      await expect(stage.locator(".cp-factor.is-zero")).toHaveCount(3);
+      await expect(stage.locator(".cp-factor.is-missing")).toHaveCount(1);
+      await expect(stage.locator(".cp-factor.is-missing")).toContainText("Sleep schedule");
+      for (let index = 0; index < 3; index += 1) {
+        await expect(
+          stage.locator(".cp-factor.is-zero .cp-factor-score b").nth(index),
+        ).toHaveText("0.00");
+      }
+      await expect(stage.locator(".cp-factor-score b").filter({ hasText: "0.25" })).toHaveCount(1);
+
+      const factorWeights = stage.locator(".cp-factor-weight");
+      for (let index = 0; index < 10; index += 1) {
         const factor = factorNames.nth(index);
-        await expectFullyInside(factor, stage.locator(".cp-score-sheet"), `factor ${index}`);
-        const size = await factor.evaluate(
+        const value = factorScores.nth(index);
+        const weight = factorWeights.nth(index);
+        await expectFullyInside(factor, sheet, `factor name ${index}`);
+        await expectFullyInside(value, sheet, `factor score ${index}`);
+        await expectFullyInside(weight, sheet, `factor weight ${index}`);
+        const nameSize = await factor.evaluate(
           (node) => Number.parseFloat(getComputedStyle(node).fontSize),
         );
-        expect(size, `factor ${index} is not tiny`).toBeGreaterThanOrEqual(10);
+        const valueSize = await value.evaluate(
+          (node) => Number.parseFloat(getComputedStyle(node).fontSize),
+        );
+        const weightSize = await weight.evaluate(
+          (node) => Number.parseFloat(getComputedStyle(node).fontSize),
+        );
+        expect(nameSize, `factor name ${index} is not tiny`).toBeGreaterThanOrEqual(11);
+        expect(valueSize, `factor value ${index} is not tiny`).toBeGreaterThanOrEqual(11);
+        expect(weightSize, `factor weight ${index} is not tiny`).toBeGreaterThanOrEqual(9);
       }
+
+      await setPipelineTime(page, 9.5);
+      await expect(
+        page.getByText("Every eligible pair is scored on ten weighted factors."),
+      ).toBeVisible();
+      await expect(score).toBeVisible();
+      await expect(stage.locator(".cp-factor.is-zero")).toHaveCount(3);
 
       await setPipelineTime(page, 10);
       await expect(page.getByText("End of take")).toBeVisible();
