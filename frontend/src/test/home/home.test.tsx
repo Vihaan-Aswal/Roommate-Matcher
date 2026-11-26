@@ -41,5 +41,25 @@ describe("public homepage route", () => {
 
     fetchSpy.mockRestore();
   });
+
+  it("keeps the classic film by default and serves the pipeline spike at ?pipeline=1", () => {
+    window.history.pushState({}, "Homepage", "/");
+    const classic = render(<App />);
+    expect(screen.getByRole("group", { name: /sample run film/i })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("group", { name: /cohort pipeline animation/i }),
+    ).not.toBeInTheDocument();
+    classic.unmount();
+
+    window.history.pushState({}, "Pipeline", "/?pipeline=1");
+    render(<App />);
+    expect(
+      screen.getByRole("group", { name: /cohort pipeline animation/i }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("group", { name: /sample run film/i })).not.toBeInTheDocument();
+    expect(
+      screen.getByText("A roster, a room list, a private form."),
+    ).toBeInTheDocument();
+  });
 });
 

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight, Play } from "lucide-react";
 
 import { SampleRunFilm } from "../components/home/SampleRunFilm";
+import { CohortPipeline } from "../components/home/CohortPipeline";
 import { BoundarySection } from "../components/home/BoundarySection";
 import { CompatibilitySection } from "../components/home/CompatibilitySection";
 import { ArtifactSection } from "../components/home/ArtifactSection";
@@ -16,6 +17,7 @@ import "../components/home/home.css";
 export function HomePage(): JSX.Element {
   const [playKey, setPlayKey] = useState(0);
   const { progressRef, railRef } = useScrollThread();
+  const pipelinePreview = new URLSearchParams(window.location.search).get("pipeline") === "1";
 
   useEffect(() => {
     const previous = document.title;
@@ -99,7 +101,11 @@ export function HomePage(): JSX.Element {
               </p>
             </div>
 
-            <SampleRunFilm run={run} playKey={playKey} onReplay={replay} />
+            {pipelinePreview ? (
+              <CohortPipeline run={run} playKey={playKey} />
+            ) : (
+              <SampleRunFilm run={run} playKey={playKey} onReplay={replay} />
+            )}
           </div>
         </section>
 
