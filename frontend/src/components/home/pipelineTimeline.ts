@@ -276,11 +276,6 @@ export function signSlipAt(time: number): number {
   return easeInOutCubic((time - 44.1) / 0.5);
 }
 
-/** 0..1 signature stroke. */
-export function signatureAt(time: number): number {
-  return easeInOutCubic((time - 44.8) / 0.8);
-}
-
 /** 0..1 wax seal press. */
 export function waxAt(time: number): number {
   return easeInOutCubic((time - 45.8) / 0.4);

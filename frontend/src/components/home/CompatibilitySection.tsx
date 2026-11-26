@@ -165,7 +165,7 @@ export function CompatibilitySection({ run }: CompatibilitySectionProps): JSX.El
                     style={{ ["--fi" as string]: factorIndex } as CSSProperties}
                     aria-label={`${factor.label}: weight ${Math.round(
                       factor.weight * 100,
-                    )} percent, pair fit ${factor.raw.toFixed(2)}, contributes ${factor.contribution.toFixed(
+                    )} percent, raw ${factor.raw.toFixed(2)}, points ${factor.contribution.toFixed(
                       3,
                     )}`}
                   >
@@ -189,13 +189,24 @@ export function CompatibilitySection({ run }: CompatibilitySectionProps): JSX.El
                       {factor.contribution.toFixed(3)}
                       <span className="mm-points-unit"> pts</span>
                     </span>
+                    <span className="mm-factor-mobile-values" aria-hidden="true">
+                      <span>
+                        <em>Weight</em> {Math.round(factor.weight * 100)}%
+                      </span>
+                      <span>
+                        <em>Raw</em> {factor.raw.toFixed(2)}
+                      </span>
+                      <span>
+                        <em>Points</em> {factor.contribution.toFixed(3)}
+                      </span>
+                    </span>
                   </div>
                 );
               })}
               <p className="mm-factor-total">
                 Ten contributions total {formatScore(pair.score)}. The bullet marks a heavy factor;
-                Excellent needs all five non-zero. Contributions are shown to three decimals, the
-                pair score to two.
+                Excellent needs all five non-zero. Contributions and the pair score are shown to
+                three decimals.
               </p>
             </div>
           </div>

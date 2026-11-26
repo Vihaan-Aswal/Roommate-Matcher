@@ -372,7 +372,8 @@ for (const viewport of VIEWPORTS) {
           await expect(station.getByText("After the signature", { exact: true })).toBeVisible();
           await expect(station.getByText("held", { exact: true })).toBeVisible();
           await expect(station.locator(".cp-wax-sign")).toBeVisible();
-          await expect(station.locator(".cp-sign-stroke path")).toBeVisible();
+          await expect(station.locator(".cp-sign-rule")).toBeVisible();
+          await expect(station.locator(".cp-sign-stroke")).toHaveCount(0);
           await expectFullyInside(
             station.getByText("0.416", { exact: true }),
             stage,

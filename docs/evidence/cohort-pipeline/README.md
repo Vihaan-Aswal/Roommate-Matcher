@@ -19,7 +19,7 @@ the classic film is kept at **`/?classic=1`**. Production `main` is untouched.
 | 26.5 s | 05 Match | 12-room example segment, chosen lines, 24 + 8 + 6 = 38 rooms | [frame](./shots/1440-match.png) | [frame](./shots/375-match.png) |
 | 34.0 s | 06 Fairness | 0.827 mean, R-12 0.416, 2 at risk, 3/3/0 swap, floor statement | [frame](./shots/1440-fairness.png) | [frame](./shots/375-fairness.png) |
 | 40.5 s | 07 Documents | assignments, 96 notes, fairness, audit, sealed raw answers | [frame](./shots/1440-documents.png) | [frame](./shots/375-documents.png) |
-| 47.5 s | 08 Sign-off | signed slip, wax seal, held keys | [frame](./shots/1440-signoff.png) | [frame](./shots/375-signoff.png) |
+| 47.5 s | 08 Sign-off | unsigned slip, empty signature rule, wax seal, held keys | [frame](./shots/1440-signoff.png) | [frame](./shots/375-signoff.png) |
 
 Extra readability checks: [912×672 score](./shots/912x672-score.png) ·
 [912×672 match](./shots/912x672-match.png) ·

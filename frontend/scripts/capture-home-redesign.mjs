@@ -60,7 +60,7 @@ for (const viewport of WIDTHS) {
 
   // Capture whole sections without the sticky header covering their head.
   await page.addStyleTag({
-    content: ".mm-header{position:static!important}.mm-skip{visibility:hidden!important}",
+    content: ".mm-header{display:none!important}.mm-skip{display:none!important}",
   });
 
   for (const section of SECTIONS) {

@@ -840,7 +840,7 @@ export function buildRun(seed: number = RUN_SEED): Run {
 }
 
 export function formatScore(value: number): string {
-  return value.toFixed(2);
+  return value.toFixed(3);
 }
 
 export function formatCount(value: number): string {

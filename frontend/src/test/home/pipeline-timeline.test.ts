@@ -22,7 +22,6 @@ import {
   roomsAt,
   sealAt,
   signSlipAt,
-  signatureAt,
   stampAt,
   stationOpacityAt,
   stepIndexAt,
@@ -136,8 +135,6 @@ describe("full cohort pipeline timeline", () => {
     expect(documentSealAt(39.9)).toBeCloseTo(1, 6);
     expect(signSlipAt(44.1)).toBe(0);
     expect(signSlipAt(44.6)).toBeCloseTo(1, 6);
-    expect(signatureAt(44.8)).toBe(0);
-    expect(signatureAt(45.6)).toBeCloseTo(1, 6);
     expect(waxAt(45.8)).toBe(0);
     expect(waxAt(46.2)).toBeCloseTo(1, 6);
     expect(keyAt(46.1)).toBe(0);

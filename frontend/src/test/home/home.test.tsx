@@ -55,6 +55,16 @@ describe("public homepage route", () => {
     expect(
       fairness!.compareDocumentPosition(artifacts!) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+    expect(within(fairness as HTMLElement).getAllByText("0.827").length).toBeGreaterThan(0);
+    expect(within(fairness as HTMLElement).getAllByText("0.416").length).toBeGreaterThan(0);
+    const compatibility = document.querySelector("#compatibility") as HTMLElement;
+    expect(within(compatibility).getAllByText("0.733").length).toBeGreaterThan(0);
+    const signoff = document.querySelector("#sign-off") as HTMLElement;
+    expect(within(signoff).getAllByText("0.416").length).toBeGreaterThan(0);
+    const factor = document.querySelector(".mm-factor") as HTMLElement;
+    expect(within(factor).getByText("Weight")).toBeInTheDocument();
+    expect(within(factor).getByText("Raw")).toBeInTheDocument();
+    expect(within(factor).getByText("Points")).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: /sign in/i })).not.toBeInTheDocument();
     expect(fetchSpy).not.toHaveBeenCalled();
 

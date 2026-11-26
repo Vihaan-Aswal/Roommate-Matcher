@@ -35,7 +35,7 @@ and every camera move is a hand-off between steps.
 | 23.5–31.0 | 05 Match | One 12-room example segment with chosen lines; 24 + 8 + 6 = 38 rooms; seed/grow and pair/merge diagrams. | Every pair is considered; each room size gets its own strategy. |
 | 31.0–38.5 | 06 Fairness | Twelve room bars; mean 0.827; R-12 0.416; red thread to two at-risk cards; 3/3/0 swap. | The average hides the room. The fairness statement puts it first. |
 | 38.5–44.0 | 07 Documents | Assignments, reasons, fairness and audit cards; 96 notes; sealed raw answers. | Reasons, never raw answers. |
-| 44.0–50.0 | 08 Sign-off | Signed slip, wax seal, keys held until the signature. Final composed frame. | A person signs before keys are issued. |
+| 44.0-50.0 | 08 Sign-off | Unsigned slip with an empty signature rule, wax seal, keys held until the signature. Final composed frame. | A person signs before keys are issued. |
 
 ## Camera path
 
@@ -72,13 +72,14 @@ Station content fades fully out before the truck and fully in after arrival. No 
 - **Documents:** assignments (38 rooms, 96 beds), reasons (96 notes, one 11px example reason),
   fairness (floor 0.416, 2 at risk), audit (RM-D1C916, digest D1C9167C, 1,104 pairs, 3/3/0); raw
   answers remain sealed.
-- **Sign-off:** proposal 38 rooms · 96 beds; at-risk 2 · R-12; floor 0.416; signature stroke and wax
-  seal; keys labelled “After the signature / not issued by the desk / held”.
+- **Sign-off:** proposal 38 rooms · 96 beds; at-risk 2 · R-12; floor 0.416; the signature rule is
+  empty, with the wax seal and keys labelled "After the signature / not issued by the desk / held".
+  The page stays the product truth: the proposal is complete, the signature is not.
 
 ## Rules
 
 - One stage, one camera; no panel swaps and no Previous/Next pages.
-- Camera, fades, graph lines, bars, thread, signature and wax are written by a
+- Camera, fades, graph lines, bars, thread and wax are written by a
   `requestAnimationFrame` playhead as inline transforms, opacity and custom properties.
 - No CSS transitions carry main motion.
 - The animation runs even when the OS reports reduced motion; no static fallback.

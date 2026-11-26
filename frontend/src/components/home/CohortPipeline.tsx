@@ -40,7 +40,6 @@ import {
   roomsAt,
   sealAt,
   signSlipAt,
-  signatureAt,
   stampAt,
   stationOpacityAt,
   stepIndexAt,
@@ -195,7 +194,6 @@ export function CohortPipeline({ run, playKey }: CohortPipelineProps): JSX.Eleme
 
     if (signoffRef.current) {
       signoffRef.current.style.setProperty("--slip", signSlipAt(time).toFixed(4));
-      signoffRef.current.style.setProperty("--sign", signatureAt(time).toFixed(4));
       signoffRef.current.style.setProperty("--waxed", waxAt(time).toFixed(4));
       signoffRef.current.style.setProperty("--key", keyAt(time).toFixed(4));
     }
@@ -989,18 +987,6 @@ export function CohortPipeline({ run, playKey }: CohortPipelineProps): JSX.Eleme
                       </div>
                     </dl>
                     <div className="cp-signature">
-                      <svg
-                        className="cp-sign-stroke"
-                        viewBox="0 0 200 24"
-                        preserveAspectRatio="none"
-                        aria-hidden="true"
-                        focusable="false"
-                      >
-                        <path
-                          d="M6 18 C 22 4, 32 4, 40 14 C 48 23, 58 20, 66 10 C 72 3, 80 8, 86 16 C 92 23, 104 6, 116 12 C 126 18, 136 20, 154 10 C 168 2, 182 12, 194 16"
-                          pathLength={1}
-                        />
-                      </svg>
                       <span className="cp-sign-rule" />
                       <span className="cp-sign-caption">Signed by a person</span>
                       <span className="cp-wax-sign">RM</span>

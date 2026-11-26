@@ -73,7 +73,7 @@ export function ArtifactSection({ run }: ArtifactSectionProps): JSX.Element {
                     <th scope="col">Room</th>
                     <th scope="col">Beds</th>
                     <th scope="col">Segment</th>
-                    <th scope="col">Score</th>
+                    <th scope="col">Room score</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -93,6 +93,9 @@ export function ArtifactSection({ run }: ArtifactSectionProps): JSX.Element {
                   })}
                 </tbody>
               </table>
+              <p className="mm-file-note">
+                Room means, not pair scores · shown to three decimals.
+              </p>
             </article>
 
             <article className="mm-file" style={{ "--i": 1, "--tilt": "0.3deg" } as CSSProperties}>
