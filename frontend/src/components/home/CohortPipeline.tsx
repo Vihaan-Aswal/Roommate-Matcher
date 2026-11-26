@@ -58,40 +58,38 @@ function score3(value: number): string {
   return value.toFixed(3);
 }
 
-function StrategyGlyph({ beds }: { beds: 2 | 3 | 4 }): JSX.Element {
+function StrategyDiagram({ beds }: { beds: 2 | 3 | 4 }): JSX.Element {
   if (beds === 2) {
     return (
-      <svg viewBox="0 0 44 24" className="cp-strategy-glyph" aria-hidden="true" focusable="false">
-        <line x1="10" y1="12" x2="34" y2="12" />
-        <circle cx="10" cy="12" r="3.2" />
-        <circle cx="34" cy="12" r="3.2" />
+      <svg viewBox="0 0 48 28" className="cp-strategy-glyph" aria-hidden="true" focusable="false">
+        <line x1="10" y1="14" x2="38" y2="14" />
+        <circle cx="10" cy="14" r="3.2" />
+        <circle cx="38" cy="14" r="3.2" />
       </svg>
     );
   }
   if (beds === 3) {
     return (
-      <svg viewBox="0 0 44 24" className="cp-strategy-glyph" aria-hidden="true" focusable="false">
-        <line x1="10" y1="17" x2="22" y2="6" />
-        <line x1="22" y1="6" x2="34" y2="17" />
-        <line x1="10" y1="17" x2="34" y2="17" />
-        <circle className="is-seed" cx="10" cy="17" r="3.2" />
-        <circle cx="22" cy="6" r="3.2" />
-        <circle cx="34" cy="17" r="3.2" />
+      <svg viewBox="0 0 48 28" className="cp-strategy-glyph" aria-hidden="true" focusable="false">
+        <line x1="10" y1="19" x2="24" y2="19" />
+        <line className="is-grow" x1="24" y1="19" x2="38" y2="8" />
+        <line className="is-grow" x1="10" y1="19" x2="38" y2="8" />
+        <circle className="is-seed" cx="10" cy="19" r="3.3" />
+        <circle cx="24" cy="19" r="3" />
+        <circle className="is-grown" cx="38" cy="8" r="3.3" />
       </svg>
     );
   }
   return (
-    <svg viewBox="0 0 44 24" className="cp-strategy-glyph" aria-hidden="true" focusable="false">
-      <line x1="10" y1="7" x2="34" y2="7" />
-      <line x1="10" y1="17" x2="34" y2="17" />
-      <line x1="10" y1="7" x2="10" y2="17" />
-      <line x1="34" y1="7" x2="34" y2="17" />
-      <line x1="10" y1="7" x2="34" y2="17" />
-      <line x1="34" y1="7" x2="10" y2="17" />
-      <circle cx="10" cy="7" r="2.7" />
-      <circle cx="34" cy="7" r="2.7" />
-      <circle cx="10" cy="17" r="2.7" />
-      <circle cx="34" cy="17" r="2.7" />
+    <svg viewBox="0 0 48 28" className="cp-strategy-glyph" aria-hidden="true" focusable="false">
+      <line x1="9" y1="7" x2="9" y2="21" />
+      <line x1="39" y1="7" x2="39" y2="21" />
+      <line className="is-merge" x1="9" y1="14" x2="39" y2="14" />
+      <circle cx="9" cy="7" r="2.8" />
+      <circle cx="9" cy="21" r="2.8" />
+      <circle cx="39" cy="7" r="2.8" />
+      <circle cx="39" cy="21" r="2.8" />
+      <circle className="is-merge-node" cx="24" cy="14" r="2.2" />
     </svg>
   );
 }
@@ -117,8 +115,6 @@ export function CohortPipeline({ run, playKey }: CohortPipelineProps): JSX.Eleme
       ),
     [data],
   );
-  const riskBarIndex = fairnessRooms.findIndex((room) => room.id === data.risk.room.id);
-  const riskBarX = ((riskBarIndex + 0.5) / fairnessRooms.length) * 100;
   const notes = data.notes.slice(0, 3);
   const [playing, setPlaying] = useState(false);
   const [ended, setEnded] = useState(false);
@@ -131,6 +127,9 @@ export function CohortPipeline({ run, playKey }: CohortPipelineProps): JSX.Eleme
   const boundaryRef = useRef<HTMLDivElement>(null);
   const matchRef = useRef<HTMLDivElement>(null);
   const fairnessRef = useRef<HTMLDivElement>(null);
+  const riskFillRef = useRef<HTMLSpanElement>(null);
+  const riskCardsRef = useRef<HTMLDivElement>(null);
+  const threadPathRef = useRef<SVGPathElement>(null);
   const documentsRef = useRef<HTMLDivElement>(null);
   const signoffRef = useRef<HTMLDivElement>(null);
   const batchRef = useRef<HTMLDivElement>(null);
@@ -356,6 +355,70 @@ export function CohortPipeline({ run, playKey }: CohortPipelineProps): JSX.Eleme
     return () => document.removeEventListener("visibilitychange", onVisibility);
   }, [pause, play]);
 
+  useEffect(() => {
+    const layout = fairnessRef.current;
+    const fill = riskFillRef.current;
+    const cards = riskCardsRef.current;
+    const path = threadPathRef.current;
+    if (!layout || !fill || !cards || !path) return;
+
+    const update = () => {
+      const frame = layout.getBoundingClientRect();
+      if (frame.width < 1 || frame.height < 1) return;
+      // offsetHeight ignores the scaleY entrance, so the thread starts at the
+      // bar's final top even before the bars finish growing.
+      const track = fill.parentElement as HTMLElement;
+      const trackRect = track.getBoundingClientRect();
+      const cardRects = Array.from(cards.children).map((child) =>
+        child.getBoundingClientRect(),
+      );
+      if (cardRects.length === 0) return;
+
+      const startX = trackRect.left + trackRect.width / 2 - frame.left;
+      const startY =
+        trackRect.top + (track.offsetHeight - fill.offsetHeight) - frame.top;
+      // The container is untransformed; the cards slide up on entry.
+      const cardTop = cards.getBoundingClientRect().top - frame.top;
+      const bracketY = Math.max(2, cardTop - 4);
+      const centers = cardRects.map(
+        (rect) => rect.left + rect.width / 2 - frame.left,
+      );
+      const first = centers[0];
+      const last = centers[centers.length - 1];
+      const center = (first + last) / 2;
+      const d =
+        `M ${startX.toFixed(2)} ${startY.toFixed(2)} ` +
+        `L ${center.toFixed(2)} ${bracketY.toFixed(2)} ` +
+        `M ${first.toFixed(2)} ${bracketY.toFixed(2)} ` +
+        `L ${last.toFixed(2)} ${bracketY.toFixed(2)} ` +
+        `M ${first.toFixed(2)} ${bracketY.toFixed(2)} ` +
+        `L ${first.toFixed(2)} ${(bracketY + 8).toFixed(2)} ` +
+        `M ${last.toFixed(2)} ${bracketY.toFixed(2)} ` +
+        `L ${last.toFixed(2)} ${(bracketY + 8).toFixed(2)}`;
+      path.setAttribute("d", d);
+      path.setAttribute("data-start-x", startX.toFixed(2));
+      path.setAttribute("data-start-y", startY.toFixed(2));
+      path.setAttribute("data-bracket-y", bracketY.toFixed(2));
+      path.setAttribute("data-first-x", first.toFixed(2));
+      path.setAttribute("data-last-x", last.toFixed(2));
+      path.ownerSVGElement?.setAttribute(
+        "viewBox",
+        `0 0 ${frame.width.toFixed(2)} ${frame.height.toFixed(2)}`,
+      );
+    };
+
+    update();
+    const observer =
+      typeof ResizeObserver === "undefined" ? null : new ResizeObserver(update);
+    observer?.observe(layout);
+    window.addEventListener("resize", update);
+    document.fonts?.ready.then(update).catch(() => undefined);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", update);
+    };
+  }, []);
+
   const onStageKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.target !== event.currentTarget) return;
     if (event.key === " " || event.key === "Spacebar") {
@@ -388,13 +451,6 @@ export function CohortPipeline({ run, playKey }: CohortPipelineProps): JSX.Eleme
     Math.max(2, Math.min(100, ((score - CHART_MIN) / (1 - CHART_MIN)) * 100));
   const meanHeight = chartHeight(risk.segment.mean);
   const floorHeight = chartHeight(0.55);
-  const threadDesktop = `M ${(riskBarX * 0.62).toFixed(1)} 72 C ${(
-    riskBarX * 0.62 +
-    12
-  ).toFixed(1)} 72, 46 22, 66 22`;
-  const threadMobile = `M ${riskBarX.toFixed(1)} 34 C ${riskBarX.toFixed(
-    1,
-  )} 48, 30 58, 50 62`;
 
   return (
     <figure className="mm-film cp-film" id="sample-run">
@@ -681,8 +737,8 @@ export function CohortPipeline({ run, playKey }: CohortPipelineProps): JSX.Eleme
                 <div className="cp-match-layout" ref={matchRef}>
                   <article className="cp-paper cp-pair-graph">
                     <header className="cp-graph-head">
-                      <span className="cp-mono">Pair graph · 2-bed segment</span>
-                      <span>{risk.segment.rooms.length} rooms</span>
+                      <span className="cp-mono">2-bed segment · M · 1st · AC</span>
+                      <span>{risk.segment.rooms.length} rooms · one of two</span>
                     </header>
                     <div className="cp-graph-grid">
                       {risk.segment.rooms.map((room) => (
@@ -700,7 +756,7 @@ export function CohortPipeline({ run, playKey }: CohortPipelineProps): JSX.Eleme
                       ))}
                     </div>
                     <p className="cp-graph-note">
-                      One line = one chosen pair · 2-bed segment · R-12 marked.
+                      One line = one chosen pair · R-12 marked.
                     </p>
                   </article>
 
@@ -713,27 +769,25 @@ export function CohortPipeline({ run, playKey }: CohortPipelineProps): JSX.Eleme
                       {[
                         {
                           beds: 2 as const,
-                          label: "2-bed",
-                          detail: `maximum weight · ${
-                            data.segments.filter((segment) => segment.size === 2).length
-                          } segments`,
+                          label: "2-bed · two segments",
+                          detail: "maximum weight",
                           count: strategyCounts[2],
                         },
                         {
                           beds: 3 as const,
-                          label: "3-bed",
+                          label: "3-bed · one segment",
                           detail: "seed and grow",
                           count: strategyCounts[3],
                         },
                         {
                           beds: 4 as const,
-                          label: "4-bed",
+                          label: "4-bed · one segment",
                           detail: "pair, then merge",
                           count: strategyCounts[4],
                         },
                       ].map((strategy) => (
                         <div className="cp-strategy" key={strategy.beds}>
-                          <StrategyGlyph beds={strategy.beds} />
+                          <StrategyDiagram beds={strategy.beds} />
                           <div>
                             <b>{strategy.label}</b>
                             <span>{strategy.detail}</span>
@@ -745,6 +799,10 @@ export function CohortPipeline({ run, playKey }: CohortPipelineProps): JSX.Eleme
                         </div>
                       ))}
                     </div>
+                    <p className="cp-strategy-sum">
+                      {strategyCounts[2]} + {strategyCounts[3]} + {strategyCounts[4]} ={" "}
+                      {data.boundary.rooms} rooms
+                    </p>
                   </div>
                 </div>
               </div>
@@ -787,7 +845,10 @@ export function CohortPipeline({ run, playKey }: CohortPipelineProps): JSX.Eleme
                             key={room.id}
                             style={vars({ "--h": chartHeight(room.score) })}
                           >
-                            <span className="cp-fair-fill" />
+                            <span
+                              className="cp-fair-fill"
+                              ref={room.id === risk.room.id ? riskFillRef : undefined}
+                            />
                             {room.id === risk.room.id ? (
                               <b>{score3(room.score)}</b>
                             ) : null}
@@ -802,7 +863,7 @@ export function CohortPipeline({ run, playKey }: CohortPipelineProps): JSX.Eleme
                   </article>
 
                   <div className="cp-fair-side">
-                    <div className="cp-risk-cards">
+                    <div className="cp-risk-cards" ref={riskCardsRef}>
                       {risk.atRisk.map((student) => (
                         <div className="cp-risk-card" key={student.id}>
                           <span>{student.id}</span>
@@ -840,8 +901,7 @@ export function CohortPipeline({ run, playKey }: CohortPipelineProps): JSX.Eleme
                     aria-hidden="true"
                     focusable="false"
                   >
-                    <path className="is-desktop" d={threadDesktop} pathLength={1} />
-                    <path className="is-mobile" d={threadMobile} pathLength={1} />
+                    <path ref={threadPathRef} pathLength={1} />
                   </svg>
                 </div>
               </div>
@@ -865,8 +925,9 @@ export function CohortPipeline({ run, playKey }: CohortPipelineProps): JSX.Eleme
                       <span className="cp-mono">Reasons</span>
                       <strong>{data.boundary.students}</strong>
                       <span>notes · one per student</span>
-                      <p>
-                        {notes[0]?.student.id} · {notes[0]?.reasons[0]}
+                      <p className="cp-doc-reason">
+                        <span>{notes[0]?.student.id}</span>
+                        <b>{notes[0]?.reasons[0]}</b>
                       </p>
                     </article>
                     <article className="cp-paper cp-doc-card">

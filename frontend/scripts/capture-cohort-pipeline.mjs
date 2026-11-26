@@ -87,7 +87,13 @@ async function captureFrames(name, width, height, selectedIds = null) {
 
 await captureFrames("1440", 1440, 900);
 await captureFrames("375", 375, 812);
-await captureFrames("912x672", 912, 672, ["score", "fairness", "signoff"]);
+await captureFrames("912x672", 912, 672, [
+  "score",
+  "match",
+  "fairness",
+  "documents",
+  "signoff",
+]);
 await captureFrames("1280", 1280, 800, ["signoff"]);
 
 function findFfmpeg() {

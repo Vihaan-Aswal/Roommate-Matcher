@@ -145,9 +145,10 @@ describe("CohortPipeline", () => {
     fireEvent.change(slider, { target: { value: "26.5" } });
     const match = document.querySelector('[data-station="match"]') as HTMLElement;
     expect(within(match).getByText("38")).toBeInTheDocument();
-    expect(within(match).getByText("2-bed")).toBeInTheDocument();
-    expect(within(match).getByText("3-bed")).toBeInTheDocument();
-    expect(within(match).getByText("4-bed")).toBeInTheDocument();
+    expect(within(match).getByText("2-bed · two segments")).toBeInTheDocument();
+    expect(within(match).getByText("3-bed · one segment")).toBeInTheDocument();
+    expect(within(match).getByText("4-bed · one segment")).toBeInTheDocument();
+    expect(within(match).getByText("24 + 8 + 6 = 38 rooms")).toBeInTheDocument();
     expect(within(match).getByText("R-12")).toBeInTheDocument();
     expect(stage).toHaveAttribute("data-step", "5");
 
@@ -212,7 +213,7 @@ describe("CohortPipeline", () => {
 
     fireEvent.change(slider, { target: { value: "26.5" } });
     expect(
-      screen.getByText("The matcher chooses rooms from all pairs."),
+      screen.getByText("Every pair is considered; each room size gets its own strategy."),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Play pipeline" })).toBeInTheDocument();
 

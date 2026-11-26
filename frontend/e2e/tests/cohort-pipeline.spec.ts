@@ -24,7 +24,11 @@ const STATIONS = [
     time: 19,
     caption: "Every eligible pair is scored on ten weighted factors.",
   },
-  { name: "match", time: 26.5, caption: "The matcher chooses rooms from all pairs." },
+  {
+    name: "match",
+    time: 26.5,
+    caption: "Every pair is considered; each room size gets its own strategy.",
+  },
   {
     name: "fairness",
     time: 34,
@@ -236,9 +240,21 @@ for (const viewport of VIEWPORTS) {
         if (stationInfo.name === "match") {
           const rooms = station.getByText("38", { exact: true });
           await expectFullyInside(rooms, stage, "38 rooms");
-          await expect(station.getByText("2-bed", { exact: true })).toBeVisible();
-          await expect(station.getByText("3-bed", { exact: true })).toBeVisible();
-          await expect(station.getByText("4-bed", { exact: true })).toBeVisible();
+          await expect(
+            station.getByText("2-bed segment · M · 1st · AC", { exact: true }),
+          ).toBeVisible();
+          await expect(
+            station.getByText("12 rooms · one of two", { exact: true }),
+          ).toBeVisible();
+          await expect(
+            station.getByText("2-bed · two segments", { exact: true }),
+          ).toBeVisible();
+          await expect(
+            station.getByText("3-bed · one segment", { exact: true }),
+          ).toBeVisible();
+          await expect(
+            station.getByText("4-bed · one segment", { exact: true }),
+          ).toBeVisible();
           await expect(station.locator(".cp-graph-line")).toHaveCount(12);
           await expect(station.locator(".cp-graph-room.is-risk")).toHaveCount(1);
           const strategyCounts = station.locator(".cp-strategy > strong");
@@ -251,6 +267,9 @@ for (const viewport of VIEWPORTS) {
               `${value} rooms`,
             );
           }
+          await expect(
+            station.getByText("24 + 8 + 6 = 38 rooms", { exact: true }),
+          ).toBeVisible();
         }
 
         if (stationInfo.name === "fairness") {
@@ -259,6 +278,49 @@ for (const viewport of VIEWPORTS) {
           ).toBeVisible();
           await expect(station.locator(".cp-risk-card")).toHaveCount(2);
           await expect(station.locator(".cp-fair-thread")).toBeVisible();
+          const thread = station.locator(".cp-fair-thread path");
+          await expect(thread).toHaveAttribute("d", /M /);
+          const threadMetrics = await station.evaluate((element) => {
+            const layout = element.querySelector(".cp-fair-layout") as HTMLElement;
+            const path = element.querySelector(".cp-fair-thread path") as SVGPathElement;
+            const fill = element.querySelector(
+              ".cp-fair-bar.is-risk .cp-fair-fill",
+            ) as HTMLElement;
+            const cards = Array.from(
+              element.querySelectorAll(".cp-risk-card"),
+            ) as HTMLElement[];
+            const frame = layout.getBoundingClientRect();
+            const bar = fill.getBoundingClientRect();
+            const cardRects = cards.map((card) => card.getBoundingClientRect());
+            return {
+              startX: Number(path.getAttribute("data-start-x")),
+              startY: Number(path.getAttribute("data-start-y")),
+              bracketY: Number(path.getAttribute("data-bracket-y")),
+              firstX: Number(path.getAttribute("data-first-x")),
+              lastX: Number(path.getAttribute("data-last-x")),
+              barX: bar.left + bar.width / 2 - frame.left,
+              barY: bar.top - frame.top,
+              cardTop: Math.min(...cardRects.map((rect) => rect.top)) - frame.top,
+              cardLeft: Math.min(...cardRects.map((rect) => rect.left)) - frame.left,
+              cardRight: Math.max(...cardRects.map((rect) => rect.right)) - frame.left,
+              cardCenters: cardRects.map(
+                (rect) => rect.left + rect.width / 2 - frame.left,
+              ),
+            };
+          });
+          expect(threadMetrics.startX).toBeCloseTo(threadMetrics.barX, 0);
+          expect(threadMetrics.startY).toBeCloseTo(threadMetrics.barY, 0);
+          expect(threadMetrics.bracketY).toBeLessThanOrEqual(
+            threadMetrics.cardTop + 2,
+          );
+          expect(threadMetrics.bracketY).toBeGreaterThan(
+            threadMetrics.cardTop - 12,
+          );
+          expect(threadMetrics.firstX).toBeCloseTo(threadMetrics.cardCenters[0], 0);
+          expect(threadMetrics.lastX).toBeCloseTo(
+            threadMetrics.cardCenters[threadMetrics.cardCenters.length - 1],
+            0,
+          );
           await expectFullyInside(
             station.getByText("0.827", { exact: false }).first(),
             stage,
@@ -286,6 +348,12 @@ for (const viewport of VIEWPORTS) {
           await expect(station.getByText(/D1C9167C/)).toBeVisible();
           await expect(station.getByText("Sealed", { exact: true })).toBeVisible();
           await expect(station.locator(".cp-doc-card")).toHaveCount(4);
+          const reason = station.locator(".cp-doc-reason b");
+          await expect(reason).toHaveText("cleanliness expectations differ");
+          const reasonSize = await reason.evaluate(
+            (node) => Number.parseFloat(getComputedStyle(node).fontSize),
+          );
+          expect(reasonSize, "example reason is readable").toBeGreaterThanOrEqual(11);
           await expectFullyInside(
             station.getByText("96", { exact: true }),
             stage,

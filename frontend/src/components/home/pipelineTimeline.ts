@@ -60,8 +60,8 @@ export const PIPELINE_STEPS: PipelineStep[] = [
     label: "Match",
     at: 23.5,
     seekAt: 26.5,
-    caption: "The matcher chooses rooms from all pairs.",
-    detail: "38 rooms proposed · 2-, 3- and 4-bed strategies.",
+    caption: "Every pair is considered; each room size gets its own strategy.",
+    detail: "2-bed maximum weight · 3-bed seed and grow · 4-bed pair then merge · 38 rooms.",
   },
   {
     id: "fairness",

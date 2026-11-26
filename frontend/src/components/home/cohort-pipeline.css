@@ -1221,7 +1221,7 @@
 
 .cp-strategy {
   display: grid;
-  grid-template-columns: 36px minmax(0, 1fr) auto;
+  grid-template-columns: 46px minmax(0, 1fr) auto;
   gap: 6px;
   align-items: center;
   padding: 5px 7px;
@@ -1232,12 +1232,13 @@
 }
 
 .cp-strategy-glyph {
-  width: 36px;
-  height: 20px;
+  width: 46px;
+  height: 24px;
   fill: none;
   stroke: var(--amber);
   stroke-width: 1.2;
   stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .cp-strategy-glyph circle {
@@ -1248,6 +1249,25 @@
 .cp-strategy-glyph .is-seed {
   fill: var(--wax);
   stroke: var(--wax);
+}
+
+.cp-strategy-glyph .is-grown {
+  fill: var(--amber);
+  stroke: var(--amber);
+}
+
+.cp-strategy-glyph .is-grow {
+  stroke-dasharray: 2 2;
+}
+
+.cp-strategy-glyph .is-merge {
+  stroke-dasharray: 2 2;
+  stroke: var(--amber-deep);
+}
+
+.cp-strategy-glyph .is-merge-node {
+  fill: var(--amber);
+  stroke: var(--amber);
 }
 
 .cp-strategy b {
@@ -1287,6 +1307,17 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-faint);
+}
+
+.cp-strategy-sum {
+  margin: 0;
+  padding-top: 2px;
+  font-family: var(--mono);
+  font-size: 6.5px;
+  letter-spacing: 0.03em;
+  line-height: 1.3;
+  text-align: right;
+  color: var(--amber);
 }
 
 /* Fairness --------------------------------------------------------------- */
@@ -1582,10 +1613,6 @@
   vector-effect: non-scaling-stroke;
 }
 
-.cp-fair-thread .is-mobile {
-  display: none;
-}
-
 /* Documents -------------------------------------------------------------- */
 
 .cp-docs-layout {
@@ -1643,13 +1670,27 @@
   color: var(--paper-mid);
 }
 
-.cp-doc-card p {
-  margin: 3px 0 0;
+.cp-doc-card .cp-doc-reason {
+  margin: 4px 0 0;
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.25;
+  color: var(--paper-ink);
+}
+
+.cp-doc-reason span {
+  display: block;
+  margin-bottom: 1px;
   font-family: var(--mono);
-  font-size: 5.8px;
-  letter-spacing: 0.01em;
-  line-height: 1.35;
+  font-size: 6.5px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
   color: var(--paper-mid);
+}
+
+.cp-doc-reason b {
+  font-weight: 500;
 }
 
 .cp-doc-card:last-child strong {
@@ -2479,14 +2520,14 @@
   }
 
   .cp-strategy {
-    grid-template-columns: 30px minmax(0, 1fr) auto;
+    grid-template-columns: 40px minmax(0, 1fr) auto;
     gap: 5px;
     padding: 4px 5px;
   }
 
   .cp-strategy-glyph {
-    width: 30px;
-    height: 18px;
+    width: 40px;
+    height: 22px;
   }
 
   .cp-strategy > strong {
@@ -2527,14 +2568,6 @@
     padding: 4px 6px;
   }
 
-  .cp-fair-thread .is-desktop {
-    display: none;
-  }
-
-  .cp-fair-thread .is-mobile {
-    display: block;
-  }
-
   .cp-docs-layout {
     grid-template-columns: minmax(0, 1fr);
     gap: 7px;
@@ -2550,10 +2583,6 @@
 
   .cp-doc-card strong {
     font-size: 24px;
-  }
-
-  .cp-doc-card p {
-    font-size: 5.6px;
   }
 
   .cp-docs-sealed {

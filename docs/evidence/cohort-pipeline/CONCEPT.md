@@ -32,7 +32,7 @@ and every camera move is a hand-off between steps.
 | 4.5–10.0 | 02 Form | 96 response cards arrive; raw-answer envelope seals; normalised preferences move out. | Students answer once. Raw answers stay sealed. |
 | 10.0–16.5 | 03 Boundaries | Four stamps; four segment folders with 12/8/12/6 rooms; 4,560 → 3,456 → 1,104; R-12 opens. | Four boundaries decide who can be compared. |
 | 16.5–23.5 | 04 Score | Pair ledger; 0.416; ten raw scores, effective weights and bars; three zeros and one blank. | Every eligible pair is scored on ten weighted factors. Three zeros and one blank answer. The remaining weights renormalise. |
-| 23.5–31.0 | 05 Match | Twelve chosen pair lines; 24/8/6 strategy counts; 38 rooms proposed. | The matcher chooses rooms from all pairs. |
+| 23.5–31.0 | 05 Match | One 12-room example segment with chosen lines; 24 + 8 + 6 = 38 rooms; seed/grow and pair/merge diagrams. | Every pair is considered; each room size gets its own strategy. |
 | 31.0–38.5 | 06 Fairness | Twelve room bars; mean 0.827; R-12 0.416; red thread to two at-risk cards; 3/3/0 swap. | The average hides the room. The fairness statement puts it first. |
 | 38.5–44.0 | 07 Documents | Assignments, reasons, fairness and audit cards; 96 notes; sealed raw answers. | Reasons, never raw answers. |
 | 44.0–50.0 | 08 Sign-off | Signed slip, wax seal, keys held until the signature. Final composed frame. | A person signs before keys are issued. |
@@ -61,13 +61,17 @@ Station content fades fully out before the truck and fully in after arrival. No 
   pairs, 3,456 never compared, 1,104 scored; R-12 opens with “12 rooms”.
 - **Score:** 0.416 for S-009 × S-021. Raw scores sit beside effective weights; bars encode raw
   scores. Three zero rows and one blank are explicit. The ledger holds for 6.3 s.
-- **Match:** chosen pair lines for the 2-bed segment; 2-bed maximum weight (24 rooms across two
-  segments), 3-bed seed and grow (8 rooms), 4-bed pair then merge (6 rooms); 38 rooms proposed.
+- **Match:** the large graph is **one** 2-bed segment, labelled “12 rooms · one of two”, with actual
+  chosen pair lines. The 2-bed card is the two-segment total (24 rooms), 3-bed is 8 rooms, 4-bed is
+  6 rooms; the sum “24 + 8 + 6 = 38 rooms” is written out. The 3-bed and 4-bed cards carry real
+  mini-diagrams (seed + grow triangle; two pair lines with a merge line), not generic glyphs.
 - **Fairness:** room scores sorted; mean 0.827; R-12 0.416; two at risk below 0.55; swap pass 3
   passes, 3 accepted, 0 new Poor; fairness statement reports the floor. The red thread is the only
-  one in the film and marks the review case.
-- **Documents:** assignments (38 rooms, 96 beds), reasons (96 notes), fairness (floor 0.416, 2 at
-  risk), audit (RM-D1C916, digest D1C9167C, 1,104 pairs, 3/3/0); raw answers remain sealed.
+  one in the film; it starts at the R-12 bar and ends in a bracket whose ticks land on both at-risk
+  cards at 1440, 912 and 375. It is measured from the rendered bar and cards, not a fixed curve.
+- **Documents:** assignments (38 rooms, 96 beds), reasons (96 notes, one 11px example reason),
+  fairness (floor 0.416, 2 at risk), audit (RM-D1C916, digest D1C9167C, 1,104 pairs, 3/3/0); raw
+  answers remain sealed.
 - **Sign-off:** proposal 38 rooms · 96 beds; at-risk 2 · R-12; floor 0.416; signature stroke and wax
   seal; keys labelled “After the signature / not issued by the desk / held”.
 
