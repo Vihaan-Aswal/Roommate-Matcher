@@ -136,6 +136,7 @@ export function CohortPipeline({ run, playKey }: CohortPipelineProps): JSX.Eleme
   const sliderRef = useRef<HTMLInputElement>(null);
   const timecodeRef = useRef<HTMLSpanElement>(null);
   const stationRefs = useRef<Array<HTMLElement | null>>([]);
+  const stationBodyRefs = useRef<Array<HTMLElement | null>>([]);
 
   const timeRef = useRef(0);
   const stepRef = useRef(0);
@@ -148,19 +149,27 @@ export function CohortPipeline({ run, playKey }: CohortPipelineProps): JSX.Eleme
     const world = worldRef.current;
     if (!world) return;
 
-    world.style.setProperty("--cam", cameraAt(time).toFixed(4));
-    world.style.setProperty("--travel", travelAt(time).toFixed(4));
+    world.style.transform = `translate3d(${(cameraAt(time) * -12.5).toFixed(4)}%, 0, 0)`;
 
     stationRefs.current.forEach((node, index) => {
-      node?.style.setProperty("--on", stationOpacityAt(time, index).toFixed(4));
+      if (!node) return;
+      const body =
+        stationBodyRefs.current[index] ?? node.querySelector<HTMLElement>(".cp-bay-body");
+      stationBodyRefs.current[index] = body;
+      if (body) body.style.opacity = stationOpacityAt(time, index).toFixed(4);
     });
 
-    inputsRef.current?.style.setProperty("--in", inputsRevealAt(time).toFixed(4));
-    formRef.current?.style.setProperty("--fp", cardArrivalAt(time).toFixed(4));
-    formRef.current?.style.setProperty("--seal", sealAt(time).toFixed(4));
-    formRef.current?.style.setProperty("--norm", normalisedAt(time).toFixed(4));
+    if (stationOpacityAt(time, 0) > 0 && inputsRef.current) {
+      inputsRef.current.style.setProperty("--in", inputsRevealAt(time).toFixed(4));
+    }
 
-    if (boundaryRef.current) {
+    if (stationOpacityAt(time, 1) > 0 && formRef.current) {
+      formRef.current.style.setProperty("--fp", cardArrivalAt(time).toFixed(4));
+      formRef.current.style.setProperty("--seal", sealAt(time).toFixed(4));
+      formRef.current.style.setProperty("--norm", normalisedAt(time).toFixed(4));
+    }
+
+    if (stationOpacityAt(time, 2) > 0 && boundaryRef.current) {
       boundaryRef.current.style.setProperty("--fold", foldersAt(time).toFixed(4));
       boundaryRef.current.style.setProperty("--ledger", ledgerAt(time).toFixed(4));
       boundaryRef.current.style.setProperty("--open", openAt(time).toFixed(4));
@@ -172,13 +181,13 @@ export function CohortPipeline({ run, playKey }: CohortPipelineProps): JSX.Eleme
       }
     }
 
-    if (matchRef.current) {
+    if (stationOpacityAt(time, 4) > 0 && matchRef.current) {
       matchRef.current.style.setProperty("--match", matchAt(time).toFixed(4));
       matchRef.current.style.setProperty("--strategy", strategyAt(time).toFixed(4));
       matchRef.current.style.setProperty("--rooms", roomsAt(time).toFixed(4));
     }
 
-    if (fairnessRef.current) {
+    if (stationOpacityAt(time, 5) > 0 && fairnessRef.current) {
       fairnessRef.current.style.setProperty("--bars", fairnessBarsAt(time).toFixed(4));
       fairnessRef.current.style.setProperty("--mean", fairnessMeanAt(time).toFixed(4));
       fairnessRef.current.style.setProperty("--thread", fairnessThreadAt(time).toFixed(4));
@@ -186,13 +195,13 @@ export function CohortPipeline({ run, playKey }: CohortPipelineProps): JSX.Eleme
       fairnessRef.current.style.setProperty("--swap", fairnessSwapAt(time).toFixed(4));
     }
 
-    if (documentsRef.current) {
+    if (stationOpacityAt(time, 6) > 0 && documentsRef.current) {
       documentsRef.current.style.setProperty("--docs", documentsAt(time).toFixed(4));
       documentsRef.current.style.setProperty("--notes", notesAt(time).toFixed(4));
       documentsRef.current.style.setProperty("--sealed", documentSealAt(time).toFixed(4));
     }
 
-    if (signoffRef.current) {
+    if (stationOpacityAt(time, 7) > 0 && signoffRef.current) {
       signoffRef.current.style.setProperty("--slip", signSlipAt(time).toFixed(4));
       signoffRef.current.style.setProperty("--waxed", waxAt(time).toFixed(4));
       signoffRef.current.style.setProperty("--key", keyAt(time).toFixed(4));

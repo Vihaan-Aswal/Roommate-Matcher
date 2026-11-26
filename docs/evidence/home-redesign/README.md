@@ -41,7 +41,8 @@ Each width has top, path, film, every section, close and footer:
 [912×672](./shots/912x672-top.png) · [375](./shots/375-top.png).
 
 The full set is in [`shots/`](./shots). Station frames for the film are still in
-[`../cohort-pipeline/shots`](../cohort-pipeline/shots).
+[`../cohort-pipeline/shots`](../cohort-pipeline/shots). Film performance evidence is in
+[`../perf/README.md`](../perf/README.md).
 
 ## Verification
 
@@ -51,7 +52,7 @@ The full set is in [`shots/`](./shots). Station frames for the film are still in
   1440/1280/912/375, reduced-motion autoplay, no homepage `/api/` calls, and the classic flag.
 - Typecheck: `npm run typecheck` passed.
 - Build: `npm run build` passed.
-- Bundle: largest JS **563.77 kB raw / 162.24 kB gzip** (was 589.17 / 167.24), 35 chunks.
+- Bundle: largest JS **563.87 kB raw / 162.29 kB gzip** (was 589.17 / 167.24), 35 chunks.
   The classic chunk is 29.03 kB JS + 47.82 kB CSS off the default path.
 - Overflow: 0 px at 1440, 1280, 912×672 and 375.
 
