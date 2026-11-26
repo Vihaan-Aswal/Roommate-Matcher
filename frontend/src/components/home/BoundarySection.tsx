@@ -1,5 +1,6 @@
 import { formatScore, formatCount, type Run } from "./simulate";
 import { useInView } from "./motion";
+import { StationMark } from "./StationMark";
 import type { CSSProperties } from "react";
 
 interface BoundarySectionProps {
@@ -16,10 +17,13 @@ export function BoundarySection({ run }: BoundarySectionProps): JSX.Element {
     <section
       ref={ref}
       id="boundary"
-      className={`mm-section mm-boundaries ${inView ? "is-in" : ""}`}
+      className={`mm-section mm-rail mm-boundaries ${inView ? "is-in" : ""}`}
       aria-labelledby="boundary-heading"
+      data-home-station="03"
+      data-home-label="Boundaries"
     >
       <div className="mm-wrap">
+        <StationMark station="03" label="Boundaries" note="before any score" />
         <div className="mm-split-head">
           <h2 id="boundary-heading">
             The boundary{" "}

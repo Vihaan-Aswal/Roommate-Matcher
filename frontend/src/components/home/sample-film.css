@@ -1,75 +1,5 @@
 /* The sample-run film. A lit desk inside the existing forest/paper world. */
 
-.mm-film {
-  min-width: 0;
-  margin: 0;
-  scroll-margin-top: 86px;
-}
-
-.mm-film-frame {
-  position: relative;
-  overflow: hidden;
-  border: 1px solid rgba(236, 226, 205, 0.2);
-  border-radius: 16px;
-  background: #08130d;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 2px 3px rgba(0, 0, 0, 0.35),
-    0 34px 64px -24px rgba(0, 0, 0, 0.72),
-    0 70px 120px -54px rgba(0, 0, 0, 0.6);
-}
-
-.mm-film-head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  height: 36px;
-  padding: 0 14px;
-  border-bottom: 1px solid rgba(236, 226, 205, 0.12);
-  background: #07110b;
-}
-
-.mm-film-tag {
-  flex: 0 0 auto;
-  padding: 2px 7px;
-  border: 1px solid rgba(224, 170, 85, 0.42);
-  border-radius: 999px;
-  font-family: var(--mono);
-  font-size: 8px;
-  font-weight: 500;
-  letter-spacing: 0.14em;
-  line-height: 1.4;
-  text-transform: uppercase;
-  color: var(--amber);
-  white-space: nowrap;
-}
-
-.mm-film-meta {
-  min-width: 0;
-  overflow: hidden;
-  font-family: var(--mono);
-  font-size: 8.5px;
-  letter-spacing: 0.03em;
-  line-height: 1.4;
-  color: var(--ink-faint);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.mm-film-meta-short {
-  display: none;
-}
-
-.mm-film-run {
-  flex: 0 0 auto;
-  margin-left: auto;
-  font-family: var(--mono);
-  font-size: 8.5px;
-  letter-spacing: 0.04em;
-  color: var(--ink-dim);
-  white-space: nowrap;
-}
-
 .mm-film-viewport {
   position: relative;
   display: grid;
@@ -113,18 +43,6 @@
   border-radius: 50%;
   background: rgba(111, 30, 34, 0.1);
   filter: blur(70px);
-}
-
-.mm-film-grain {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.5;
-  background-image: repeating-linear-gradient(
-    0deg,
-    rgba(236, 226, 205, 0.024) 0 1px,
-    transparent 1px 5px
-  );
 }
 
 .film-scene {
@@ -2284,36 +2202,6 @@
   gap: 5px;
 }
 
-.mm-film-control {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  min-height: 32px;
-  padding: 0 9px;
-  border: 1px solid rgba(236, 226, 205, 0.24);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--ink);
-  font-family: var(--sans);
-  font-size: 10px;
-  font-weight: 600;
-  line-height: 1;
-  cursor: pointer;
-  transition:
-    background-color var(--m-dur-feedback) ease,
-    border-color var(--m-dur-feedback) ease;
-}
-
-.mm-film-control:hover {
-  border-color: rgba(236, 226, 205, 0.46);
-  background: rgba(236, 226, 205, 0.06);
-}
-
-.mm-film-control:disabled {
-  cursor: default;
-  opacity: 0.38;
-}
-
 .mm-film-scene-count {
   padding: 0 3px;
   font-family: var(--mono);
@@ -2380,13 +2268,6 @@
   font-size: 7.5px;
   letter-spacing: 0.02em;
   white-space: nowrap;
-}
-
-.mm-film-note {
-  margin-top: 10px;
-  font-size: 11px;
-  line-height: 1.55;
-  color: var(--ink-faint);
 }
 
 /* Motion ------------------------------------------------------------------ */
@@ -2612,9 +2493,6 @@
 }
 
 /* Evidence type floor: unique evidence is never smaller than 10px. */
-.mm-film-tag,
-.mm-film-meta,
-.mm-film-run,
 .film-mono,
 .film-ledger-label,
 .film-brass-stamp,
@@ -2702,24 +2580,6 @@
 /* Responsive -------------------------------------------------------------- */
 
 @media (max-width: 767px) {
-  .mm-film-frame {
-    border-radius: 13px;
-  }
-
-  .mm-film-head {
-    height: 32px;
-    padding: 0 10px;
-    gap: 7px;
-  }
-
-  .mm-film-meta {
-    font-size: 7.5px;
-  }
-
-  .mm-film-run {
-    display: none;
-  }
-
   .mm-film-viewport {
     min-height: 0;
     padding: 10px 10px 9px;
@@ -3007,42 +2867,7 @@
     gap: 4px;
   }
 
-  .mm-film-control {
-    min-height: 30px;
-    padding: 0 8px;
-    font-size: 9.5px;
-  }
-
-  .mm-film-note {
-    margin-top: 4px;
-    font-size: 10px;
-    line-height: 1.25;
-  }
-
   /* Portrait recomposition: same evidence, shorter stage. */
-  .mm-film-head {
-    height: 34px;
-    padding: 0 8px;
-    gap: 6px;
-  }
-
-  .mm-film-tag {
-    padding: 2px 6px;
-    font-size: 10px;
-  }
-
-  .mm-film-meta {
-    font-size: 10px;
-  }
-
-  .mm-film-meta-full {
-    display: none;
-  }
-
-  .mm-film-meta-short {
-    display: block;
-  }
-
   .mm-film-viewport {
     padding: 8px 8px 7px;
   }

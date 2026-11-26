@@ -48,6 +48,7 @@ import {
   travelAt,
   waxAt,
 } from "./pipelineTimeline";
+import "./film-chrome.css";
 import "./cohort-pipeline.css";
 
 function vars(values: Record<string, string | number>): CSSProperties {
@@ -1066,10 +1067,12 @@ export function CohortPipeline({ run, playKey }: CohortPipelineProps): JSX.Eleme
                     className={`cp-rail-step ${active ? "is-active" : ""}`}
                     onClick={() => seek(item.seekAt)}
                     aria-current={active ? "step" : undefined}
-                    aria-label={`Step ${index + 1}: ${item.label}`}
+                    aria-label={`${String(index + 1).padStart(2, "0")} ${item.label} · step ${
+                      index + 1
+                    } of 8`}
                     title={item.caption}
                   >
-                    <span className="cp-rail-num">{String(index + 1).padStart(2, "0")}</span>
+                    <span className="cp-rail-num">{String(index + 1).padStart(2, "0")}</span>{" "}
                     <span className="cp-rail-label">{item.label}</span>
                   </button>
                 </li>

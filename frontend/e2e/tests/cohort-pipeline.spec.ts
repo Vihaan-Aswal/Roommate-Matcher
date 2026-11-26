@@ -382,7 +382,7 @@ for (const viewport of VIEWPORTS) {
       }
 
       // Rail seek pauses at the settled station frame.
-      await page.getByRole("button", { name: "Step 6: Fairness" }).click();
+      await page.getByRole("button", { name: "06 Fairness · step 6 of 8" }).click();
       await expect(page.locator(".cp-timecode")).toContainText("00:34.0");
       await expect(stage).toHaveAttribute("data-playing", "false");
       await expect(page.locator(".cp-caption-line")).toHaveText(

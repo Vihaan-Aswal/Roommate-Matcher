@@ -1,5 +1,6 @@
 import { formatScore, type Run } from "./simulate";
 import { useInView } from "./motion";
+import { StationMark } from "./StationMark";
 
 interface SignOffSectionProps {
   run: Run;
@@ -14,10 +15,14 @@ export function SignOffSection({ run }: SignOffSectionProps): JSX.Element {
     <section
       ref={ref}
       id="sign-off"
-      className={`mm-section mm-signoff ${inView ? "is-in" : ""}`}
+      className={`mm-section mm-rail mm-signoff ${inView ? "is-in" : ""}`}
       aria-labelledby="signoff-heading"
+      data-home-station="08"
+      data-home-label="Sign-off"
     >
-      <div className="mm-wrap mm-signoff-grid">
+      <div className="mm-wrap">
+        <StationMark station="08" label="A person signs" note="keys follow" />
+        <div className="mm-signoff-grid">
         <div className="mm-signoff-copy">
           <h2 id="signoff-heading">
             A person signs{" "}
@@ -87,6 +92,7 @@ export function SignOffSection({ run }: SignOffSectionProps): JSX.Element {
           <p className="mm-file-note">
             The manual checker is advisory. It cannot create a run, edit a room or issue a key.
           </p>
+        </div>
         </div>
       </div>
     </section>

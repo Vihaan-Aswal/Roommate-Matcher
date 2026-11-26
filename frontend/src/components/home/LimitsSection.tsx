@@ -1,4 +1,5 @@
 import { useInView } from "./motion";
+import { StationMark } from "./StationMark";
 import type { CSSProperties } from "react";
 
 const LIMITS = [
@@ -38,8 +39,12 @@ export function LimitsSection(): JSX.Element {
       id="limits"
       className={`mm-section mm-limits ${inView ? "is-in" : ""}`}
       aria-labelledby="limits-heading"
+      data-home-station="—"
+      data-home-label="Edge notes"
     >
-      <div className="mm-wrap mm-limits-grid">
+      <div className="mm-wrap">
+        <StationMark station="—" label="Edge notes" note="what the desk will not do" />
+        <div className="mm-limits-grid">
         <div className="mm-limits-intro">
           <h2 id="limits-heading">What it does not do.</h2>
           <p className="mm-body">
@@ -57,6 +62,7 @@ export function LimitsSection(): JSX.Element {
             </li>
           ))}
         </ul>
+        </div>
       </div>
     </section>
   );

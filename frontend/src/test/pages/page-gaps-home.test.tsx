@@ -46,10 +46,15 @@ describe("HomePage interactions", () => {
     expect(screen.getByRole("button", { name: "Pause pipeline" })).toBeInTheDocument();
   });
 
-  it("replays the classic film from the comparison flag", () => {
+  it("replays the classic film from the comparison flag", async () => {
     renderHome("/?classic=1");
 
-    fireEvent.click(screen.getByRole("button", { name: "Replay film" }));
+    const replay = await screen.findByRole(
+      "button",
+      { name: "Replay film" },
+      { timeout: 5000 },
+    );
+    fireEvent.click(replay);
 
     expect(screen.getByText(/cold open · the desk at night/i)).toBeInTheDocument();
     expect(screen.getByRole("figure")).toBeInTheDocument();

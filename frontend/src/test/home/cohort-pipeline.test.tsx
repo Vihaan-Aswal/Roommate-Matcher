@@ -195,7 +195,7 @@ describe("CohortPipeline", () => {
     frames.advance(500);
     expect(timecode()).not.toBe(pausedAt);
 
-    fireEvent.click(screen.getByRole("button", { name: "Step 6: Fairness" }));
+    fireEvent.click(screen.getByRole("button", { name: "06 Fairness · step 6 of 8" }));
     expect(
       screen.getByText("The average hides the room. The fairness statement puts it first."),
     ).toBeInTheDocument();
@@ -230,14 +230,19 @@ describe("CohortPipeline", () => {
   it("makes every station reachable from the rail", () => {
     renderPipeline();
 
-    expect(screen.getByRole("button", { name: "Step 5: Match" })).toBeEnabled();
-    expect(screen.getByRole("button", { name: "Step 8: Sign-off" })).toBeEnabled();
-    expect(screen.getByRole("button", { name: "Step 1: Inputs" })).toHaveAttribute(
-      "aria-current",
-      "step",
-    );
+    expect(
+      screen.getByRole("button", { name: "05 Match · step 5 of 8" }),
+    ).toBeEnabled();
+    expect(
+      screen.getByRole("button", { name: "08 Sign-off · step 8 of 8" }),
+    ).toBeEnabled();
+    expect(
+      screen.getByRole("button", { name: "01 Inputs · step 1 of 8" }),
+    ).toHaveAttribute("aria-current", "step");
 
-    fireEvent.click(screen.getByRole("button", { name: "Step 8: Sign-off" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "08 Sign-off · step 8 of 8" }),
+    );
     expect(timecode()).toBe("00:47.0 / 00:50");
     expect(
       screen.getByText("A person signs before keys are issued."),

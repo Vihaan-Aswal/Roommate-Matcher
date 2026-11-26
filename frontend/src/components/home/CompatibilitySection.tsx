@@ -1,5 +1,6 @@
 import { formatScore, FACTORS, labelForScore, type Run } from "./simulate";
 import { useInView } from "./motion";
+import { StationMark } from "./StationMark";
 import type { CSSProperties } from "react";
 
 interface CompatibilitySectionProps {
@@ -85,10 +86,13 @@ export function CompatibilitySection({ run }: CompatibilitySectionProps): JSX.El
     <section
       ref={ref}
       id="compatibility"
-      className={`mm-section mm-compat ${inView ? "is-in" : ""}`}
+      className={`mm-section mm-rail mm-compat ${inView ? "is-in" : ""}`}
       aria-labelledby="compat-heading"
+      data-home-station="04–05"
+      data-home-label="Score & Match"
     >
       <div className="mm-wrap">
+        <StationMark station="04–05" label="Score, then match" note="ten factors · three strategies" />
         <div className="mm-split-head">
           <h2 id="compat-heading">Ten weighted factors.</h2>
           <div className="mm-head-copy">
