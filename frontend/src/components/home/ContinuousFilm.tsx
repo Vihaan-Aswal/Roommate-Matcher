@@ -697,7 +697,8 @@ export function ContinuousFilm({ run, playKey }: ContinuousFilmProps): JSX.Eleme
         Illustrative sample data. {formatCount(data.boundary.students)} students,{" "}
         {data.boundary.rooms} rooms; {formatCount(data.boundary.possible)}{" "}
         possible pairs, {formatCount(data.boundary.rejected)} never compared,{" "}
-        {formatCount(data.boundary.scored)} scored.{" "}
+        {formatCount(data.boundary.scored)} scored. Segment mean{" "}
+        {score3(data.risk.segment.mean)}.{" "}
         <span className="cf-note-pair">
           R-12 · S-009 × S-021: {score3(data.risk.pair.score)}.
         </span>{" "}
