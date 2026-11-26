@@ -7,8 +7,13 @@
 
 - `CONCEPT.md` — what felt page-like, the three directions, the chosen thread pull, the beat map.
 - `full-1440.png`, `full-1280.png`, `full-375.png` — the hero as it lands at each width.
-- `1440-*.jpg`, `1280-*.jpg`, `375-*.jpg` — eight paused frames per width, at 0.3, 1.6, 2.9,
-  4.2, 5.5, 6.8, 8.1 and 9.4 seconds. The filename suffix is the playhead time.
+- `1440-*.jpg`, `1280-*.jpg`, `375-*.jpg` — nine paused frames per width, at 0.3, 1.6, 2.9,
+  4.2, 5.5, 6.8, 7.4, 8.1 and 9.4 seconds. The filename suffix is the playhead time. The
+  5.5–8.1 frames are the crop check: boundary ledger, folders and pair ledger are all fully
+  inside the frame.
+- `912x672-autoplay.png` — the 912×672 viewport with only the top of the stage visible, no
+  scrolling, reduced motion requested. The capture script also logs the time, slider and Pause
+  state for that viewport.
 - `continuous-film-1280.gif` — a 10-second, 10 fps loop of the take at 300 px wide. Use it to judge
   the camera move; use the frames for detail.
 - `continuous-film-1280-recording.webm` — the raw 12.8 s Playwright recording (page load plus the

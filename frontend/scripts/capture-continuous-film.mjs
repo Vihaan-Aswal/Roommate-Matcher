@@ -4,7 +4,7 @@ import path from "node:path";
 
 const baseUrl = process.env.CAPTURE_BASE_URL || "http://127.0.0.1:4173";
 const out = path.resolve("..", "docs", "evidence", "continuous-film");
-const frames = [0.3, 1.6, 2.9, 4.2, 5.5, 6.8, 8.1, 9.4];
+const frames = [0.3, 1.6, 2.9, 4.2, 5.5, 6.8, 7.4, 8.1, 9.4];
 const viewports = [
   { name: "1440", width: 1440, height: 1000 },
   { name: "1280", width: 1280, height: 900 },
@@ -42,6 +42,46 @@ for (const viewport of viewports) {
   });
   await context.close();
 }
+
+// The review's exact autoplay case: only the top of the stage is visible, no
+// scrolling, reduced motion requested. The screenshot shows the viewport; the
+// time and slider are logged for the report.
+const autoplayContext = await browser.newContext({
+  viewport: { width: 912, height: 672 },
+  reducedMotion: "reduce",
+});
+const autoplayPage = await autoplayContext.newPage();
+await autoplayPage.goto(`${baseUrl}/?continuous=1`, { waitUntil: "networkidle" });
+await autoplayPage.waitForTimeout(1600);
+const autoplay = await autoplayPage.evaluate(() => {
+  const stage = document.querySelector(".cf-stage")?.getBoundingClientRect();
+  const visible = stage
+    ? Math.max(
+        0,
+        Math.min(stage.bottom, window.innerHeight) - Math.max(stage.top, 0),
+      )
+    : 0;
+  return {
+    time: document.querySelector(".cf-timecode")?.textContent ?? null,
+    slider: document.querySelector(".cf-scrub")?.getAttribute("aria-valuenow"),
+    button:
+      document.querySelector('.mm-film-control[aria-label="Pause film"]') !== null
+        ? "Pause"
+        : "Play",
+    scrollY: window.scrollY,
+    stageTop: stage ? Math.round(stage.top) : null,
+    stageBottom: stage ? Math.round(stage.bottom) : null,
+    stageHeight: stage ? Math.round(stage.height) : null,
+    visibleFraction: stage
+      ? Number((visible / stage.height).toFixed(3))
+      : null,
+  };
+});
+console.log(`912x672 autoplay: ${JSON.stringify(autoplay)}`);
+await autoplayPage.screenshot({
+  path: path.join(out, "912x672-autoplay.png"),
+});
+await autoplayContext.close();
 
 const videoDir = path.join(out, ".video");
 await fs.mkdir(videoDir, { recursive: true });

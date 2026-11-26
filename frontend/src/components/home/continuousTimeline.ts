@@ -26,32 +26,31 @@ export interface CameraPosition {
  * Focus points and scale, in fractions of the desk world. The world is 100%
  * wide on every viewport; 135% tall on portrait, which is what gives the
  * mobile camera somewhere to travel.
+ *
+ * The 2.6–8.4s frame is the evidence frame: the boundary ledger, the four
+ * folders and the pair ledger are all fully inside it. The roster and envelope
+ * are fully outside it. At 9.4s the camera pulls back to the whole desk, where
+ * every object is inside again. No paused beat cuts a number or a slip.
  */
 export const DESKTOP_CAMERA: CameraFrame[] = [
   { at: 0, x: 0.5, y: 0.5, scale: 1 },
-  { at: 1.4, x: 0.5, y: 0.5, scale: 1.03 },
-  { at: 2.2, x: 0.48, y: 0.5, scale: 1.12 },
-  { at: 3, x: 0.45, y: 0.49, scale: 1.28 },
-  { at: 3.8, x: 0.46, y: 0.48, scale: 1.36 },
-  { at: 5, x: 0.48, y: 0.48, scale: 1.34 },
-  { at: 5.9, x: 0.58, y: 0.47, scale: 1.37 },
-  { at: 6.3, x: 0.615, y: 0.46, scale: 1.42 },
-  { at: 6.7, x: 0.655, y: 0.45, scale: 1.46 },
-  { at: 7.4, x: 0.663, y: 0.45, scale: 1.5 },
-  { at: 8.4, x: 0.66, y: 0.46, scale: 1.48 },
-  { at: 9.2, x: 0.618, y: 0.48, scale: 1.36 },
-  { at: 10, x: 0.605, y: 0.49, scale: 1.32 },
+  { at: 1.4, x: 0.5, y: 0.5, scale: 1.02 },
+  { at: 2.6, x: 0.615, y: 0.476, scale: 1.33 },
+  { at: 5.2, x: 0.615, y: 0.476, scale: 1.34 },
+  { at: 6.8, x: 0.615, y: 0.476, scale: 1.35 },
+  { at: 8.1, x: 0.615, y: 0.476, scale: 1.35 },
+  { at: 8.4, x: 0.615, y: 0.476, scale: 1.35 },
+  { at: 9.4, x: 0.5, y: 0.5, scale: 1 },
+  { at: 10, x: 0.5, y: 0.5, scale: 1 },
 ];
 
 export const MOBILE_CAMERA: CameraFrame[] = [
   { at: 0, x: 0.5, y: 0.38, scale: 1 },
-  { at: 1.8, x: 0.5, y: 0.4, scale: 1.03 },
-  { at: 3, x: 0.5, y: 0.42, scale: 1.05 },
-  { at: 4.2, x: 0.5, y: 0.47, scale: 1.06 },
-  { at: 5.6, x: 0.5, y: 0.55, scale: 1.06 },
-  { at: 7, x: 0.5, y: 0.65, scale: 1.08 },
-  { at: 8.4, x: 0.5, y: 0.655, scale: 1.08 },
-  { at: 10, x: 0.5, y: 0.6, scale: 1.04 },
+  { at: 1.8, x: 0.5, y: 0.4, scale: 1 },
+  { at: 2.6, x: 0.5, y: 0.615, scale: 1 },
+  { at: 5.2, x: 0.5, y: 0.625, scale: 1 },
+  { at: 8.4, x: 0.5, y: 0.625, scale: 1 },
+  { at: 10, x: 0.5, y: 0.625, scale: 1 },
 ];
 
 export interface FilmCaption {
@@ -143,13 +142,13 @@ export function threadAt(time: number): number {
   return easeInOutCubic(clamp01((time - 0.7) / 7.6));
 }
 
-/** The factor bars are still until the camera reaches the ledger. */
+/** The factor bars draw during the boundary close; settled by the R-12 mark. */
 export function factorRevealAt(time: number): number {
-  return easeInOutCubic(clamp01((time - 6.05) / 1.3));
+  return easeInOutCubic(clamp01((time - 4.0) / 1.2));
 }
 
-export function scorePressAt(time: number, at: number): number {
-  return easeInOutCubic(clamp01((time - at) / 0.5));
+export function scorePressAt(time: number, at: number, duration = 0.3): number {
+  return easeInOutCubic(clamp01((time - at) / duration));
 }
 
 export function formatFilmTime(time: number): string {

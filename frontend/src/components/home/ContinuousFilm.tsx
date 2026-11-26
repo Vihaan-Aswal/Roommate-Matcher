@@ -139,8 +139,8 @@ export function ContinuousFilm({ run, playKey }: ContinuousFilmProps): JSX.Eleme
     world.style.setProperty("--lamp", lampAt(time).toFixed(4));
     world.style.setProperty("--thread", threadAt(time).toFixed(4));
     world.style.setProperty("--reveal", factorRevealAt(time).toFixed(4));
-    world.style.setProperty("--press-r12", scorePressAt(time, 6.8).toFixed(4));
-    world.style.setProperty("--press-r15", scorePressAt(time, 8.15).toFixed(4));
+    world.style.setProperty("--press-r12", scorePressAt(time, 4.9).toFixed(4));
+    world.style.setProperty("--press-r15", scorePressAt(time, 7.5).toFixed(4));
 
     if (scrubRef.current) {
       scrubRef.current.style.setProperty(
@@ -240,30 +240,27 @@ export function ContinuousFilm({ run, playKey }: ContinuousFilmProps): JSX.Eleme
     };
   }, [render]);
 
+  // The film is the hero: start on mount when the page is visible. There is
+  // deliberately no intersection gate, so a short laptop viewport cannot leave
+  // it frozen at 00:00. Tab hiding still pauses and resumes it below.
   useEffect(() => {
-    const node = stageRef.current;
-    if (!node || startedRef.current) return;
+    if (startedRef.current) return;
     const start = () => {
       if (startedRef.current) return;
       startedRef.current = true;
       playingRef.current = true;
       setPlaying(true);
     };
-    if (typeof IntersectionObserver === "undefined") {
-      start();
-      return;
+    if (document.visibilityState === "hidden") {
+      const onVisible = () => {
+        if (document.visibilityState === "hidden") return;
+        document.removeEventListener("visibilitychange", onVisible);
+        start();
+      };
+      document.addEventListener("visibilitychange", onVisible);
+      return () => document.removeEventListener("visibilitychange", onVisible);
     }
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) {
-          observer.disconnect();
-          start();
-        }
-      },
-      { threshold: 0.25 },
-    );
-    observer.observe(node);
-    return () => observer.disconnect();
+    start();
   }, []);
 
   useEffect(() => {

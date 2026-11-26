@@ -224,7 +224,7 @@
   top: 18%;
   left: 3%;
   z-index: 4;
-  width: 24%;
+  width: 20.5%;
   height: 48%;
   padding: 13px 14px;
   overflow: hidden;
@@ -310,7 +310,7 @@
   top: 71%;
   left: 4.5%;
   z-index: 4;
-  width: 20%;
+  width: 18.5%;
   height: 12%;
   padding: 7px 8px;
   overflow: hidden;
@@ -823,7 +823,7 @@
 }
 
 .cf-ledger-title .cf-mono {
-  font-size: 5.5px;
+  font-size: 6px;
   letter-spacing: 0.1em;
 }
 
@@ -831,7 +831,7 @@
   display: block;
   margin-top: 1px;
   font-family: var(--mono);
-  font-size: 5px;
+  font-size: 5.5px;
   letter-spacing: 0.02em;
   line-height: 1.35;
   color: var(--paper-mid);
@@ -860,7 +860,7 @@
   display: block;
   overflow: hidden;
   font-family: var(--mono);
-  font-size: 5px;
+  font-size: 5.5px;
   font-weight: 500;
   letter-spacing: 0.06em;
   line-height: 1.35;
@@ -875,7 +875,7 @@
   overflow: hidden;
   margin-top: 1px;
   font-family: var(--mono);
-  font-size: 5.5px;
+  font-size: 6px;
   line-height: 1.3;
   color: var(--paper-ink);
   text-overflow: ellipsis;
@@ -887,7 +887,7 @@
   transform: translateY(calc((1 - var(--press, 1)) * -3px))
     scale(calc(0.97 + var(--press, 1) * 0.03));
   font-family: var(--serif);
-  font-size: 20px;
+  font-size: 21px;
   font-weight: 800;
   line-height: 0.95;
   letter-spacing: -0.035em;
@@ -916,7 +916,7 @@
   margin-top: 1px;
   overflow: hidden;
   font-family: var(--mono);
-  font-size: 5px;
+  font-size: 5.5px;
   line-height: 1.3;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -941,14 +941,14 @@
 }
 
 .cf-weight-label .cf-mono {
-  font-size: 5px;
+  font-size: 5.5px;
   letter-spacing: 0.04em;
 }
 
 .cf-weight-blank {
   overflow: hidden;
   font-family: var(--mono);
-  font-size: 5px;
+  font-size: 5.5px;
   line-height: 1.3;
   text-overflow: ellipsis;
   color: var(--wax);
@@ -994,7 +994,7 @@
   padding: 3px 0 2px;
   border-bottom: 1px solid rgba(29, 37, 25, 0.16);
   font-family: var(--mono);
-  font-size: 5.5px;
+  font-size: 6px;
   font-weight: 500;
   letter-spacing: 0.06em;
   line-height: 1.3;
@@ -1027,7 +1027,7 @@
   min-width: 0;
   overflow: hidden;
   font-family: var(--sans);
-  font-size: 7px;
+  font-size: 7.5px;
   line-height: 1.2;
   color: #2b3226;
   text-overflow: ellipsis;
@@ -1037,7 +1037,7 @@
 .cf-factor-name em {
   margin-left: 3px;
   font-family: var(--mono);
-  font-size: 5.5px;
+  font-size: 6px;
   font-style: normal;
   letter-spacing: 0.03em;
   text-transform: uppercase;
@@ -1046,7 +1046,7 @@
 
 .cf-factor-weight {
   font-family: var(--mono);
-  font-size: 6.5px;
+  font-size: 7px;
   line-height: 1.3;
   text-align: right;
   color: var(--paper-mid);
@@ -1060,14 +1060,14 @@
   justify-content: flex-end;
   gap: 2px;
   font-family: var(--mono);
-  font-size: 7px;
+  font-size: 7.5px;
   line-height: 1.3;
   color: var(--paper-mid);
   font-variant-numeric: tabular-nums;
 }
 
 .cf-factor-cell b {
-  min-width: 17px;
+  min-width: 18px;
   font-weight: 400;
   text-align: right;
 }
@@ -1075,7 +1075,7 @@
 .cf-factor-bar {
   position: relative;
   display: block;
-  width: 13px;
+  width: 14px;
   height: 3px;
   overflow: hidden;
   border-radius: 999px;

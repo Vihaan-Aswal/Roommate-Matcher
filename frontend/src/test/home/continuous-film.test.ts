@@ -41,6 +41,40 @@ describe("continuous film timeline", () => {
     }
   });
 
+  it("keeps every evidence object fully in or fully out at the paused beats", () => {
+    for (const time of [5.5, 6.8, 7.4, 8.1]) {
+      const camera = cameraAt(time, DESKTOP_CAMERA);
+      const half = 0.5 / camera.scale;
+      const left = camera.x - half;
+      const right = camera.x + half;
+      const top = camera.y - half;
+      const bottom = camera.y + half;
+
+      // The roster and envelope end before the frame; the folders and ledger
+      // are fully inside it.
+      expect(left, `desktop left at ${time}`).toBeGreaterThan(0.235);
+      expect(left, `desktop left at ${time}`).toBeLessThan(0.25);
+      expect(right, `desktop right at ${time}`).toBeGreaterThan(0.98);
+      expect(right, `desktop right at ${time}`).toBeLessThanOrEqual(1);
+      expect(top, `desktop top at ${time}`).toBeLessThan(0.12);
+      expect(bottom, `desktop bottom at ${time}`).toBeGreaterThan(0.83);
+    }
+
+    for (const time of [2.9, 5.5, 6.8, 7.4, 8.1]) {
+      const camera = cameraAt(time, MOBILE_CAMERA);
+      const half = 0.5 / (1.35 * camera.scale);
+      const top = camera.y - half;
+      const bottom = camera.y + half;
+
+      // The roster is above the frame; the boundary ledger, folders and
+      // ledger are all below its top edge and above its bottom edge.
+      expect(top, `portrait top at ${time}`).toBeGreaterThan(0.17);
+      expect(top, `portrait top at ${time}`).toBeLessThan(0.26);
+      expect(bottom, `portrait bottom at ${time}`).toBeGreaterThan(0.85);
+      expect(bottom, `portrait bottom at ${time}`).toBeLessThanOrEqual(1);
+    }
+  });
+
   it("clamps the playhead to the ten-second take", () => {
     expect(cameraAt(-2, DESKTOP_CAMERA)).toEqual(cameraAt(0, DESKTOP_CAMERA));
     expect(cameraAt(20, DESKTOP_CAMERA)).toEqual(

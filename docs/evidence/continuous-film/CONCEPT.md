@@ -35,12 +35,13 @@ controls. It is well drawn, but the viewer sees seven slides of one desk, not on
 ## The 10-second take
 
 - **0.0–2.6 s, cold open.** Wide on the night desk; the lamp warms up. 96 responses, 38 rooms.
-- **2.6–5.2 s, boundary.** The camera pushes into the response cards and the four boundary folders.
-  The thread draws through the cards; the boundary ledger reads 4,560 → 3,456 → 1,104.
-- **5.2–7.8 s, R-12.** The camera trucks right into the ten-factor ledger. The factor bars draw in,
-  the R-12 score settles at 0.416, and the blank sleep-schedule answer is visible in the row.
-- **7.8–10.0 s, R-15.** The same sheet holds S-035 × S-047 at 0.733. A small pull-back returns the
-  folders to the frame, then the take stops with Replay.
+- **2.6–8.4 s, the evidence frame.** The camera settles into one medium frame that holds the
+  boundary ledger, the four folders and the pair ledger fully inside it; the roster and envelope are
+  fully outside it. The thread draws through the cards, the boundary ledger reads
+  4,560 → 3,456 → 1,104, and the factor bars and pair scores settle as the captions move from the
+  boundary to R-12 (0.416) and R-15 (0.733). Nothing is half-cut at a paused beat.
+- **8.4–10.0 s, the close.** The camera pulls back to the whole desk, where every object is inside
+  the frame again, and stops with Replay.
 
 ## Rules for this phase
 

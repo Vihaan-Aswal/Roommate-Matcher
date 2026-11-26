@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -88,6 +88,50 @@ describe("ContinuousFilm", () => {
       screen.getByRole("button", { name: /Chapter 3: 0:05 R-12/i }),
     );
     expect(screen.getByText("S-009 × S-021 — 0.416.")).toBeInTheDocument();
+  });
+
+  it("starts on mount even when an intersection observer never fires", () => {
+    const observe = vi.fn();
+    vi.stubGlobal(
+      "IntersectionObserver",
+      class {
+        observe = observe;
+        disconnect = vi.fn();
+        unobserve = vi.fn();
+        takeRecords = () => [];
+        root = null;
+        rootMargin = "";
+        thresholds = [];
+      },
+    );
+    renderFilm();
+
+    expect(
+      screen.getByRole("button", { name: "Pause film", exact: true }),
+    ).toBeInTheDocument();
+    expect(observe).not.toHaveBeenCalled();
+  });
+
+  it("starts when a hidden page becomes visible", () => {
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      value: "hidden",
+    });
+    renderFilm();
+    expect(
+      screen.getByRole("button", { name: "Play film", exact: true }),
+    ).toBeInTheDocument();
+
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      value: "visible",
+    });
+    act(() => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    expect(
+      screen.getByRole("button", { name: "Pause film", exact: true }),
+    ).toBeInTheDocument();
   });
 
   it("keeps the take running when the os prefers reduced motion", () => {
