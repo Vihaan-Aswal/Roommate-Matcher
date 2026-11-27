@@ -155,7 +155,8 @@ export function LoginPage({ entryOnly = false }: { entryOnly?: boolean }): JSX.E
             </h2>
             <p className="desk-help" style={{ marginTop: 8 }}>
               Creates a seeded workspace with illustrative students, rooms and responses. No account,
-              no email confirmation; it is kept for up to 24 hours, then cleaned up.
+              no email confirmation; it is kept for up to 24 hours; expired demos are cleaned
+              up periodically.
             </p>
 
             {demoError ? (

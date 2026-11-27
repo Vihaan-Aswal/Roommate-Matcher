@@ -92,7 +92,7 @@ describe("LoginPage", () => {
     expect(screen.getByLabelText("Password")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Sign in" })).toBeInTheDocument();
     expect(
-      screen.getByText(/kept for up to 24 hours, then cleaned up/i),
+      screen.getByText(/kept for up to 24 hours; expired demos are cleaned up periodically/i),
     ).toBeInTheDocument();
   });
 

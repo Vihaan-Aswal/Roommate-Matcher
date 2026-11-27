@@ -274,7 +274,8 @@ export function AdminDashboard(): JSX.Element {
                         <span className="desk-stage-step">03</span> Collect preferences
                       </span>
                       <span className="desk-list-meta">
-                        share the form link, or use Magic Fill to simulate responses with synthetic profiles
+                        share the form link; for a rehearsal, Magic Fill on this dashboard can
+                        simulate missing responses.
                       </span>
                     </span>
                     <ArrowRight size={15} strokeWidth={1.8} aria-hidden="true" />
