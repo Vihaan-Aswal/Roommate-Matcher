@@ -2,7 +2,7 @@
 
 **Graph-based hostel roommate allocation with weighted compatibility scoring, blossom-algorithm matching, and per-run fairness reporting.**
 
-Built as a fully local, production-structured full-stack system — FastAPI backend, React + TypeScript frontend, SQLite persistence, deterministic matching artifacts versioned by run ID.
+Built as a production-structured full-stack system — FastAPI backend, React + TypeScript frontend, Supabase Postgres in production / SQLite for the local demo, deterministic matching artifacts versioned by run ID.
 
 ---
 
@@ -143,7 +143,7 @@ For 2-bed rooms: direct pair factors, no aggregation needed.
 | Matching | NetworkX |
 | Testing | pytest, Vitest, Playwright |
 
-Design constraints: fully local-first, no cloud dependencies, minimal required environment variables, single-command startup.
+Design constraints: local-first by default (SQLite demo), Supabase Postgres in production, minimal required environment variables, single-command startup.
 
 ---
 
@@ -216,9 +216,9 @@ All routes mounted under `/api`. Full interactive docs at `http://127.0.0.1:8000
 
 The project ships with three layers of tests:
 
-- **Backend** (~4,800 lines across pytest suites) — scoring pipeline, segment matrix, matching invariants, service integration
-- **Frontend unit** (16 test files via Vitest) — pages, components, hooks, routing contracts, privacy rendering
-- **Frontend E2E** (271-line Playwright spec) — full admin workflow from upload through matching run and export
+- **Backend** (119 pytest files, ~18k lines; 681 passed, 6 Postgres-parity skipped) — scoring pipeline, segment matrix, matching invariants, service integration
+- **Frontend unit** (55 Vitest files, 440 tests) — pages, components, hooks, routing contracts, privacy rendering
+- **Frontend E2E** (8 Playwright specs, 29 tests) — full admin workflow from upload through matching run and export
 
 ```bash
 # Backend
