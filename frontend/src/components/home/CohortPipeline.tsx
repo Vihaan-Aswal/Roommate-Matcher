@@ -316,6 +316,7 @@ export function CohortPipeline({ run, playKey }: CohortPipelineProps): JSX.Eleme
 
   useEffect(() => {
     if (playKey === 0) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- replay deliberately restarts the timeline
     restart();
   }, [playKey, restart]);
 

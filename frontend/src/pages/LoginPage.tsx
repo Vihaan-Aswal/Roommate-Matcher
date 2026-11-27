@@ -61,6 +61,7 @@ export function LoginPage({ entryOnly = false }: { entryOnly?: boolean }): JSX.E
   useEffect(() => {
     if (!demoLoading) return;
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset the demo cold-start countdown when an attempt starts
     setDemoSlow(false);
     setDemoSecondsLeft(DEMO_COLD_START_SECONDS);
 

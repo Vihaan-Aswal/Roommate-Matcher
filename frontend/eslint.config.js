@@ -21,7 +21,6 @@ export default tseslint.config(
       ...reactHooks.configs.recommended.rules,
       "react-hooks/rules-of-hooks": "error",
       // React Compiler advisories are pre-existing; keep them advisory for now.
-      "react-hooks/set-state-in-effect": "warn",
       "react-hooks/preserve-manual-memoization": "warn",
       "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/no-unused-vars": [
