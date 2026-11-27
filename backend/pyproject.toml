@@ -61,3 +61,19 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["F"]
+
+[dependency-groups]
+dev = [
+    "mypy==1.13.0",
+]
+
+[tool.mypy]
+python_version = "3.11"
+plugins = ["pydantic.mypy"]
+ignore_missing_imports = true
+check_untyped_defs = true
+exclude = ["^tests/"]
+
+[[tool.mypy.overrides]]
+module = ["app.services.matching.*", "app.services.scoring.*", "app.auth.*"]
+strict = true
