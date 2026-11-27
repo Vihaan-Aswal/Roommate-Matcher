@@ -272,7 +272,7 @@ cd frontend && npm run e2e:install && npm run e2e
 ### Startup Order for Production
 
 1. **Render auto-deploys** the backend on every push to the configured branch.
-   - Build command: `pip install uv && uv export --locked --no-dev --format requirements-txt -o requirements.txt && pip install -r requirements.txt`
+   - Build command: `pip install uv && uv export --locked --no-dev --format requirements-txt --no-emit-project -o requirements.txt && pip install -r requirements.txt`
    - Start command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips="*"`
    - Health probes: `GET /health/live` checks the process only; `GET /health` also pings the database and returns 503 when it is unavailable. Keep Render's `healthCheckPath` on `/health/live`; monitor `/health` externally and alert on 503. Do not point Render's health check at `/health` unless the platform supports readiness checks without restarting (pending D-HEALTH).
 2. **Vercel auto-deploys** the frontend on every push.
@@ -288,9 +288,9 @@ cd frontend && npm run e2e:install && npm run e2e
    alembic upgrade head
    ```
 
-**Reproducible installs:** Render exports the locked runtime requirements from `backend/uv.lock` with `uv export --locked --no-dev`, so the build installs no dev dependencies. Vercel installs with `npm ci` against `frontend/package-lock.json`.
+**Reproducible installs:** Render exports the locked runtime requirements from `backend/uv.lock` with `uv export --locked --no-dev --no-emit-project`, so the build installs no dev dependencies and omits the editable project line that `pip` rejects under hashes. Vercel installs with `npm ci` against `frontend/package-lock.json`.
 
-**First deploy verification:** the Render build log should show `uv export --locked --no-dev` and no pytest/httpx install; `GET /health` should return 200; the Vercel build log should show `npm ci`.
+**First deploy verification:** the Render build log should show `uv export --locked --no-dev --no-emit-project` and no pytest/httpx install; `GET /health` should return 200; the Vercel build log should show `npm ci`.
 
 ---
 
