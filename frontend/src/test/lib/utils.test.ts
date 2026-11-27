@@ -39,4 +39,16 @@ describe("csvCell", () => {
     expect(csvCell('Jane "JJ" Doe')).toBe('"Jane ""JJ"" Doe"');
     expect(csvCell("line\nbreak")).toBe('"line\nbreak"');
   });
+
+  it("neutralizes formula-leading values", () => {
+    expect(csvCell("=1+1")).toBe("'=1+1");
+    expect(csvCell("+1")).toBe("'+1");
+    expect(csvCell("-1")).toBe("'-1");
+    expect(csvCell("@cmd")).toBe("'@cmd");
+    expect(csvCell("\t=1+1")).toBe("'\t=1+1");
+    expect(csvCell("\r=1+1")).toBe('"\'\r=1+1"');
+    expect(csvCell('=HYPERLINK("http://evil.example")')).toBe(
+      '"\'=HYPERLINK(""http://evil.example"")"',
+    );
+  });
 });
