@@ -71,6 +71,9 @@ export function AdminMatchingRuns(): JSX.Element {
   const hasRunningRun = runs.some(
     (run) => run.status === "running" || run.status === "pending",
   );
+  const mutationRun = runs.find((run) => run.run_id === runMutation.data?.run_id);
+  const runCompleted =
+    runMutation.data?.status === "completed" || mutationRun?.status === "completed";
 
   const readySegments = useMemo(
     () => segments.filter((segment) => segment.status === "Ready"),
@@ -251,10 +254,10 @@ export function AdminMatchingRuns(): JSX.Element {
       </div>
 
       {runMutation.isSuccess ? (
-        runMutation.data.status === "completed" ? (
+        runCompleted ? (
           <InlineAlert
             title="Matching run completed"
-            message={`Run ${runMutation.data.run_id} finished with status ${runMutation.data.status}.`}
+            message={`Run ${runMutation.data.run_id} finished with status completed.`}
             tone="success"
             actions={
               <Button asChild size="sm" variant="outline">

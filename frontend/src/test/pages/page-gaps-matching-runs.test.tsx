@@ -229,6 +229,24 @@ describe("AdminMatchingRuns states and actions", () => {
     expect(screen.queryByRole("link", { name: /open the rooms/i })).not.toBeInTheDocument();
   });
 
+  it("follows the history status when the run finishes after the response", () => {
+    useRunMatchingMutationMock.mockReturnValue(
+      runMutation({
+        isSuccess: true,
+        data: { run_id: "run-100", status: "running" },
+      }),
+    );
+
+    renderWithProviders(<AdminMatchingRuns />);
+
+    expect(screen.getByText("Matching run completed")).toBeInTheDocument();
+    expect(screen.queryByText("Matching run started")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /open the rooms/i })).toHaveAttribute(
+      "href",
+      "/app/ws_test/matching-runs/run-100/rooms?segment=M_1st_year_AC_2",
+    );
+  });
+
   it("confirms a finished run and links to its rooms with the first segment selected", () => {
     useRunMatchingMutationMock.mockReturnValue(
       runMutation({
