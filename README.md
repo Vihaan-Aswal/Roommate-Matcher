@@ -197,18 +197,22 @@ Core tables:
 
 ## API surface
 
-All routes mounted under `/api`. Full interactive docs at `http://127.0.0.1:8000/docs`.
+Paths are abbreviated: every route except `/health` and `/health/live` lives under `/api`. Full interactive docs at `http://127.0.0.1:8000/docs`.
 
 | Area | Endpoints |
 |---|---|
-| Upload | `/students/upload`, `/rooms/upload`, `/upload/error-reports/{report_name}` |
-| Form | `/form/submit`, `/form/status`, `/form/non-submitters` |
-| Segments | `/segments`, `/segments/{segment_key}`, `/segments/{segment_key}/students` |
-| Matching | `/matching/run`, `/matching/runs`, `/matching/runs/{run_id}/segments/{segment_key}/rooms`, `/matching/runs/{run_id}/segments/{segment_key}/students` |
-| Fairness | `/fairness/{run_id}` |
-| Checker | `/checker/compatibility` |
-| Exports | `/exports/assignments/{run_id}` |
-| Dashboard | `/dashboard` |
+| Auth | `POST /auth/session`, `POST /auth/demo`, `POST /auth/logout`, `GET /auth/me` |
+| Workspaces, students, rooms | `GET /workspaces`, `POST /workspaces`, `GET /workspaces/{workspace_id}`, `POST /workspaces/{workspace_id}/students/upload/preview`, `POST /workspaces/{workspace_id}/students/upload/apply`, `POST /workspaces/{workspace_id}/rooms/upload/preview`, `POST /workspaces/{workspace_id}/rooms/upload/apply` |
+| Segments | `GET /workspaces/{workspace_id}/segments`, `GET /workspaces/{workspace_id}/segments/{segment_key}/students` |
+| Form collection & public form | `GET /workspaces/{workspace_id}/form-link`, `POST /workspaces/{workspace_id}/form-link/regenerate`, `GET /workspaces/{workspace_id}/collection/status`, `GET /workspaces/{workspace_id}/collection/non-submitters`, `POST /workspaces/{workspace_id}/magic-fill`, `GET /public/forms/{public_form_token}`, `POST /public/forms/{public_form_token}/submit` |
+| Matching | `GET /workspaces/{workspace_id}/matching/runs`, `POST /workspaces/{workspace_id}/matching/runs`, `GET /workspaces/{workspace_id}/matching/runs/{run_id}/rooms?segment_key={segment_key}`, `GET /workspaces/{workspace_id}/matching/runs/{run_id}/students?segment_key={segment_key}`, `GET /workspaces/{workspace_id}/matching/runs/{run_id}/students/all-segments` |
+| Fairness | `GET /workspaces/{workspace_id}/fairness/{run_id}` |
+| Checker | `POST /workspaces/{workspace_id}/checker/compatibility` |
+| Exports | `GET /workspaces/{workspace_id}/exports/assignments/{run_id}` |
+| Dashboard | `GET /workspaces/{workspace_id}/dashboard` |
+| Platform admin | `GET /platform/tenants`, `GET /platform/tenants/{tenant_id}`, `GET /platform/tenants/{tenant_id}/workspaces`, `POST /platform/tenants/{tenant_id}/impersonate` |
+| Internal cleanup | `POST /internal/cleanup/demo-tenants` (secret-protected, hidden from OpenAPI) |
+| Health | `GET /health`, `GET /health/live` |
 
 ---
 
