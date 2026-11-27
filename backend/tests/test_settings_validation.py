@@ -81,10 +81,17 @@ def test_valid_postgres_development_config_constructs() -> None:
 
 
 @pytest.mark.parametrize("origin", ["http://localhost:5173", "https://127.0.0.1"])
-def test_production_accepts_a_localhost_cors_origin(origin: str) -> None:
-    settings = _production(cors_allowed_origins=[origin])
+def test_production_rejects_a_localhost_cors_origin(origin: str) -> None:
+    with pytest.raises(ValidationError, match="CORS_ALLOWED_ORIGINS"):
+        _production(cors_allowed_origins=[origin])
 
-    assert settings.cors_allowed_origins == [origin]
+
+def test_postgres_development_allows_localhost_cors() -> None:
+    settings = _postgres_development(
+        cors_allowed_origins=["http://localhost:5173"]
+    )
+
+    assert settings.cors_allowed_origins == ["http://localhost:5173"]
 
 
 def test_all_violations_are_reported_together() -> None:

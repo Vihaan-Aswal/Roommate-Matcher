@@ -73,7 +73,13 @@ class Settings(BaseSettings):
             problems.append("SUPABASE_JWT_SECRET is required in production.")
         if not (self.cleanup_job_secret or "").strip():
             problems.append("CLEANUP_JOB_SECRET is required in production.")
-        # Production CORS is enforced at the deploy config (S-CSP pending).
+        if self.app_env == "production" and any(
+            "localhost" in origin.lower() or "127.0.0.1" in origin
+            for origin in self.cors_allowed_origins
+        ):
+            problems.append(
+                "CORS_ALLOWED_ORIGINS must not contain localhost or 127.0.0.1 in production."
+            )
 
         if problems:
             raise ValueError(" ".join(problems))
