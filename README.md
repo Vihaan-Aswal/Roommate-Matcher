@@ -216,7 +216,7 @@ All routes mounted under `/api`. Full interactive docs at `http://127.0.0.1:8000
 
 The project ships with three layers of tests:
 
-- **Backend** (119 pytest files, ~18k lines; 681 passed, 6 Postgres-parity skipped) — scoring pipeline, segment matrix, matching invariants, service integration
+- **Backend** (120 pytest files, ~18k lines; 686 passed, 6 Postgres-parity skipped) — scoring pipeline, segment matrix, matching invariants, service integration
 - **Frontend unit** (55 Vitest files, 440 tests) — pages, components, hooks, routing contracts, privacy rendering
 - **Frontend E2E** (8 Playwright specs, 29 tests) — full admin workflow from upload through matching run and export
 
