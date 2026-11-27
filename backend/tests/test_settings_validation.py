@@ -16,8 +16,18 @@ VALID_PRODUCTION = {
 }
 
 
+VALID_POSTGRES_DEVELOPMENT = {
+    **VALID_PRODUCTION,
+    "app_env": "development",
+}
+
+
 def _production(**overrides: object) -> Settings:
     return Settings(**{**VALID_PRODUCTION, **overrides})
+
+
+def _postgres_development(**overrides: object) -> Settings:
+    return Settings(**{**VALID_POSTGRES_DEVELOPMENT, **overrides})
 
 
 def test_valid_production_settings_construct() -> None:
@@ -46,6 +56,28 @@ def test_missing_production_secret_names_the_env_var(
 def test_short_or_placeholder_app_jwt_secret_is_rejected(secret: str) -> None:
     with pytest.raises(ValidationError, match="APP_JWT_SECRET"):
         _production(app_jwt_secret=secret)
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "name"),
+    [
+        ("app_jwt_secret", "", "APP_JWT_SECRET"),
+        ("supabase_jwt_secret", "", "SUPABASE_JWT_SECRET"),
+        ("cleanup_job_secret", None, "CLEANUP_JOB_SECRET"),
+    ],
+)
+def test_postgres_development_missing_secret_names_the_env_var(
+    field: str, value: object, name: str
+) -> None:
+    with pytest.raises(ValidationError, match=name):
+        _postgres_development(**{field: value})
+
+
+def test_valid_postgres_development_config_constructs() -> None:
+    settings = _postgres_development()
+
+    assert settings.app_env == "development"
+    assert settings.database_url.startswith("postgresql")
 
 
 @pytest.mark.parametrize("origin", ["http://localhost:5173", "https://127.0.0.1"])

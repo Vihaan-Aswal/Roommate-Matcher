@@ -300,6 +300,8 @@ cd frontend && npm run e2e:install && npm run e2e
 | `DEMO_TTL_HOURS` | `24` |
 | `CLEANUP_JOB_SECRET` | 32-byte hex secret for cleanup cron — `openssl rand -hex 32` |
 
+A Postgres `DATABASE_URL` requires `APP_JWT_SECRET`, `SUPABASE_JWT_SECRET`, and `CLEANUP_JOB_SECRET` even outside production; startup fails fast if any is missing.
+
 ---
 
 ### Demo Cleanup (periodic, not guaranteed at 24 hours)

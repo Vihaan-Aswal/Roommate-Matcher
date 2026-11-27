@@ -56,7 +56,9 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def _require_production_config(self) -> "Settings":
-        if self.app_env != "production":
+        if self.app_env != "production" and not self.database_url.startswith(
+            ("postgresql", "postgres")
+        ):
             return self
 
         problems: list[str] = []
