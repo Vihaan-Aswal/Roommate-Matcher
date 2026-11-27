@@ -10,6 +10,7 @@ export default defineConfig({
     exclude: ["e2e/**", "node_modules/**", "dist/**"],
     maxWorkers: 10,
     minWorkers: 10,
+    testTimeout: 15000,
     deps: {
       optimizer: {
         web: {
@@ -30,6 +31,9 @@ export default defineConfig({
         "src/vite-env.d.ts",
       ],
       thresholds: {
+        lines: 95,
+        branches: 88,
+        functions: 96,
         "src/lib/**": { lines: 85, functions: 85 },
         "src/hooks/**": { lines: 85, functions: 85 },
         "src/pages/**": { lines: 85, functions: 85 },
