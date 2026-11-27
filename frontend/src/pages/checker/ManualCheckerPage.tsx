@@ -30,7 +30,8 @@ function resolveValidationMessage(
   }
 
   if (selectedExistingIds.length !== roomSize - 1) {
-    return `Select exactly ${roomSize - 1} existing students.`;
+    const required = roomSize - 1;
+    return `Select exactly ${required} existing ${required === 1 ? "student" : "students"}.`;
   }
 
   if (!selectedCandidateId) {

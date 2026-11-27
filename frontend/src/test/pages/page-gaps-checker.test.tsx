@@ -249,6 +249,16 @@ describe("ManualCheckerPage states", () => {
     expect(screen.getByText("Ready to run compatibility report.")).toBeInTheDocument();
   });
 
+  it("says one existing student when the room takes two", () => {
+    useSegmentStudentsQueryMock.mockReturnValue(
+      segmentStudentsQuery({ data: { ...SEGMENT_STUDENTS, room_size: 2 } }),
+    );
+
+    renderChecker();
+
+    expect(screen.getByText("Select exactly 1 existing student.")).toBeInTheDocument();
+  });
+
   it("filters the roster by name or admission number", () => {
     renderChecker();
 

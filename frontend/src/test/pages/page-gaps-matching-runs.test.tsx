@@ -295,6 +295,21 @@ describe("AdminMatchingRuns states and actions", () => {
     expect(refetchSegmentsMock).toHaveBeenCalled();
   });
 
+  it("says a segment has no missing profiles", async () => {
+    magicFillWorkspaceMock.mockResolvedValue({ profiles_created: 0 });
+
+    renderWithProviders(<AdminMatchingRuns />);
+
+    fireEvent.click(screen.getAllByRole("button", { name: /fill missing/i })[1]);
+
+    await waitFor(() =>
+      expect(toastMock).toHaveBeenCalledWith({
+        title: "Magic Fill complete",
+        description: "No missing profiles in this segment.",
+      }),
+    );
+  });
+
   it("reports a Magic Fill failure in a destructive toast", async () => {
     magicFillWorkspaceMock.mockRejectedValue(new Error("no roster rows"));
 

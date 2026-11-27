@@ -353,6 +353,22 @@ describe("AdminDashboard states", () => {
     expect(refetchMock).toHaveBeenCalled();
   });
 
+  it("says there is nothing to fill when every student has a profile", async () => {
+    magicFillWorkspaceMock.mockResolvedValue({ profiles_created: 0 });
+    showDashboard(dashboardData({ runId: "run-1", runStatus: "completed" }));
+
+    renderWithProviders(<AdminDashboard />);
+
+    fireEvent.click(screen.getByRole("button", { name: /fill missing profiles/i }));
+
+    await waitFor(() =>
+      expect(toastMock).toHaveBeenCalledWith({
+        title: "Magic Fill complete",
+        description: "Every student already has a profile; nothing to fill.",
+      }),
+    );
+  });
+
   it("reports a failed Magic Fill without refreshing", async () => {
     magicFillWorkspaceMock.mockRejectedValue(new Error("roster locked"));
     showDashboard(dashboardData({}));

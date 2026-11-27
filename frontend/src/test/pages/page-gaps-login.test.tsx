@@ -91,6 +91,9 @@ describe("LoginPage", () => {
     expect(screen.getByLabelText("Email")).toBeInTheDocument();
     expect(screen.getByLabelText("Password")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Sign in" })).toBeInTheDocument();
+    expect(
+      screen.getByText(/kept for up to 24 hours, then cleaned up/i),
+    ).toBeInTheDocument();
   });
 
   it("hides the sign-in form on the entry-only demo page", () => {

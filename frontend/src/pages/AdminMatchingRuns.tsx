@@ -46,7 +46,10 @@ export function AdminMatchingRuns(): JSX.Element {
       const result = await magicFillWorkspace(workspaceId, segment.segment_key);
       toast({
         title: "Magic Fill complete",
-        description: `${segmentLabel(segment)}: ${result.profiles_created} generated profiles.`,
+        description:
+          result.profiles_created === 0
+            ? "No missing profiles in this segment."
+            : `${segmentLabel(segment)}: ${result.profiles_created} generated profiles.`,
       });
       segmentsQuery.refetch();
     } catch (err) {

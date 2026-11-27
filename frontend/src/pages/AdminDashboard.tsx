@@ -73,7 +73,10 @@ export function AdminDashboard(): JSX.Element {
       const result = await magicFillWorkspace(workspaceId, null);
       toast({
         title: "Magic Fill complete",
-        description: `Created ${result.profiles_created} generated profiles across this workspace.`,
+        description:
+          result.profiles_created === 0
+            ? "Every student already has a profile; nothing to fill."
+            : `Created ${result.profiles_created} generated profiles across this workspace.`,
       });
       dashboardQuery.refetch();
     } catch (err) {
