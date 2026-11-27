@@ -81,6 +81,7 @@ export function AdminMatchingRuns(): JSX.Element {
   );
 
   const defaultSegmentKey = segments[0]?.segment_key ?? null;
+  const completedSegmentKey = mutationRun?.segment_keys?.[0] ?? defaultSegmentKey;
 
   const segmentColumns: DataTableColumn<SegmentOverview>[] = [
     {
@@ -182,8 +183,9 @@ export function AdminMatchingRuns(): JSX.Element {
             </span>
           );
         }
-        const roomRoute = defaultSegmentKey
-          ? `/app/${workspaceId}/matching-runs/${encodeURIComponent(row.run_id)}/rooms?segment=${encodeURIComponent(defaultSegmentKey)}&needsReview=0`
+        const rowSegmentKey = row.segment_keys?.[0] ?? defaultSegmentKey;
+        const roomRoute = rowSegmentKey
+          ? `/app/${workspaceId}/matching-runs/${encodeURIComponent(row.run_id)}/rooms?segment=${encodeURIComponent(rowSegmentKey)}&needsReview=0`
           : `/app/${workspaceId}/matching-runs`;
         return (
           <div className="desk-row" style={{ gap: 12 }}>
@@ -263,7 +265,7 @@ export function AdminMatchingRuns(): JSX.Element {
               <Button asChild size="sm" variant="outline">
                 <Link
                   to={`/app/${workspaceId}/matching-runs/${encodeURIComponent(runMutation.data.run_id)}/rooms${
-                    defaultSegmentKey ? `?segment=${encodeURIComponent(defaultSegmentKey)}` : ""
+                    completedSegmentKey ? `?segment=${encodeURIComponent(completedSegmentKey)}` : ""
                   }`}
                 >
                   Open the rooms

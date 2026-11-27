@@ -265,6 +265,25 @@ describe("AdminMatchingRuns states and actions", () => {
     );
   });
 
+  it("opens a run in its own segment rather than the first segment", () => {
+    useAdminMatchingRunsQueryMock.mockReturnValue(
+      runsQuery({
+        data: {
+          runs: [
+            { ...COMPLETED_RUN, segment_keys: ["F_2nd_year_NonAC_3"] },
+          ],
+        },
+      }),
+    );
+
+    renderWithProviders(<AdminMatchingRuns />);
+
+    expect(screen.getByRole("link", { name: "Rooms" })).toHaveAttribute(
+      "href",
+      "/app/ws_test/matching-runs/run-100/rooms?segment=F_2nd_year_NonAC_3&needsReview=0",
+    );
+  });
+
   it("reports a failed run with the server message", () => {
     useRunMatchingMutationMock.mockReturnValue(
       runMutation({ isError: true, error: new Error("no ready segments") }),

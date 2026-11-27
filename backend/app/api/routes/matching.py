@@ -4,7 +4,10 @@ import threading
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import select, exists
+from app.models.matching_run import MatchingRun
 from app.models.preference_profile import PreferenceProfile
+from app.models.room_assignment import RoomAssignment
+from app.models.segment import Segment
 
 from app.auth.dependencies import require_workspace_access, require_workspace_editor
 from app.models.tenant import Tenant
@@ -87,6 +90,24 @@ def get_matching_runs(
 ) -> MatchingRunListResponse:
     runs = list_matching_runs(db, workspace_id)
     progress = run_queue.progress_snapshot()
+
+    segment_keys_by_run: dict[str, list[str]] = {}
+    if runs:
+        segment_rows = db.execute(
+            select(MatchingRun.run_id, Segment.segment_key)
+            .join(RoomAssignment, RoomAssignment.matching_run_id == MatchingRun.id)
+            .join(Segment, Segment.id == RoomAssignment.segment_id)
+            .where(
+                MatchingRun.workspace_id == workspace_id,
+                MatchingRun.run_id.in_([run.run_id for run in runs]),
+            )
+            .distinct()
+        ).all()
+        for run_id, segment_key in segment_rows:
+            segment_keys_by_run.setdefault(run_id, []).append(segment_key)
+        for keys in segment_keys_by_run.values():
+            keys.sort()
+
     return MatchingRunListResponse(
         runs=[
             {
@@ -101,6 +122,7 @@ def get_matching_runs(
                     if run.status == "running" and run.run_id in progress
                     else run.segments_completed
                 ),
+                "segment_keys": segment_keys_by_run.get(run.run_id, []),
                 "error_message": run.error_message,
             }
             for run in runs

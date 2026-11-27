@@ -35,6 +35,7 @@ class MatchingRunHistoryRow(BaseModel):
     status: Literal["pending", "running", "completed", "failed"]
     scope: Literal["segment", "all_ready_segments"]
     segments_completed: int
+    segment_keys: list[str] = []
     error_message: str | None
 
 

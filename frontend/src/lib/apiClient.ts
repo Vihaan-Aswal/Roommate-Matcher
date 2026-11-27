@@ -240,6 +240,7 @@ export interface MatchingRunHistoryRow {
   status: "pending" | "running" | "completed" | "failed";
   scope: MatchingRunScope;
   segments_completed: number;
+  segment_keys?: string[];
   error_message: string | null;
 }
 

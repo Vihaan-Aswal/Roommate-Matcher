@@ -289,6 +289,41 @@ def test_matching_run_all_ready_segments_matches_every_ready_segment(
     assert row["segments_completed"] == 2
 
 
+def test_matching_history_reports_each_runs_own_segment(
+    client: TestClient, db_session: Session, seed_tenant_and_user
+) -> None:
+    tenant_id = seed_tenant_and_user["tenant_id"]
+    workspace_id = seed_tenant_and_user["workspace_id"]
+    headers = seed_tenant_and_user["headers"]
+
+    _seed_segment(
+        db_session,
+        tenant_id,
+        workspace_id,
+        segment_key="F_1st_year_AC_2",
+        gender="F",
+        admission_prefix="HF",
+    )
+    _seed_segment(
+        db_session,
+        tenant_id,
+        workspace_id,
+        segment_key="M_1st_year_AC_2",
+        gender="M",
+        admission_prefix="HM",
+    )
+    run_id = _run_matching(
+        client, workspace_id, headers, segment_key="M_1st_year_AC_2"
+    )
+
+    history = client.get(
+        f"/api/workspaces/{workspace_id}/matching/runs", headers=headers
+    )
+    assert history.status_code == 200
+    row = next(item for item in history.json()["runs"] if item["run_id"] == run_id)
+    assert row["segment_keys"] == ["M_1st_year_AC_2"]
+
+
 def test_matching_runs_requires_workspace_access(client: TestClient) -> None:
     response = client.get(f"/api/workspaces/{uuid.uuid4()}/matching/runs")
     assert response.status_code == 401
