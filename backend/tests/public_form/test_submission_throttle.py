@@ -7,15 +7,30 @@ from tests.public_form.test_payload_limits import VALID_ANSWERS
 
 
 def _submit(
-    client: TestClient, *, phone_last4: str = "7890", admission_number: str = "ADM001"
+    client: TestClient,
+    *,
+    phone_last4: str = "7890",
+    admission_number: str = "ADM001",
+    answers: dict | None = None,
 ):
     return client.post(
         "/api/public/forms/VALID_TOKEN/submit",
         json={
             "submitted_admission_number": admission_number,
             "submitted_phone_last4": phone_last4,
-            "answers": VALID_ANSWERS,
+            "answers": VALID_ANSWERS if answers is None else answers,
         },
+    )
+
+
+def _invalid_row_count(db_session: Session, workspace_id) -> int:
+    return (
+        db_session.query(FormResponse)
+        .filter(
+            FormResponse.workspace_id == workspace_id,
+            FormResponse.validation_status == "invalid",
+        )
+        .count()
     )
 
 
@@ -79,12 +94,40 @@ def test_workspace_invalid_row_cap_blocks_rotating_admissions(
 
     assert blocked.status_code == 429, blocked.text
     assert blocked.headers["retry-after"] == "3600"
-    invalid_rows = (
-        db_session.query(FormResponse)
-        .filter(
-            FormResponse.workspace_id == test_setup["workspace"].id,
-            FormResponse.validation_status == "invalid",
-        )
-        .count()
-    )
-    assert invalid_rows == 2
+    assert _invalid_row_count(db_session, test_setup["workspace"].id) == 2
+
+
+def test_workspace_invalid_row_cap_blocks_incomplete_submissions(
+    client: TestClient, test_setup, db_session: Session, monkeypatch
+) -> None:
+    monkeypatch.setattr(public_form, "MAX_INVALID_ROWS_PER_WORKSPACE", 2)
+    incomplete = {key: value for key, value in VALID_ANSWERS.items() if key != "q10_raw"}
+
+    for _ in range(2):
+        response = _submit(client, answers=incomplete)
+        assert response.status_code == 200, response.text
+        assert response.json()["error"] == "incomplete_form_submission"
+
+    blocked = _submit(client, answers=incomplete)
+
+    assert blocked.status_code == 429, blocked.text
+    assert blocked.headers["retry-after"] == "3600"
+    assert _invalid_row_count(db_session, test_setup["workspace"].id) == 2
+
+
+def test_workspace_invalid_row_cap_blocks_invalid_options(
+    client: TestClient, test_setup, db_session: Session, monkeypatch
+) -> None:
+    monkeypatch.setattr(public_form, "MAX_INVALID_ROWS_PER_WORKSPACE", 2)
+    bad_option = {**VALID_ANSWERS, "q1_raw": "not an allowed option"}
+
+    for _ in range(2):
+        response = _submit(client, answers=bad_option)
+        assert response.status_code == 200, response.text
+        assert response.json()["error"] == "invalid_form_option"
+
+    blocked = _submit(client, answers=bad_option)
+
+    assert blocked.status_code == 429, blocked.text
+    assert blocked.headers["retry-after"] == "3600"
+    assert _invalid_row_count(db_session, test_setup["workspace"].id) == 2

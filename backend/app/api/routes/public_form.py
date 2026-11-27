@@ -189,6 +189,7 @@ def submit_public_form(
     missing_answer_keys = _find_missing_answer_keys(normalized_answers)
 
     if missing_answer_keys:
+        _enforce_invalid_row_cap(db, workspace_id, submitted_at)
         db.add(
             FormResponse(
                 tenant_id=tenant_id,
@@ -206,6 +207,7 @@ def submit_public_form(
         return {"status": "recorded", "valid": False, "error": "incomplete_form_submission"}
 
     if not option_validation.is_valid:
+        _enforce_invalid_row_cap(db, workspace_id, submitted_at)
         db.add(
             FormResponse(
                 tenant_id=tenant_id,
