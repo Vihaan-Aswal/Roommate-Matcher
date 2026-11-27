@@ -99,6 +99,24 @@ def submit_public_form(
     workspace_id = link.workspace_id
     tenant_id = link.tenant_id
 
+    submitted_at = datetime.now(timezone.utc).replace(tzinfo=None)
+
+    recent_submissions = db.scalar(
+        select(func.count())
+        .select_from(FormResponse)
+        .where(
+            FormResponse.workspace_id == workspace_id,
+            FormResponse.submitted_admission_number == payload.submitted_admission_number,
+            FormResponse.submitted_at >= submitted_at - SUBMISSION_WINDOW,
+        )
+    ) or 0
+    if recent_submissions >= MAX_SUBMISSIONS_PER_ADMISSION:
+        raise HTTPException(
+            status_code=429,
+            detail="Too many submissions for this admission number. Wait a minute and try again.",
+            headers={"Retry-After": "60"},
+        )
+
     student = db.scalars(
         select(Student).where(
             Student.workspace_id == workspace_id,
@@ -106,8 +124,6 @@ def submit_public_form(
             Student.is_active == True,
         )
     ).first()
-
-    submitted_at = datetime.now(timezone.utc).replace(tzinfo=None)
 
     normalized_answers = _normalize_raw_answers(payload.answers)
 
@@ -127,22 +143,6 @@ def submit_public_form(
         )
         db.commit()
         return {"status": "recorded", "valid": False, "error": "Verification failed"}
-
-    recent_submissions = db.scalar(
-        select(func.count())
-        .select_from(FormResponse)
-        .where(
-            FormResponse.workspace_id == workspace_id,
-            FormResponse.submitted_admission_number == payload.submitted_admission_number,
-            FormResponse.submitted_at >= submitted_at - SUBMISSION_WINDOW,
-        )
-    ) or 0
-    if recent_submissions >= MAX_SUBMISSIONS_PER_ADMISSION:
-        raise HTTPException(
-            status_code=429,
-            detail="Too many submissions for this admission number. Wait a minute and try again.",
-            headers={"Retry-After": "60"},
-        )
 
     if student.phone_last4 != payload.submitted_phone_last4:
         db.add(
