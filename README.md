@@ -259,9 +259,9 @@ cd frontend && npm run e2e:install && npm run e2e
 ### Startup Order for Production
 
 1. **Render auto-deploys** the backend on every push to the configured branch.
-   - Build command: `pip install -e ".[dev]"`
-   - Start command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-   - Health check: `GET /health` → `{"status": "ok", "environment": "production"}`
+   - Build command (current): `pip install -e ".[dev]"`
+   - Start command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips="*"`
+   - Health probes: `GET /health/live` checks the process only; `GET /health` also pings the database and returns 503 when it is unavailable. Render currently probes `/health/live`; pointing it at `/health` is recommended so database failures trigger a restart (pending D-HEALTH).
 2. **Vercel auto-deploys** the frontend on every push.
    - Build command: `npm run build` (from `frontend/`)
    - Output directory: `frontend/dist`
@@ -273,6 +273,8 @@ cd frontend && npm run e2e:install && npm run e2e
    cd backend
    alembic upgrade head
    ```
+
+**Reproducible installs:** Render currently uses `pip install -e ".[dev]"` and Vercel uses its default `npm install`, so neither build is lockfile-pinned. For exact dependency versions use `uv sync --locked` (backend) and `npm ci` (frontend); switching the platforms over is pending D-LOCK.
 
 ---
 
@@ -290,15 +292,24 @@ cd frontend && npm run e2e:install && npm run e2e
 | `APP_JWT_SECRET` | 32-byte hex secret for app-issued tokens — `openssl rand -hex 32` |
 | `ADMIN_EMAILS` | Comma-separated platform admin emails |
 | `FRONTEND_URL` | `https://roommate-matcher.vercel.app` |
-| `CORS_ALLOWED_ORIGINS` | `https://roommate-matcher.vercel.app` |
+| `CORS_ALLOWED_ORIGINS` | Must be a JSON array, e.g. `["http://localhost:5173","https://roommate-matcher.vercel.app"]`; a bare URL is rejected at startup |
 | `APP_ENV` | `production` |
 | `DEMO_TTL_HOURS` | `24` |
 | `CLEANUP_JOB_SECRET` | 32-byte hex secret for cleanup cron — `openssl rand -hex 32` |
-| `WHATSAPP_DFY_NUMBER` | WhatsApp DFY number with country code, no spaces |
 
 ---
 
-### Required GitHub Secrets (for Demo Cleanup Cron)
+### Demo Cleanup (currently manual)
+
+The scheduled workflow (`.github/workflows/demo-cleanup.yml`) is disabled pending D-CRON, so expired demo tenants are **not** purged automatically. Re-enable it in GitHub Actions (Workflows → Demo Tenant Cleanup → Enable workflow, or trigger it with *Run workflow*), or call the endpoint directly:
+
+```bash
+curl --fail --request POST \
+  --header "Authorization: Bearer $CLEANUP_JOB_SECRET" \
+  https://roommate-matcher-backend-dev.onrender.com/api/internal/cleanup/demo-tenants
+```
+
+Required GitHub secrets once the schedule is enabled:
 
 | Secret | Value |
 |---|---|
