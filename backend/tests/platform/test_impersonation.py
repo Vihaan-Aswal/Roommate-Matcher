@@ -128,6 +128,26 @@ def test_require_platform_admin_blocks_demo_session(client: TestClient, seeded_t
     assert res.status_code == 403
 
 
+def test_demo_token_with_admin_email_reports_no_platform_admin(
+    client: TestClient, seeded_tenant_and_workspace
+):
+    demo_token = issue_test_demo_token(
+        "admin@platform.com",
+        seeded_tenant_and_workspace["tenant_id"],
+        seeded_tenant_and_workspace["workspace_id"],
+    )
+
+    me = client.get("/api/auth/me", headers={"Authorization": f"Bearer {demo_token}"})
+    assert me.status_code == 200, me.text
+    assert me.json()["is_demo"] is True
+    assert me.json()["is_platform_admin"] is False
+
+    blocked = client.get(
+        "/api/platform/tenants", headers={"Authorization": f"Bearer {demo_token}"}
+    )
+    assert blocked.status_code == 403
+
+
 def test_platform_admin_can_list_tenants(client: TestClient, platform_admin_token: str, seeded_tenant_and_workspace, seeded_demo_tenant):
     res = client.get(
         "/api/platform/tenants",
