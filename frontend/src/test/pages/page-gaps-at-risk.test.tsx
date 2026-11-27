@@ -28,7 +28,6 @@ function renderPage(initialEntry: string) {
     <QueryClientProvider client={queryClient}>
       <MemoryRouter
         initialEntries={[initialEntry]}
-        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
       >
         <WorkspaceContext.Provider
           value={{

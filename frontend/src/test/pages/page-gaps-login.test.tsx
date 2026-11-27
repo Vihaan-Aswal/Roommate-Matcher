@@ -37,7 +37,6 @@ function renderPage() {
   return render(
     <MemoryRouter
       initialEntries={["/login"]}
-      future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
     >
       <Routes>
         <Route
@@ -98,7 +97,7 @@ describe("LoginPage", () => {
 
   it("hides the sign-in form on the entry-only demo page", () => {
     render(
-      <MemoryRouter initialEntries={["/try"]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter initialEntries={["/try"]}>
         <Routes>
           <Route path="/try" element={<LoginPage entryOnly />} />
         </Routes>

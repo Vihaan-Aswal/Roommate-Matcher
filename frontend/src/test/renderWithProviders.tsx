@@ -32,7 +32,7 @@ export function renderWithProviders(
 
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={initialEntries} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter initialEntries={initialEntries}>
         <WorkspaceContext.Provider
           value={{
             workspaceId: "ws_test",

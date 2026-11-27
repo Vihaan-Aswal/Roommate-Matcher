@@ -163,7 +163,7 @@ describe("phase 7 deep links", () => {
 
     return render(
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={[normalizedEntry]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <MemoryRouter initialEntries={[normalizedEntry]}>
           <Routes>
             <Route
               path="/app/:workspaceId/matching-runs/:runId/students"

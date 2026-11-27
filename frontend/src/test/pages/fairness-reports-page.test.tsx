@@ -112,7 +112,7 @@ describe("FairnessReportsPage", () => {
 
     return render(
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={["/app/ws_test/fairness/run-100?segment=all"]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <MemoryRouter initialEntries={["/app/ws_test/fairness/run-100?segment=all"]}>
           <Routes>
             <Route
               path="/app/:workspaceId/fairness/:runId"

@@ -13,7 +13,6 @@ describe("HomePage interactions", () => {
     return render(
       <MemoryRouter
         initialEntries={[path]}
-        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
       >
         <HomePage />
       </MemoryRouter>,

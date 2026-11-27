@@ -116,7 +116,7 @@ describe("result route contracts", () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={[initialEntry]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <MemoryRouter initialEntries={[initialEntry]}>
           <Routes>
             <Route path={path} element={element} />
           </Routes>

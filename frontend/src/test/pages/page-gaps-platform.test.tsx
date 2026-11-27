@@ -54,7 +54,6 @@ function renderTenants() {
     <QueryClientProvider client={queryClient}>
       <MemoryRouter
         initialEntries={["/platform"]}
-        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
       >
         <Routes>
           <Route
@@ -82,7 +81,6 @@ function renderWorkspaces() {
     <QueryClientProvider client={queryClient}>
       <MemoryRouter
         initialEntries={["/platform/tenants/tenant-alpha/workspaces"]}
-        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
       >
         <Routes>
           <Route
