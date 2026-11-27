@@ -25,10 +25,39 @@ export function DetailSidePanelShell({
 
   useEffect(() => {
     if (!open) return;
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     closeRef.current?.focus();
+
+    const focusableSelector =
+      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         onClose();
+        return;
+      }
+      if (event.key !== "Tab") return;
+
+      const panel = panelRef.current;
+      if (!panel) return;
+      const focusable = Array.from(panel.querySelectorAll<HTMLElement>(focusableSelector));
+      if (focusable.length === 0) {
+        event.preventDefault();
+        panel.focus();
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement;
+      if (event.shiftKey) {
+        if (active === first || !panel.contains(active)) {
+          event.preventDefault();
+          last.focus();
+        }
+      } else if (active === last || !panel.contains(active)) {
+        event.preventDefault();
+        first.focus();
       }
     };
     document.addEventListener("keydown", onKeyDown);
@@ -37,6 +66,7 @@ export function DetailSidePanelShell({
     return () => {
       document.removeEventListener("keydown", onKeyDown);
       document.body.style.overflow = previousOverflow;
+      if (opener?.isConnected) opener.focus();
     };
   }, [open, onClose]);
 
