@@ -156,6 +156,51 @@ def test_viewer_is_forbidden_on_every_write_route(
         assert response.json()["detail"] == expected_detail
 
 
+def test_viewer_cannot_create_a_form_link(
+    client: TestClient, db_session: Session, seed_tenant_and_user
+) -> None:
+    workspace_id = seed_tenant_and_user["workspace_id"]
+    viewer_token = _mint_app_token(
+        tenant_id=seed_tenant_and_user["tenant_id"],
+        workspace_id=workspace_id,
+        role="viewer",
+        is_demo=False,
+    )
+
+    response = client.get(
+        f"/api/workspaces/{workspace_id}/form-link", headers=_bearer(viewer_token)
+    )
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "No active form link. An editor can create one."
+    assert (
+        db_session.query(WorkspaceFormLink)
+        .filter(WorkspaceFormLink.workspace_id == workspace_id)
+        .count()
+        == 0
+    )
+
+
+def test_owner_get_form_link_creates_one(
+    client: TestClient, db_session: Session, seed_tenant_and_user
+) -> None:
+    workspace_id = seed_tenant_and_user["workspace_id"]
+
+    response = client.get(
+        f"/api/workspaces/{workspace_id}/form-link",
+        headers=seed_tenant_and_user["headers"],
+    )
+
+    assert response.status_code == 200
+    assert response.json()["token"]
+    assert (
+        db_session.query(WorkspaceFormLink)
+        .filter(WorkspaceFormLink.workspace_id == workspace_id)
+        .count()
+        == 1
+    )
+
+
 def test_owner_can_write_while_viewer_can_still_read(
     client: TestClient, db_session: Session, seed_tenant_and_user
 ) -> None:

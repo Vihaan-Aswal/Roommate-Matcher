@@ -123,9 +123,14 @@ def get_form_link(
     workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_access),
 ) -> FormLinkResponse:
     user, tenant, workspace = workspace_ctx
-    link = get_active_token(db, workspace.id) or regenerate_token(
-        db, workspace.id, tenant.id
-    )
+    link = get_active_token(db, workspace.id)
+    if link is None:
+        if user.role == "viewer":
+            raise HTTPException(
+                status_code=404,
+                detail="No active form link. An editor can create one.",
+            )
+        link = regenerate_token(db, workspace.id, tenant.id)
     return FormLinkResponse(token=link.public_form_token, expires_at=link.expires_at)
 
 
