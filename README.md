@@ -225,7 +225,7 @@ Approximate engine timings on the reference machine:
 | 200 students | 9.0s | 13.9s | 13.4s |
 | 500 students | 113s | 154s | — |
 
-**Known limitation:** demo and guest workspaces cap each segment at 100 students. Larger cohorts need a regular workspace.
+
 
 ---
 
@@ -459,8 +459,16 @@ python demo-data/seed.py --reset --schema-only
 
 ## Known limitations
 
-- CSV export supported; PDF reporting is out of scope for v1
-- Matching runs execute synchronously in the API flow
+- Matching is approximately O(n^2.8); timings are in [Matching performance](#matching-performance). No algorithmic rewrite is planned. Demo/guest workspaces cap each segment at 100 students; larger cohorts need a regular workspace.
+- Single-worker assumption: the run-start 409 guard is a process-local lock; run one uvicorn worker. There is no DB-level active-run uniqueness.
+- Rate limits are not atomic; per-IP keys depend on proxy headers (SEC-1b deferred). DB demo/form caps bound bursts.
+- `phone_last4` is demo-grade verification, not strong identity; there is no OTP or backoff.
+- Result payloads are not paginated (`students/all-segments` can be ~321 KiB at 330 students).
+- Demo data has a 24h TTL; cleanup is periodic (boot batch of 200 plus the internal endpoint). The GitHub cron is owner-handled.
+- Security posture: CSP covers only `object-src`, `base-uri`, `frame-ancestors`; impersonation TTL is 45 minutes with no revocation denylist; cryptography 44.0.3 advisories are not on the RS256/ES256 verification path; react-router 6.30.6 has 2 moderate open-redirect advisories fixed only in major 7.
+- A tab opened before cross-tab sign-in needs a reload after the lazy Supabase change.
+- A local production preview on `:4173` needs its origin added to CORS; the production Vercel origin is allowlisted.
+- mypy is strict on matching/scoring/auth, but 38 existing errors are baselined (104 total); CI fails only if the count rises.
 
 ---
 
