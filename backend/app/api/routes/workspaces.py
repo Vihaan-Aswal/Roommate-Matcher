@@ -190,7 +190,7 @@ def preview_student_upload(
     request: Request,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_access),
+    workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_editor),
 ) -> StudentImportDiffResponse:
     """
     Parse the uploaded CSV in-memory and return a diff preview.
@@ -287,7 +287,7 @@ def preview_room_upload(
     request: Request,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_access),
+    workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_editor),
 ) -> RoomImportDiffResponse:
     user, tenant, workspace = workspace_ctx
 

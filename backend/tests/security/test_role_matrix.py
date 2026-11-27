@@ -108,7 +108,17 @@ def _write_requests(workspace_id: uuid.UUID) -> list[tuple[str, str, dict]]:
         ("POST", "/api/workspaces", {"json": {"name": "Viewer Workspace"}}),
         (
             "POST",
+            f"/api/workspaces/{workspace_id}/students/upload/preview",
+            {"files": csv_file},
+        ),
+        (
+            "POST",
             f"/api/workspaces/{workspace_id}/students/upload/apply",
+            {"files": csv_file},
+        ),
+        (
+            "POST",
+            f"/api/workspaces/{workspace_id}/rooms/upload/preview",
             {"files": csv_file},
         ),
         (
