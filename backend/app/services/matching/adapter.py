@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
 
 from app.models.preference_profile import PreferenceProfile
 from app.services.scoring.types import ScoringProfile

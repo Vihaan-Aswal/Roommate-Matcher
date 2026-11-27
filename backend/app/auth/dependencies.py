@@ -20,7 +20,7 @@ import jwt
 from fastapi import Depends, Header, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.auth.contracts import AuthenticatedUser, RoleKind
+from app.auth.contracts import AuthenticatedUser
 from app.auth.supabase import verify_supabase_jwt
 from app.auth.tokens import verify_app_token
 from app.config import get_settings

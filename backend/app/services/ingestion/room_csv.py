@@ -3,7 +3,6 @@ from __future__ import annotations
 import csv
 import uuid
 from dataclasses import dataclass, field as dc_field
-from pathlib import Path
 from uuid import UUID
 
 from sqlalchemy import insert, select

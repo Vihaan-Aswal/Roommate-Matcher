@@ -5,7 +5,7 @@ from typing import Literal
 
 from app.services.explainability.contracts import FactorClass
 from app.services.scoring.constants import FACTOR_BASE_WEIGHTS, SCORING_FACTOR_KEYS
-from app.services.scoring.types import FactorScore, PairResult
+from app.services.scoring.types import FactorScore
 
 EPSILON = 1e-9
 

@@ -12,7 +12,7 @@ MAX_SUBMISSIONS_PER_ADMISSION = 5
 SUBMISSION_WINDOW = timedelta(minutes=1)
 MAX_INVALID_ROWS_PER_WORKSPACE = 100
 INVALID_ROWS_WINDOW = timedelta(hours=1)
-from sqlalchemy import func, select, desc
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 

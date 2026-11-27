@@ -183,7 +183,6 @@ def get_all_segments_students(
     from app.models.room_assignment import RoomAssignment
     from app.models.segment import Segment
     from sqlalchemy import select
-    import json
     
     # We just need to know which segments are part of the run
     # and then call get_run_students_from_persisted_artifacts for each

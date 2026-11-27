@@ -38,10 +38,17 @@ jobs:
           enable-cache: true
           cache-dependency-glob: backend/uv.lock
 
-      - name: Install and run backend suite
+      - name: Install backend dependencies
+        working-directory: backend
+        run: uv sync --locked --extra dev
+
+      - name: Lint with Pyflakes
+        working-directory: backend
+        run: uvx ruff==0.9.0 check app
+
+      - name: Run backend suite
         working-directory: backend
         run: |
-          uv sync --locked --extra dev
           uv run --extra dev pytest --cov=app --cov-report=term-missing --cov-report=json:coverage.json
           uv run python scripts/check_coverage.py
 

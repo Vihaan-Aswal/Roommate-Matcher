@@ -35,7 +35,7 @@ from app.services.ingestion.form_collection import compute_form_collection_statu
 from app.schemas.workspace import FormLinkResponse
 from app.schemas.form import FormStatusResponse, NonSubmittersResponse, NonSubmitterResponseRow
 from app.schemas.segment import SegmentListResponse, SegmentStudentsResponse
-from app.services.segments.status import compute_segment_status, get_segment_students_preference_status, list_segment_overviews
+from app.services.segments.status import get_segment_students_preference_status, list_segment_overviews
 from app.models.segment import Segment
 from app.schemas.magic_fill import MagicFillRequest, MagicFillResponse
 from app.services.magic_fill.service import magic_fill
