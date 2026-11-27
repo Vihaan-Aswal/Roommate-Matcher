@@ -2,7 +2,7 @@
   "framework": "vite",
   "outputDirectory": "dist",
   "buildCommand": "npm run build",
-  "installCommand": "npm install",
+  "installCommand": "npm ci",
   "headers": [
     {
       "source": "/(.*)",
