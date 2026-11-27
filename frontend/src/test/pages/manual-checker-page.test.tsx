@@ -31,6 +31,7 @@ vi.mock("../../hooks/useManualCheckerMutation", () => ({
 }));
 
 vi.mock("@radix-ui/react-select", () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const React = require("react");
   const Dummy = React.forwardRef(({ children }: any, ref: any) => children || null);
   Dummy.displayName = "Dummy";

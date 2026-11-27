@@ -14,6 +14,7 @@ describe("cn", () => {
   });
 
   it("ignores falsy and conditional entries", () => {
+    // eslint-disable-next-line no-constant-binary-expression
     expect(cn("flex", false && "hidden", undefined, null, "", "gap-2")).toBe("flex gap-2");
   });
 

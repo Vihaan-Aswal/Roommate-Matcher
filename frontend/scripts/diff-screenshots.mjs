@@ -8,12 +8,8 @@
  */
 import fs from "node:fs/promises";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { chromium } from "@playwright/test";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(__dirname, "..", "..");
 
 const [dirA, baseA, dirB, baseB, ...widths] = process.argv.slice(2);
 if (!dirA || !baseA || !dirB || !baseB) {
