@@ -93,6 +93,22 @@ describe("LoginPage", () => {
     expect(screen.getByRole("button", { name: "Sign in" })).toBeInTheDocument();
   });
 
+  it("hides the sign-in form on the entry-only demo page", () => {
+    render(
+      <MemoryRouter initialEntries={["/try"]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <Routes>
+          <Route path="/try" element={<LoginPage entryOnly />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(
+      screen.getByRole("button", { name: /open the demo workspace/i }),
+    ).toBeInTheDocument();
+    expect(screen.queryByLabelText("Email")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Password")).not.toBeInTheDocument();
+  });
+
   it("sends an already-signed-in visitor with a demo session straight to that workspace", () => {
     sessionStorage.setItem("demo_token", "demo-token");
     sessionStorage.setItem("demo_workspace_id", "ws-demo");

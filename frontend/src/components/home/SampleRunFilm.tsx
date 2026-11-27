@@ -815,7 +815,7 @@ function EndCard({
         </p>
         <p className="film-end-line">The desk proposes. A person signs.</p>
         <div className="film-end-actions">
-          <Link className="mm-btn mm-btn-wax" to="/login">
+          <Link className="mm-btn mm-btn-wax" to="/try">
             Open the desk
             <ArrowRight size={16} strokeWidth={1.8} aria-hidden="true" />
           </Link>

@@ -28,7 +28,7 @@ describe("public homepage route", () => {
     expect(screen.getByText(/room allocation desk/i)).toBeInTheDocument();
     const deskLinks = screen.getAllByRole("link", { name: /open the desk/i });
     expect(deskLinks.length).toBeGreaterThan(0);
-    deskLinks.forEach((link) => expect(link).toHaveAttribute("href", "/login"));
+    deskLinks.forEach((link) => expect(link).toHaveAttribute("href", "/try"));
     expect(
       screen.getByRole("button", { name: /^play the sample run$/i }),
     ).toBeInTheDocument();

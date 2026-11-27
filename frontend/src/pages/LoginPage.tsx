@@ -22,7 +22,7 @@ const DEMO_COLD_GRACE_MS = 1500;
 // free-tier cold start is about 50s. 60s is the honest combined estimate.
 const DEMO_COLD_START_SECONDS = 60;
 
-export function LoginPage(): JSX.Element {
+export function LoginPage({ entryOnly = false }: { entryOnly?: boolean }): JSX.Element {
   const { signInWithEmail, startDemoSession, user } = useAuth();
   const navigate = useNavigate();
   const prewarmReady = useRef(false);
@@ -208,62 +208,66 @@ export function LoginPage(): JSX.Element {
               </div>
             ) : null}
 
-            <hr className="desk-rule" style={{ margin: "22px 0 18px" }} />
+            {entryOnly ? null : (
+              <>
+              <hr className="desk-rule" style={{ margin: "22px 0 18px" }} />
 
-            <form onSubmit={handleLogin} className="desk-stack-sm" noValidate>
-              <div>
-                <p className="desk-overline">Sign in</p>
-                <p className="desk-help" style={{ marginTop: 4 }}>
-                  For an account your institute already administers.
-                </p>
-              </div>
-
-              <div className="desk-field">
-                <label className="desk-label" htmlFor="email">
-                  Email
-                </label>
-                <input
-                  id="email"
-                  className="desk-input"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={email}
-                  aria-invalid={loginError ? true : undefined}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                />
-              </div>
-
-              <div className="desk-field">
-                <label className="desk-label" htmlFor="password">
-                  Password
-                </label>
-                <input
-                  id="password"
-                  className="desk-input"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  value={password}
-                  aria-invalid={loginError ? true : undefined}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                />
-              </div>
-
-              <div aria-live="polite">
-                {loginError ? (
-                  <p className="desk-error" role="alert">
-                    {loginError}
+              <form onSubmit={handleLogin} className="desk-stack-sm" noValidate>
+                <div>
+                  <p className="desk-overline">Sign in</p>
+                  <p className="desk-help" style={{ marginTop: 4 }}>
+                    For an account your institute already administers.
                   </p>
-                ) : null}
-              </div>
+                </div>
 
-              <button className="desk-btn desk-btn-ghost desk-btn-block" type="submit" disabled={loginLoading}>
-                {loginLoading ? "Signing in…" : "Sign in"}
-              </button>
-            </form>
+                <div className="desk-field">
+                  <label className="desk-label" htmlFor="email">
+                    Email
+                  </label>
+                  <input
+                    id="email"
+                    className="desk-input"
+                    type="email"
+                    autoComplete="email"
+                    required
+                    value={email}
+                    aria-invalid={loginError ? true : undefined}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                  />
+                </div>
+
+                <div className="desk-field">
+                  <label className="desk-label" htmlFor="password">
+                    Password
+                  </label>
+                  <input
+                    id="password"
+                    className="desk-input"
+                    type="password"
+                    autoComplete="current-password"
+                    required
+                    value={password}
+                    aria-invalid={loginError ? true : undefined}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                  />
+                </div>
+
+                <div aria-live="polite">
+                  {loginError ? (
+                    <p className="desk-error" role="alert">
+                      {loginError}
+                    </p>
+                  ) : null}
+                </div>
+
+                <button className="desk-btn desk-btn-ghost desk-btn-block" type="submit" disabled={loginLoading}>
+                  {loginLoading ? "Signing in…" : "Sign in"}
+                </button>
+              </form>
+              </>
+            )}
           </div>
           </main>
         </div>

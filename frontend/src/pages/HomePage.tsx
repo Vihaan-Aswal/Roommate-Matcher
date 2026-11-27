@@ -108,7 +108,7 @@ export function HomePage(): JSX.Element {
             Roommate Matcher
           </a>
           <HeaderStation />
-          <Link className="mm-header-cta" to="/login">
+          <Link className="mm-header-cta" to="/try">
             Open the desk
             <ArrowRight size={15} strokeWidth={1.8} aria-hidden="true" />
           </Link>
@@ -145,7 +145,7 @@ export function HomePage(): JSX.Element {
               </p>
 
               <div className="mm-actions">
-                <Link className="mm-btn mm-btn-wax" to="/login">
+                <Link className="mm-btn mm-btn-wax" to="/try">
                   Open the desk
                   <ArrowRight size={17} strokeWidth={1.8} aria-hidden="true" />
                 </Link>
@@ -197,7 +197,7 @@ export function HomePage(): JSX.Element {
               The desk is ready.
             </h2>
             <p className="mm-close-line">A run proposes. A person signs. Keys follow.</p>
-            <Link className="mm-btn mm-btn-wax mm-btn-large" to="/login">
+            <Link className="mm-btn mm-btn-wax mm-btn-large" to="/try">
               Open the desk
               <ArrowRight size={18} strokeWidth={1.8} aria-hidden="true" />
             </Link>
@@ -213,7 +213,7 @@ export function HomePage(): JSX.Element {
           </div>
           <div className="mm-footer-notes">
             <p>Sample figures on this page are illustrative.</p>
-            <Link to="/login">Open the desk</Link>
+            <Link to="/try">Open the desk</Link>
           </div>
         </div>
       </footer>

@@ -58,14 +58,15 @@ describe("HomePage interactions", () => {
 
     expect(screen.getByText(/cold open · the desk at night/i)).toBeInTheDocument();
     expect(screen.getByRole("figure")).toBeInTheDocument();
+    expect(document.querySelector(".film-end-actions a")).toHaveAttribute("href", "/try");
   });
 
-  it("links every call to action to the login desk", () => {
+  it("links every call to action to the demo entry", () => {
     renderHome();
 
     const deskLinks = screen.getAllByRole("link", { name: /open the desk/i });
     expect(deskLinks.length).toBeGreaterThan(0);
-    deskLinks.forEach((link) => expect(link).toHaveAttribute("href", "/login"));
+    deskLinks.forEach((link) => expect(link).toHaveAttribute("href", "/try"));
     expect(screen.getByRole("link", { name: /back to top/i })).toHaveAttribute("href", "#top");
   });
 });

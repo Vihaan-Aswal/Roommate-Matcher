@@ -88,7 +88,7 @@ function PlatformRoute({ children }: { children: React.ReactNode }) {
 /**
  * ProtectedRoute — renders children only when the user is authenticated.
  * Shows the desk's boot state while AuthProvider is bootstrapping.
- * Redirects to /login otherwise.
+ * Redirects to /try otherwise.
  */
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
@@ -98,7 +98,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (!user) {
-    return <Navigate replace to="/login" />;
+    return <Navigate replace to="/try" />;
   }
 
   return <>{children}</>;
@@ -114,6 +114,7 @@ export default function App(): JSX.Element {
 
           {/* Auth */}
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/try" element={<LoginPage entryOnly />} />
 
           {/* Public student-facing form — no auth required */}
           <Route path="/f/:token" element={<StudentForm />} />
@@ -173,8 +174,8 @@ export default function App(): JSX.Element {
           {/* Legacy redirect */}
           <Route path="/admin/*" element={<Navigate replace to="/app" />} />
 
-          {/* Catch-all → login */}
-          <Route path="*" element={<Navigate replace to="/login" />} />
+          {/* Catch-all → guest entry */}
+          <Route path="*" element={<Navigate replace to="/" />} />
         </Routes>
       </Suspense>
       <Toaster />
