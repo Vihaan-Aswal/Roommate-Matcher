@@ -4,7 +4,6 @@ import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { vi } from "vitest";
 
 import { FairnessReportsPage } from "../../pages/reports/FairnessReportsPage";
-import { WorkspaceContext } from "../../providers/WorkspaceProvider";
 
 const { useAdminMatchingRunsQueryMock, useRunFairnessQueryMock } = vi.hoisted(
   () => ({

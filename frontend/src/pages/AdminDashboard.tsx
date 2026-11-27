@@ -175,9 +175,6 @@ export function AdminDashboard(): JSX.Element {
       : null,
   ].filter((blocker): blocker is NonNullable<typeof blocker> => blocker !== null);
 
-  const collectionRatio =
-    typeof stats?.percentage_complete === "number" ? Math.min(100, Math.max(0, stats.percentage_complete)) : 0;
-
   return (
     <section className="desk-stack">
       <AdminPageHeader

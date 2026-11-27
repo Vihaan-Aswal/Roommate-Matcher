@@ -21,7 +21,7 @@ import {
 import { useWorkspace } from "../providers/WorkspaceProvider";
 import { segmentLabel } from "../lib/segmentLabel";
 import { Button } from "../components/ui/button";
-import { DiffPreviewPanel, type UnifiedDiffEntry } from "../components/DiffPreviewPanel";
+import { DiffPreviewPanel } from "../components/DiffPreviewPanel";
 
 type UploadStep = "select" | "preview" | "applied";
 

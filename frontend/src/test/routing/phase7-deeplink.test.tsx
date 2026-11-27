@@ -4,7 +4,6 @@ import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { vi } from "vitest";
 
 import { StudentResultsPage } from "../../pages/matching/StudentResultsPage";
-import { WorkspaceContext } from "../../providers/WorkspaceProvider";
 
 const {
   useAdminSegmentsQueryMock,

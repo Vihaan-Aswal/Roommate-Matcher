@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 
 import { adminQueryKeys } from "./adminQueryKeys";
 import { getRunStudentsAllSegments } from "../lib/apiClient";
-import type { RunStudentRow } from "../lib/apiClient";
 
 export function useRunStudentsAllSegmentsQuery(
   workspaceId: string,

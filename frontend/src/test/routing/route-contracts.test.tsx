@@ -5,7 +5,6 @@ import { vi } from "vitest";
 
 import { RoomResultsPage } from "../../pages/matching/RoomResultsPage";
 import { StudentResultsPage } from "../../pages/matching/StudentResultsPage";
-import { WorkspaceContext } from "../../providers/WorkspaceProvider";
 
 const {
   useAdminSegmentsQueryMock,
