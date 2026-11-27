@@ -10,6 +10,8 @@ from app.rate_limit import limiter
 RATE_LIMIT_SUBMIT = "600/minute"
 MAX_SUBMISSIONS_PER_ADMISSION = 5
 SUBMISSION_WINDOW = timedelta(minutes=1)
+MAX_INVALID_ROWS_PER_WORKSPACE = 100
+INVALID_ROWS_WINDOW = timedelta(hours=1)
 from sqlalchemy import func, select, desc
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -52,6 +54,26 @@ class PublicFormSubmitPayload(BaseModel):
         if too_long:
             raise ValueError(f"Answer values exceed 200 characters: {too_long}")
         return answers
+
+
+def _enforce_invalid_row_cap(
+    db: Session, workspace_id: uuid.UUID, submitted_at: datetime
+) -> None:
+    recent_invalid = db.scalar(
+        select(func.count())
+        .select_from(FormResponse)
+        .where(
+            FormResponse.workspace_id == workspace_id,
+            FormResponse.validation_status == "invalid",
+            FormResponse.submitted_at >= submitted_at - INVALID_ROWS_WINDOW,
+        )
+    ) or 0
+    if recent_invalid >= MAX_INVALID_ROWS_PER_WORKSPACE:
+        raise HTTPException(
+            status_code=429,
+            detail="Too many invalid submissions for this workspace. Try again later.",
+            headers={"Retry-After": "3600"},
+        )
 
 
 @router.get("/{public_form_token}")
@@ -128,6 +150,7 @@ def submit_public_form(
     normalized_answers = _normalize_raw_answers(payload.answers)
 
     if not student:
+        _enforce_invalid_row_cap(db, workspace_id, submitted_at)
         db.add(
             FormResponse(
                 tenant_id=tenant_id,
@@ -145,6 +168,7 @@ def submit_public_form(
         return {"status": "recorded", "valid": False, "error": "Verification failed"}
 
     if student.phone_last4 != payload.submitted_phone_last4:
+        _enforce_invalid_row_cap(db, workspace_id, submitted_at)
         db.add(
             FormResponse(
                 tenant_id=tenant_id,

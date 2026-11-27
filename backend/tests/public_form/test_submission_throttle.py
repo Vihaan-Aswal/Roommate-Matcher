@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
+from app.api.routes import public_form
 from app.models.form_response import FormResponse
 from tests.public_form.test_payload_limits import VALID_ANSWERS
 
@@ -62,3 +63,28 @@ def test_unknown_admission_numbers_are_throttled(
     assert "Too many submissions" in blocked.json()["detail"]
     assert blocked.headers["retry-after"] == "60"
     assert db_session.query(FormResponse).count() == 5
+
+
+def test_workspace_invalid_row_cap_blocks_rotating_admissions(
+    client: TestClient, test_setup, db_session: Session, monkeypatch
+) -> None:
+    monkeypatch.setattr(public_form, "MAX_INVALID_ROWS_PER_WORKSPACE", 2)
+
+    for admission_number in ("UNKNOWN001", "UNKNOWN002"):
+        response = _submit(client, admission_number=admission_number)
+        assert response.status_code == 200, response.text
+        assert response.json()["valid"] is False
+
+    blocked = _submit(client, admission_number="UNKNOWN003")
+
+    assert blocked.status_code == 429, blocked.text
+    assert blocked.headers["retry-after"] == "3600"
+    invalid_rows = (
+        db_session.query(FormResponse)
+        .filter(
+            FormResponse.workspace_id == test_setup["workspace"].id,
+            FormResponse.validation_status == "invalid",
+        )
+        .count()
+    )
+    assert invalid_rows == 2
