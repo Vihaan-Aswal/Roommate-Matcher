@@ -12,6 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.config import get_settings
 from slowapi import _rate_limit_exceeded_handler
@@ -37,6 +38,21 @@ from app.api.routes.internal import router as internal_router
 
 _SHOWCASE_EXCLUDED_PREFIXES = ("/api", "/docs", "/redoc", "/static")
 _SHOWCASE_EXCLUDED_EXACT_PATHS = {"/health", "/openapi.json"}
+
+SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "X-Frame-Options": "DENY",
+    "Strict-Transport-Security": "max-age=31536000",
+}
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        for name, value in SECURITY_HEADERS.items():
+            response.headers.setdefault(name, value)
+        return response
 
 
 def _is_showcase_excluded_path(path: str) -> bool:
@@ -118,6 +134,7 @@ def create_app(*, frontend_dist_dir: Path | None = None) -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    application.add_middleware(SecurityHeadersMiddleware)
     application.include_router(auth_router)  # auth router handles its own /api/auth prefix
     application.include_router(workspaces_router)
     application.include_router(public_form_router, prefix="/api/public/forms", tags=["public_form"])
