@@ -295,7 +295,7 @@ cd frontend && npm run e2e:install && npm run e2e
 | `APP_JWT_SECRET` | 32-byte hex secret for app-issued tokens — `openssl rand -hex 32` |
 | `ADMIN_EMAILS` | Comma-separated platform admin emails |
 | `FRONTEND_URL` | `https://roommate-matcher.vercel.app` |
-| `CORS_ALLOWED_ORIGINS` | Must be a JSON array, e.g. `["http://localhost:5173","https://roommate-matcher.vercel.app"]`; a bare URL is rejected at startup |
+| `CORS_ALLOWED_ORIGINS` | Production-only JSON array, e.g. `["https://roommate-matcher.vercel.app"]`; a bare URL is rejected at startup. Local development sets its own local CORS value. |
 | `APP_ENV` | `production` |
 | `DEMO_TTL_HOURS` | `24` |
 | `CLEANUP_JOB_SECRET` | 32-byte hex secret for cleanup cron — `openssl rand -hex 32` |
