@@ -2,7 +2,13 @@
 
 **Graph-based hostel roommate allocation with weighted compatibility scoring, blossom-algorithm matching, and per-run fairness reporting.**
 
-Built as a fully local, production-structured full-stack system — FastAPI backend, React + TypeScript frontend, SQLite persistence, deterministic matching artifacts versioned by run ID.
+Built as a production-structured full-stack system — FastAPI backend, React + TypeScript frontend, Supabase Postgres in production / SQLite for the local demo, deterministic matching artifacts versioned by run ID.
+
+---
+
+## Try the demo
+
+Open **https://roommate-matcher.vercel.app/**, click **Open the desk**, then **Open the demo workspace** — no account needed. The workspace is throwaway and seeded with fake students, rooms, and responses. The free Render backend sleeps when idle, so the first load can take up to ~1 minute. Staff sign-in remains at `/login`.
 
 ---
 
@@ -137,7 +143,7 @@ For 2-bed rooms: direct pair factors, no aggregation needed.
 | Matching | NetworkX |
 | Testing | pytest, Vitest, Playwright |
 
-Design constraints: fully local-first, no cloud dependencies, minimal required environment variables, single-command startup.
+Design constraints: local-first by default (SQLite demo), Supabase Postgres in production, minimal required environment variables, single-command startup.
 
 ---
 
@@ -191,18 +197,35 @@ Core tables:
 
 ## API surface
 
-All routes mounted under `/api`. Full interactive docs at `http://127.0.0.1:8000/docs`.
+Paths are abbreviated: every route except `/health` and `/health/live` lives under `/api`. Full interactive docs at `http://127.0.0.1:8000/docs`.
 
 | Area | Endpoints |
 |---|---|
-| Upload | `/students/upload`, `/rooms/upload`, `/upload/error-reports/{report_name}` |
-| Form | `/form/submit`, `/form/status`, `/form/non-submitters` |
-| Segments | `/segments`, `/segments/{segment_key}`, `/segments/{segment_key}/students` |
-| Matching | `/matching/run`, `/matching/runs`, `/matching/runs/{run_id}/segments/{segment_key}/rooms`, `/matching/runs/{run_id}/segments/{segment_key}/students` |
-| Fairness | `/fairness/{run_id}` |
-| Checker | `/checker/compatibility` |
-| Exports | `/exports/assignments/{run_id}` |
-| Dashboard | `/dashboard` |
+| Auth | `POST /auth/session`, `POST /auth/demo`, `POST /auth/logout`, `GET /auth/me` |
+| Workspaces, students, rooms | `GET /workspaces`, `POST /workspaces`, `GET /workspaces/{workspace_id}`, `POST /workspaces/{workspace_id}/students/upload/preview`, `POST /workspaces/{workspace_id}/students/upload/apply`, `POST /workspaces/{workspace_id}/rooms/upload/preview`, `POST /workspaces/{workspace_id}/rooms/upload/apply` |
+| Segments | `GET /workspaces/{workspace_id}/segments`, `GET /workspaces/{workspace_id}/segments/{segment_key}/students` |
+| Form collection & public form | `GET /workspaces/{workspace_id}/form-link`, `POST /workspaces/{workspace_id}/form-link/regenerate`, `GET /workspaces/{workspace_id}/collection/status`, `GET /workspaces/{workspace_id}/collection/non-submitters`, `POST /workspaces/{workspace_id}/magic-fill`, `GET /public/forms/{public_form_token}`, `POST /public/forms/{public_form_token}/submit` |
+| Matching | `GET /workspaces/{workspace_id}/matching/runs`, `POST /workspaces/{workspace_id}/matching/runs`, `GET /workspaces/{workspace_id}/matching/runs/{run_id}/rooms?segment_key={segment_key}`, `GET /workspaces/{workspace_id}/matching/runs/{run_id}/students?segment_key={segment_key}`, `GET /workspaces/{workspace_id}/matching/runs/{run_id}/students/all-segments` |
+| Fairness | `GET /workspaces/{workspace_id}/fairness/{run_id}` |
+| Checker | `POST /workspaces/{workspace_id}/checker/compatibility` |
+| Exports | `GET /workspaces/{workspace_id}/exports/assignments/{run_id}` |
+| Dashboard | `GET /workspaces/{workspace_id}/dashboard` |
+| Platform admin | `GET /platform/tenants`, `GET /platform/tenants/{tenant_id}`, `GET /platform/tenants/{tenant_id}/workspaces`, `POST /platform/tenants/{tenant_id}/impersonate` |
+| Internal cleanup | `POST /internal/cleanup/demo-tenants` (secret-protected, hidden from OpenAPI) |
+| Health | `GET /health`, `GET /health/live` |
+
+---
+
+## Matching performance
+
+Approximate engine timings on the reference machine:
+
+| Cohort | 2-bed | 3-bed | 4-bed |
+|---|---|---|---|
+| 200 students | 9.0s | 13.9s | 13.4s |
+| 500 students | 113s | 154s | — |
+
+
 
 ---
 
@@ -210,9 +233,9 @@ All routes mounted under `/api`. Full interactive docs at `http://127.0.0.1:8000
 
 The project ships with three layers of tests:
 
-- **Backend** (~4,800 lines across pytest suites) — scoring pipeline, segment matrix, matching invariants, service integration
-- **Frontend unit** (16 test files via Vitest) — pages, components, hooks, routing contracts, privacy rendering
-- **Frontend E2E** (271-line Playwright spec) — full admin workflow from upload through matching run and export
+- **Backend** (120 pytest files, ~18k lines; 686 passed, 6 Postgres-parity skipped) — scoring pipeline, segment matrix, matching invariants, service integration
+- **Frontend unit** (55 Vitest files, 440 tests) — pages, components, hooks, routing contracts, privacy rendering
+- **Frontend E2E** (8 Playwright specs, 29 tests) — full admin workflow from upload through matching run and export
 
 ```bash
 # Backend
@@ -249,10 +272,11 @@ cd frontend && npm run e2e:install && npm run e2e
 ### Startup Order for Production
 
 1. **Render auto-deploys** the backend on every push to the configured branch.
-   - Build command: `pip install -e ".[dev]"`
-   - Start command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-   - Health check: `GET /health` → `{"status": "ok", "environment": "production"}`
+   - Build command: `pip install uv && uv export --locked --no-dev --format requirements-txt --no-emit-project -o requirements.txt && pip install -r requirements.txt`
+   - Start command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips="*"`
+   - Health probes: `GET /health/live` checks the process only; `GET /health` also pings the database and returns 503 when it is unavailable. Keep Render's `healthCheckPath` on `/health/live`; monitor `/health` externally and alert on 503. Do not point Render's health check at `/health` unless the platform supports readiness checks without restarting (pending D-HEALTH).
 2. **Vercel auto-deploys** the frontend on every push.
+   - Install command: `npm ci`
    - Build command: `npm run build` (from `frontend/`)
    - Output directory: `frontend/dist`
    - `VITE_API_BASE_URL` is baked in at build time from `vercel.json`.
@@ -263,6 +287,10 @@ cd frontend && npm run e2e:install && npm run e2e
    cd backend
    alembic upgrade head
    ```
+
+**Reproducible installs:** Render exports the locked runtime requirements from `backend/uv.lock` with `uv export --locked --no-dev --no-emit-project`, so the build installs no dev dependencies and omits the editable project line that `pip` rejects under hashes. Vercel installs with `npm ci` against `frontend/package-lock.json`.
+
+**First deploy verification:** the Render build log should show `uv export --locked --no-dev --no-emit-project` and no pytest/httpx install; `GET /health` should return 200; the Vercel build log should show `npm ci`.
 
 ---
 
@@ -280,15 +308,26 @@ cd frontend && npm run e2e:install && npm run e2e
 | `APP_JWT_SECRET` | 32-byte hex secret for app-issued tokens — `openssl rand -hex 32` |
 | `ADMIN_EMAILS` | Comma-separated platform admin emails |
 | `FRONTEND_URL` | `https://roommate-matcher.vercel.app` |
-| `CORS_ALLOWED_ORIGINS` | `https://roommate-matcher.vercel.app` |
+| `CORS_ALLOWED_ORIGINS` | Production-only JSON array, e.g. `["https://roommate-matcher.vercel.app"]`; a bare URL is rejected at startup. Local development sets its own local CORS value. |
 | `APP_ENV` | `production` |
 | `DEMO_TTL_HOURS` | `24` |
 | `CLEANUP_JOB_SECRET` | 32-byte hex secret for cleanup cron — `openssl rand -hex 32` |
-| `WHATSAPP_DFY_NUMBER` | WhatsApp DFY number with country code, no spaces |
+
+A Postgres `DATABASE_URL` requires `APP_JWT_SECRET`, `SUPABASE_JWT_SECRET`, and `CLEANUP_JOB_SECRET` even outside production; startup fails fast if any is missing.
 
 ---
 
-### Required GitHub Secrets (for Demo Cleanup Cron)
+### Demo Cleanup (periodic, not guaranteed at 24 hours)
+
+The scheduled workflow (`.github/workflows/demo-cleanup.yml`) is disabled pending D-CRON. Expired demos are purged in bounded batches on backend boot and can be purged on demand, but not necessarily at the 24-hour mark. Re-enable the workflow in GitHub Actions (Workflows → Demo Tenant Cleanup → Enable workflow, or trigger it with *Run workflow*), or call the endpoint directly:
+
+```bash
+curl --fail --request POST \
+  --header "Authorization: Bearer $CLEANUP_JOB_SECRET" \
+  https://roommate-matcher-backend-dev.onrender.com/api/internal/cleanup/demo-tenants
+```
+
+Required GitHub secrets once the schedule is enabled:
 
 | Secret | Value |
 |---|---|
@@ -420,8 +459,16 @@ python demo-data/seed.py --reset --schema-only
 
 ## Known limitations
 
-- CSV export supported; PDF reporting is out of scope for v1
-- Matching runs execute synchronously in the API flow
+- Matching is approximately O(n^2.8); timings are in [Matching performance](#matching-performance). No algorithmic rewrite is planned. Demo/guest workspaces cap each segment at 100 students; larger cohorts need a regular workspace.
+- Single-worker assumption: the run-start 409 guard is a process-local lock; run one uvicorn worker. There is no DB-level active-run uniqueness.
+- Rate limits are not atomic; per-IP keys depend on proxy headers (SEC-1b deferred). DB demo/form caps bound bursts.
+- `phone_last4` is demo-grade verification, not strong identity; there is no OTP or backoff.
+- Result payloads are not paginated (`students/all-segments` can be ~321 KiB at 330 students).
+- Demo data has a 24h TTL; cleanup is periodic (boot batch of 200 plus the internal endpoint). The GitHub cron is owner-handled.
+- Security posture: CSP covers only `object-src`, `base-uri`, `frame-ancestors`; impersonation TTL is 45 minutes with no revocation denylist. Production dependencies are React Router 7.18.7 and cryptography 50.0.2; `npm audit --omit=dev` is clean, and CI gates only high/critical production advisories.
+- A tab opened before cross-tab sign-in needs a reload after the lazy Supabase change.
+- A local production preview on `:4173` needs its origin added to CORS; the production Vercel origin is allowlisted.
+- mypy is strict on matching/scoring/auth, but 38 existing errors are baselined (104 total); CI fails only if the count rises.
 
 ---
 

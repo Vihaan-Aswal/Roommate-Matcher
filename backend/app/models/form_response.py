@@ -36,7 +36,7 @@ class FormResponse(UUIDPrimaryKeyMixin, Base):
     validation_status: Mapped[str] = mapped_column(String, nullable=False, index=True)
     invalid_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    # Raw answers — preserved exactly
+    # Raw answers - preserved exactly
     q1_raw: Mapped[str | None] = mapped_column(Text, nullable=True)
     q2_raw: Mapped[str | None] = mapped_column(Text, nullable=True)
     q3_raw: Mapped[str | None] = mapped_column(Text, nullable=True)

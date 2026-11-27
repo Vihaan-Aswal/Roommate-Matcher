@@ -1,4 +1,4 @@
-import { useNavigate, useParams, Link } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
 
@@ -20,7 +20,6 @@ const REAL_ADMIN_TOKEN_KEY = "real_admin_token";
 
 export function PlatformTenantWorkspacesPage(): JSX.Element {
   const { tenantId } = useParams<{ tenantId: string }>();
-  const navigate = useNavigate();
   const { token: realToken } = useAuth();
   const { toast } = useToast();
 

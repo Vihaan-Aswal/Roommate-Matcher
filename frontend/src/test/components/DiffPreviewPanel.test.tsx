@@ -2,10 +2,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { vi } from "vitest";
 
 import { DiffPreviewPanel } from "../../components/DiffPreviewPanel";
-import {
-  StudentImportDiffResponse,
-  RoomImportDiffResponse,
-} from "../../lib/apiClient";
+import { StudentImportDiffResponse } from "../../lib/apiClient";
 
 describe("DiffPreviewPanel", () => {
   const mockOnConfirm = vi.fn();

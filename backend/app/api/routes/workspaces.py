@@ -34,8 +34,8 @@ from app.services.public_form.token_service import get_active_token, regenerate_
 from app.services.ingestion.form_collection import compute_form_collection_status, list_non_submitters
 from app.schemas.workspace import FormLinkResponse
 from app.schemas.form import FormStatusResponse, NonSubmittersResponse, NonSubmitterResponseRow
-from app.schemas.segment import SegmentListResponse, SegmentStatusResponse, SegmentStudentsResponse
-from app.services.segments.status import compute_segment_status, get_segment_students_preference_status, list_segment_overviews
+from app.schemas.segment import SegmentListResponse, SegmentStudentsResponse
+from app.services.segments.status import get_segment_students_preference_status, list_segment_overviews
 from app.models.segment import Segment
 from app.schemas.magic_fill import MagicFillRequest, MagicFillResponse
 from app.services.magic_fill.service import magic_fill
@@ -123,9 +123,14 @@ def get_form_link(
     workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_access),
 ) -> FormLinkResponse:
     user, tenant, workspace = workspace_ctx
-    link = get_active_token(db, workspace.id) or regenerate_token(
-        db, workspace.id, tenant.id
-    )
+    link = get_active_token(db, workspace.id)
+    if link is None:
+        if user.role == "viewer":
+            raise HTTPException(
+                status_code=404,
+                detail="No active form link. An editor can create one.",
+            )
+        link = regenerate_token(db, workspace.id, tenant.id)
     return FormLinkResponse(token=link.public_form_token, expires_at=link.expires_at)
 
 
@@ -190,7 +195,7 @@ def preview_student_upload(
     request: Request,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_access),
+    workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_editor),
 ) -> StudentImportDiffResponse:
     """
     Parse the uploaded CSV in-memory and return a diff preview.
@@ -287,7 +292,7 @@ def preview_room_upload(
     request: Request,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_access),
+    workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_editor),
 ) -> RoomImportDiffResponse:
     user, tenant, workspace = workspace_ctx
 

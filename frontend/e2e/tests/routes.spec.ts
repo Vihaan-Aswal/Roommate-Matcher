@@ -86,6 +86,7 @@ test.describe("route sweep and guards", () => {
     const publicRoutes = [
       { path: "/", heading: /a room list you can sign/i },
       { path: "/login", heading: /open the desk/i },
+      { path: "/try", heading: /open the desk/i },
       { path: formLink, heading: /roommate preferences/i },
     ];
     const appRouteTemplates = [
@@ -162,7 +163,7 @@ test.describe("route sweep and guards", () => {
     const page = await context.newPage();
 
     await page.goto(`/app/${workspaceId}/dashboard`);
-    await expect(page).toHaveURL(/\/login$/);
+    await expect(page).toHaveURL(/\/try$/);
 
     await page.goto("/platform");
     await expect(page).toHaveURL(/\/login$/);

@@ -5,7 +5,6 @@ import { vi } from "vitest";
 
 import { RoomResultsPage } from "../../pages/matching/RoomResultsPage";
 import { StudentResultsPage } from "../../pages/matching/StudentResultsPage";
-import { WorkspaceContext } from "../../providers/WorkspaceProvider";
 
 const {
   useAdminSegmentsQueryMock,
@@ -117,7 +116,7 @@ describe("result route contracts", () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={[initialEntry]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <MemoryRouter initialEntries={[initialEntry]}>
           <Routes>
             <Route path={path} element={element} />
           </Routes>

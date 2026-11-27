@@ -815,7 +815,7 @@ function EndCard({
         </p>
         <p className="film-end-line">The desk proposes. A person signs.</p>
         <div className="film-end-actions">
-          <Link className="mm-btn mm-btn-wax" to="/login">
+          <Link className="mm-btn mm-btn-wax" to="/try">
             Open the desk
             <ArrowRight size={16} strokeWidth={1.8} aria-hidden="true" />
           </Link>
@@ -869,6 +869,7 @@ export function SampleRunFilm({ run, playKey, onReplay }: SampleRunFilmProps): J
     if (playKey === 0) return;
     startedRef.current = true;
     if (reduced) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- replay deliberately resets playback
       setPlaying(false);
       setPhase(0);
       return;
@@ -880,6 +881,7 @@ export function SampleRunFilm({ run, playKey, onReplay }: SampleRunFilmProps): J
 
   useEffect(() => {
     if (!reduced) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reduced-motion deliberately resets playback
     setPlaying(false);
     setPhase(0);
   }, [reduced]);

@@ -10,7 +10,9 @@ from app.rate_limit import limiter
 RATE_LIMIT_SUBMIT = "600/minute"
 MAX_SUBMISSIONS_PER_ADMISSION = 5
 SUBMISSION_WINDOW = timedelta(minutes=1)
-from sqlalchemy import func, select, desc
+MAX_INVALID_ROWS_PER_WORKSPACE = 100
+INVALID_ROWS_WINDOW = timedelta(hours=1)
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -52,6 +54,82 @@ class PublicFormSubmitPayload(BaseModel):
         if too_long:
             raise ValueError(f"Answer values exceed 200 characters: {too_long}")
         return answers
+
+
+def _enforce_invalid_row_cap(
+    db: Session, workspace_id: uuid.UUID, submitted_at: datetime
+) -> None:
+    recent_invalid = db.scalar(
+        select(func.count())
+        .select_from(FormResponse)
+        .where(
+            FormResponse.workspace_id == workspace_id,
+            FormResponse.validation_status == "invalid",
+            FormResponse.submitted_at >= submitted_at - INVALID_ROWS_WINDOW,
+        )
+    ) or 0
+    if recent_invalid >= MAX_INVALID_ROWS_PER_WORKSPACE:
+        raise HTTPException(
+            status_code=429,
+            detail="Too many invalid submissions for this workspace. Try again later.",
+            headers={"Retry-After": "3600"},
+        )
+
+
+def _persist_valid_submission(
+    db: Session,
+    *,
+    tenant_id: uuid.UUID,
+    workspace_id: uuid.UUID,
+    student: Student,
+    admission_number: str,
+    phone_last4: str,
+    submitted_at: datetime,
+    normalized_answers: dict[str, str | None],
+    encoded_answers: dict[str, float],
+) -> None:
+    form_response = FormResponse(
+        tenant_id=tenant_id,
+        workspace_id=workspace_id,
+        student_id=student.id,
+        submitted_admission_number=admission_number,
+        submitted_phone_last4=phone_last4,
+        submitted_at=submitted_at,
+        validation_status="valid",
+        invalid_reason=None,
+        **normalized_answers,
+    )
+    db.add(form_response)
+    db.flush()
+
+    should_activate = True
+    active_profile = _latest_valid_profile(db, student.id)
+    if active_profile is not None:
+        previous_response = db.get(FormResponse, active_profile.source_form_response_id)
+        if (
+            previous_response is not None
+            and _to_utc_naive(previous_response.submitted_at) > submitted_at
+        ):
+            should_activate = False
+
+    if should_activate:
+        _deactivate_active_profiles(db, student.id)
+        db.flush()
+
+    db.add(
+        PreferenceProfile(
+            tenant_id=tenant_id,
+            workspace_id=workspace_id,
+            student_id=student.id,
+            source_form_response_id=form_response.id,
+            has_preferences=True,
+            is_active=should_activate,
+            is_generated=False,
+            **normalized_answers,
+            **encoded_answers,
+        )
+    )
+    db.commit()
 
 
 @router.get("/{public_form_token}")
@@ -99,34 +177,7 @@ def submit_public_form(
     workspace_id = link.workspace_id
     tenant_id = link.tenant_id
 
-    student = db.scalars(
-        select(Student).where(
-            Student.workspace_id == workspace_id,
-            Student.admission_number == payload.submitted_admission_number,
-            Student.is_active == True,
-        )
-    ).first()
-
     submitted_at = datetime.now(timezone.utc).replace(tzinfo=None)
-
-    normalized_answers = _normalize_raw_answers(payload.answers)
-
-    if not student:
-        db.add(
-            FormResponse(
-                tenant_id=tenant_id,
-                workspace_id=workspace_id,
-                student_id=None,
-                submitted_admission_number=payload.submitted_admission_number,
-                submitted_phone_last4=payload.submitted_phone_last4,
-                submitted_at=submitted_at,
-                validation_status="invalid",
-                invalid_reason="verification_failed",
-                **normalized_answers,
-            )
-        )
-        db.commit()
-        return {"status": "recorded", "valid": False, "error": "Verification failed"}
 
     recent_submissions = db.scalar(
         select(func.count())
@@ -144,7 +195,36 @@ def submit_public_form(
             headers={"Retry-After": "60"},
         )
 
+    student = db.scalars(
+        select(Student).where(
+            Student.workspace_id == workspace_id,
+            Student.admission_number == payload.submitted_admission_number,
+            Student.is_active == True,
+        )
+    ).first()
+
+    normalized_answers = _normalize_raw_answers(payload.answers)
+
+    if not student:
+        _enforce_invalid_row_cap(db, workspace_id, submitted_at)
+        db.add(
+            FormResponse(
+                tenant_id=tenant_id,
+                workspace_id=workspace_id,
+                student_id=None,
+                submitted_admission_number=payload.submitted_admission_number,
+                submitted_phone_last4=payload.submitted_phone_last4,
+                submitted_at=submitted_at,
+                validation_status="invalid",
+                invalid_reason="verification_failed",
+                **normalized_answers,
+            )
+        )
+        db.commit()
+        return {"status": "recorded", "valid": False, "error": "Verification failed"}
+
     if student.phone_last4 != payload.submitted_phone_last4:
+        _enforce_invalid_row_cap(db, workspace_id, submitted_at)
         db.add(
             FormResponse(
                 tenant_id=tenant_id,
@@ -165,6 +245,7 @@ def submit_public_form(
     missing_answer_keys = _find_missing_answer_keys(normalized_answers)
 
     if missing_answer_keys:
+        _enforce_invalid_row_cap(db, workspace_id, submitted_at)
         db.add(
             FormResponse(
                 tenant_id=tenant_id,
@@ -182,6 +263,7 @@ def submit_public_form(
         return {"status": "recorded", "valid": False, "error": "incomplete_form_submission"}
 
     if not option_validation.is_valid:
+        _enforce_invalid_row_cap(db, workspace_id, submitted_at)
         db.add(
             FormResponse(
                 tenant_id=tenant_id,
@@ -198,54 +280,31 @@ def submit_public_form(
         db.commit()
         return {"status": "recorded", "valid": False, "error": "invalid_form_option"}
 
-    form_response = FormResponse(
-        tenant_id=tenant_id,
-        workspace_id=workspace_id,
-        student_id=student.id,
-        submitted_admission_number=payload.submitted_admission_number,
-        submitted_phone_last4=payload.submitted_phone_last4,
-        submitted_at=submitted_at,
-        validation_status="valid",
-        invalid_reason=None,
-        **normalized_answers,
-    )
-    db.add(form_response)
-    db.flush()
-
     encoded_answers = _build_encoded_answers(normalized_answers)
 
-    should_activate = True
-    active_profile = _latest_valid_profile(db, student.id)
-    if active_profile is not None:
-        previous_response = db.get(FormResponse, active_profile.source_form_response_id)
-        if (
-            previous_response is not None
-            and _to_utc_naive(previous_response.submitted_at) > submitted_at
-        ):
-            should_activate = False
-
-    if should_activate:
-        _deactivate_active_profiles(db, student.id)
-        db.flush()
-
-    profile = PreferenceProfile(
-        tenant_id=tenant_id,
-        workspace_id=workspace_id,
-        student_id=student.id,
-        source_form_response_id=form_response.id,
-        has_preferences=True,
-        is_active=should_activate,
-        is_generated=False,
-        **normalized_answers,
-        **encoded_answers,
-    )
-    db.add(profile)
-    try:
-        db.commit()
-    except IntegrityError:
-        # A concurrent submission won the one-active-profile index; that
-        # request's profile is the canonical one, so report success here too.
-        db.rollback()
-        return {"status": "submitted", "valid": True}
-
-    return {"status": "submitted", "valid": True}
+    attempts = 0
+    while True:
+        try:
+            _persist_valid_submission(
+                db,
+                tenant_id=tenant_id,
+                workspace_id=workspace_id,
+                student=student,
+                admission_number=payload.submitted_admission_number,
+                phone_last4=payload.submitted_phone_last4,
+                submitted_at=submitted_at,
+                normalized_answers=normalized_answers,
+                encoded_answers=encoded_answers,
+            )
+            return {"status": "submitted", "valid": True}
+        except IntegrityError:
+            db.rollback()
+            attempts += 1
+            if attempts >= 2:
+                raise HTTPException(
+                    status_code=409,
+                    detail=(
+                        "This response was just submitted from another tab. "
+                        "Refresh and submit again if it is still missing."
+                    ),
+                )

@@ -15,7 +15,7 @@ services:
     region: oregon               # Change to match your Supabase region if latency matters.
     plan: free
     rootDir: backend
-    buildCommand: pip install -e ".[dev]"
+    buildCommand: pip install uv && uv export --locked --no-dev --format requirements-txt --no-emit-project -o requirements.txt && pip install -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips="*"
     healthCheckPath: /health/live
     autoDeploy: true             # Redeploy on every push to the deploy branch.
@@ -55,7 +55,7 @@ services:
         value: https://roommate-matcher.vercel.app
 
       - key: CORS_ALLOWED_ORIGINS
-        value: '["http://localhost:5173","https://roommate-matcher.vercel.app"]'
+        value: '["https://roommate-matcher.vercel.app"]'
 
       - key: APP_ENV
         value: production

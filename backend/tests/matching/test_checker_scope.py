@@ -23,11 +23,13 @@ def test_checker_scope(db_session: Session, seed_tenant_and_user):
     s1 = Student(tenant_id=tenant_id, workspace_id=ws1.id, segment_id=seg1.id, admission_number="STU-1", full_name="Student 1", gender="M", year_group="1", ac_type="N", room_size=2, dob=datetime.date(2000, 1, 1), phone_last4="1234", is_active=True)
     s2 = Student(tenant_id=tenant_id, workspace_id=ws2.id, segment_id=seg2.id, admission_number="STU-2", full_name="Student 2", gender="M", year_group="1", ac_type="N", room_size=2, dob=datetime.date(2000, 1, 1), phone_last4="5678", is_active=True)
     s3_inactive = Student(tenant_id=tenant_id, workspace_id=ws1.id, segment_id=seg1.id, admission_number="STU-3", full_name="Student 3", gender="M", year_group="1", ac_type="N", room_size=2, dob=datetime.date(2000, 1, 1), phone_last4="9012", is_active=False)
-    db_session.add_all([s1, s2, s3_inactive])
+    s4 = Student(tenant_id=tenant_id, workspace_id=ws1.id, segment_id=seg1.id, admission_number="STU-4", full_name="Student 4", gender="M", year_group="1", ac_type="N", room_size=2, dob=datetime.date(2000, 1, 1), phone_last4="3456", is_active=True)
+    db_session.add_all([s1, s2, s3_inactive, s4])
     db_session.commit()
 
     prof1 = PreferenceProfile(tenant_id=tenant_id, workspace_id=ws1.id, student_id=s1.id, has_preferences=False, is_active=True)
-    db_session.add_all([prof1])
+    prof4 = PreferenceProfile(tenant_id=tenant_id, workspace_id=ws1.id, student_id=s4.id, has_preferences=False, is_active=True)
+    db_session.add_all([prof1, prof4])
     db_session.commit()
 
     # Admission number from WS2 cannot be checked in WS1 context
@@ -40,10 +42,14 @@ def test_checker_scope(db_session: Session, seed_tenant_and_user):
     with pytest.raises(ValueError, match="One or more student_ids are invalid, not in the target segment, or inactive"):
         run_manual_checker(db_session, segment_key="WS1-M", workspace_id=ws1.id, room_size=2, student_ids=["STU-1", "STU-3"])
 
-    # Correct workspace only
-    # Correct workspace only
-    try:
-        run_manual_checker(db_session, segment_key="WS1-M", workspace_id=ws1.id, room_size=1, student_ids=["STU-1"])
-    except ValueError as e:
-        # Ignore matching algo errors if room_size 1 causes it
-        pass
+    # Correct workspace only: one 2-bed room holds STU-1 and STU-4.
+    result = run_manual_checker(
+        db_session,
+        segment_key="WS1-M",
+        workspace_id=ws1.id,
+        room_size=2,
+        student_ids=["STU-1", "STU-4"],
+    )
+    assert len(result.students) == 2
+    assert {row["admission_number"] for row in result.students} == {"STU-1", "STU-4"}
+    assert 0.0 <= result.group_score <= 1.0

@@ -229,6 +229,24 @@ describe("AdminMatchingRuns states and actions", () => {
     expect(screen.queryByRole("link", { name: /open the rooms/i })).not.toBeInTheDocument();
   });
 
+  it("follows the history status when the run finishes after the response", () => {
+    useRunMatchingMutationMock.mockReturnValue(
+      runMutation({
+        isSuccess: true,
+        data: { run_id: "run-100", status: "running" },
+      }),
+    );
+
+    renderWithProviders(<AdminMatchingRuns />);
+
+    expect(screen.getByText("Matching run completed")).toBeInTheDocument();
+    expect(screen.queryByText("Matching run started")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /open the rooms/i })).toHaveAttribute(
+      "href",
+      "/app/ws_test/matching-runs/run-100/rooms?segment=M_1st_year_AC_2",
+    );
+  });
+
   it("confirms a finished run and links to its rooms with the first segment selected", () => {
     useRunMatchingMutationMock.mockReturnValue(
       runMutation({
@@ -244,6 +262,25 @@ describe("AdminMatchingRuns states and actions", () => {
     expect(screen.getByRole("link", { name: /open the rooms/i })).toHaveAttribute(
       "href",
       "/app/ws_test/matching-runs/run-200/rooms?segment=M_1st_year_AC_2",
+    );
+  });
+
+  it("opens a run in its own segment rather than the first segment", () => {
+    useAdminMatchingRunsQueryMock.mockReturnValue(
+      runsQuery({
+        data: {
+          runs: [
+            { ...COMPLETED_RUN, segment_keys: ["F_2nd_year_NonAC_3"] },
+          ],
+        },
+      }),
+    );
+
+    renderWithProviders(<AdminMatchingRuns />);
+
+    expect(screen.getByRole("link", { name: "Rooms" })).toHaveAttribute(
+      "href",
+      "/app/ws_test/matching-runs/run-100/rooms?segment=F_2nd_year_NonAC_3&needsReview=0",
     );
   });
 
@@ -293,6 +330,21 @@ describe("AdminMatchingRuns states and actions", () => {
       }),
     );
     expect(refetchSegmentsMock).toHaveBeenCalled();
+  });
+
+  it("says a segment has no missing profiles", async () => {
+    magicFillWorkspaceMock.mockResolvedValue({ profiles_created: 0 });
+
+    renderWithProviders(<AdminMatchingRuns />);
+
+    fireEvent.click(screen.getAllByRole("button", { name: /fill missing/i })[1]);
+
+    await waitFor(() =>
+      expect(toastMock).toHaveBeenCalledWith({
+        title: "Magic Fill complete",
+        description: "No missing profiles in this segment.",
+      }),
+    );
   });
 
   it("reports a Magic Fill failure in a destructive toast", async () => {

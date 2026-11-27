@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException
+import logging
+
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import select, exists
 from app.models.preference_profile import PreferenceProfile
@@ -19,11 +21,13 @@ from app.services.orchestration.run_workflow import get_run_fairness_snapshot
 from app.api.deps.run_access import resolve_run_or_403
 
 router = APIRouter(prefix="/api/workspaces/{workspace_id}/fairness", tags=["fairness"])
+logger = logging.getLogger(__name__)
 
 @router.get("/{run_id}", response_model=FairnessReportResponse)
 def get_fairness_report(
     workspace_id: uuid.UUID,
     run_id: str,
+    request: Request,
     db: Session = Depends(get_db),
     workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_access),
 ) -> FairnessReportResponse:
@@ -32,8 +36,14 @@ def get_fairness_report(
         snapshot = get_run_fairness_snapshot(db, run_id, workspace_id)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-    except ValueError as exc:
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    except ValueError:
+        logger.exception(
+            "Fairness report failed method=%s path=%s request_id=%s",
+            request.method,
+            request.url.path,
+            request.state.request_id,
+        )
+        raise HTTPException(status_code=500, detail="Internal server error.")
 
     has_generated = bool(db.scalar(
         select(

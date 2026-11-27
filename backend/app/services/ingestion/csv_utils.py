@@ -4,6 +4,35 @@ from __future__ import annotations
 import csv
 import io
 from dataclasses import dataclass
+from typing import Any
+
+from app.config import MAX_CSV_CELL_CHARS, MAX_CSV_ROWS, MAX_CSV_UPLOAD_BYTES
+
+csv.field_size_limit(MAX_CSV_UPLOAD_BYTES)
+
+
+class _CappedDictReader(csv.DictReader):
+    """DictReader bounded by row count and cell size, with csv.Error normalised."""
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self._data_rows = 0
+
+    def __next__(self) -> dict[str | None, str | list[str] | None]:
+        try:
+            row = super().__next__()
+        except csv.Error as exc:
+            raise ValueError(f"CSV could not be parsed: {exc}") from exc
+        self._data_rows += 1
+        if self._data_rows > MAX_CSV_ROWS:
+            raise ValueError(f"CSV has more than {MAX_CSV_ROWS} rows.")
+        for key, value in row.items():
+            if isinstance(value, str) and len(value) > MAX_CSV_CELL_CHARS:
+                raise ValueError(
+                    f"Row {self._data_rows}, column '{key}': "
+                    f"value exceeds {MAX_CSV_CELL_CHARS} characters."
+                )
+        return row
 
 
 @dataclass
@@ -34,10 +63,12 @@ def parse_csv_bytes(csv_bytes: bytes, required_columns: set[str]) -> csv.DictRea
     if not text.strip():
         raise ValueError("CSV file is empty.")
 
-    reader = csv.DictReader(io.StringIO(text))
+    reader = _CappedDictReader(io.StringIO(text))
     if reader.fieldnames is not None:
         # Normalise in place so row lookups match the required-column check.
         reader.fieldnames = [name.strip() for name in reader.fieldnames]
+        if len(set(reader.fieldnames)) != len(reader.fieldnames):
+            raise ValueError("CSV header contains duplicate columns.")
 
     actual_columns = set(reader.fieldnames or [])
     missing = sorted(required_columns - actual_columns)

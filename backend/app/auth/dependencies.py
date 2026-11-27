@@ -20,7 +20,7 @@ import jwt
 from fastapi import Depends, Header, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.auth.contracts import AuthenticatedUser, RoleKind
+from app.auth.contracts import AuthenticatedUser
 from app.auth.supabase import verify_supabase_jwt
 from app.auth.tokens import verify_app_token
 from app.config import get_settings
@@ -177,14 +177,15 @@ async def get_authenticated_user(
             headers={"WWW-Authenticate": "Bearer"},
         ) from exc
 
+    is_demo = bool(app_payload.get("is_demo", False))
     return AuthenticatedUser(
         auth_kind="app_jwt",
         supabase_user_id=app_payload["sub"],
         email=app_payload["email"],
         tenant_id=tenant_id,
         role=app_payload["role"],  # type: ignore[arg-type]
-        is_demo=bool(app_payload.get("is_demo", False)),
-        is_platform_admin=_is_platform_admin(app_payload["email"]),
+        is_demo=is_demo,
+        is_platform_admin=not is_demo and _is_platform_admin(app_payload["email"]),
         impersonated_tenant_id=impersonated_tenant_id,
     )
 

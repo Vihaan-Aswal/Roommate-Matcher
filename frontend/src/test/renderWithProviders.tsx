@@ -1,7 +1,7 @@
 import type { ReactElement } from "react";
 import { render } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter } from "react-router-dom";
 import { WorkspaceContext } from "../providers/WorkspaceProvider";
 
 export function renderWithProviders(
@@ -32,7 +32,7 @@ export function renderWithProviders(
 
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={initialEntries} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter initialEntries={initialEntries}>
         <WorkspaceContext.Provider
           value={{
             workspaceId: "ws_test",

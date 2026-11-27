@@ -3,9 +3,6 @@ import { vi } from "vitest";
 
 import { AdminStudentsData } from "../pages/AdminStudentsData";
 import { renderWithProviders } from "./renderWithProviders";
-import { MemoryRouter } from "react-router";
-import { WorkspaceProvider } from "../providers/WorkspaceProvider";
-import { act } from "react";
 
 const {
   usePreviewStudentUploadMutationMock,

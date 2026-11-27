@@ -14,12 +14,14 @@ from fastapi.testclient import TestClient
 from sqlalchemy import update
 from sqlalchemy.orm import Session
 
+from app.config import get_settings
 from app.models.matching_run import MatchingRun
 from app.models.preference_profile import PreferenceProfile
 from app.models.room import Room
 from app.models.room_assignment import RoomAssignment
 from app.models.segment import Segment
 from app.models.student import Student
+from app.models.tenant import Tenant
 from app.models.workspace import Workspace
 
 
@@ -118,6 +120,12 @@ def _run_matching(
     )
     assert response.status_code == 200, response.text
     return response.json()["run_id"]
+
+
+def _assert_generic_500(response) -> None:
+    assert response.status_code == 500
+    assert response.json() == {"detail": "Internal server error."}
+    assert response.headers.get("x-request-id")
 
 
 def _seed_run_with_assignment(
@@ -289,6 +297,76 @@ def test_matching_run_all_ready_segments_matches_every_ready_segment(
     assert row["segments_completed"] == 2
 
 
+def test_matching_history_reports_each_runs_own_segment(
+    client: TestClient, db_session: Session, seed_tenant_and_user
+) -> None:
+    tenant_id = seed_tenant_and_user["tenant_id"]
+    workspace_id = seed_tenant_and_user["workspace_id"]
+    headers = seed_tenant_and_user["headers"]
+
+    _seed_segment(
+        db_session,
+        tenant_id,
+        workspace_id,
+        segment_key="F_1st_year_AC_2",
+        gender="F",
+        admission_prefix="HF",
+    )
+    _seed_segment(
+        db_session,
+        tenant_id,
+        workspace_id,
+        segment_key="M_1st_year_AC_2",
+        gender="M",
+        admission_prefix="HM",
+    )
+    run_id = _run_matching(
+        client, workspace_id, headers, segment_key="M_1st_year_AC_2"
+    )
+
+    history = client.get(
+        f"/api/workspaces/{workspace_id}/matching/runs", headers=headers
+    )
+    assert history.status_code == 200
+    row = next(item for item in history.json()["runs"] if item["run_id"] == run_id)
+    assert row["segment_keys"] == ["M_1st_year_AC_2"]
+
+
+def test_demo_workspace_rejects_a_segment_over_the_student_cap(
+    client: TestClient, db_session: Session, seed_tenant_and_user, monkeypatch
+) -> None:
+    tenant_id = seed_tenant_and_user["tenant_id"]
+    workspace_id = seed_tenant_and_user["workspace_id"]
+    headers = seed_tenant_and_user["headers"]
+
+    tenant = db_session.get(Tenant, tenant_id)
+    tenant.is_demo = True
+    db_session.commit()
+    monkeypatch.setattr(get_settings(), "demo_max_students_per_segment", 1)
+
+    _seed_segment(
+        db_session,
+        tenant_id,
+        workspace_id,
+        segment_key="F_1st_year_AC_2",
+        gender="F",
+        admission_prefix="CAP",
+    )
+
+    response = client.post(
+        f"/api/workspaces/{workspace_id}/matching/runs",
+        json={"scope": "segment", "segment_key": "F_1st_year_AC_2"},
+        headers=headers,
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == (
+        "Demo workspaces are limited to 1 students per segment. "
+        "Use a regular workspace for larger cohorts."
+    )
+    assert db_session.query(MatchingRun).count() == 0
+
+
 def test_matching_runs_requires_workspace_access(client: TestClient) -> None:
     response = client.get(f"/api/workspaces/{uuid.uuid4()}/matching/runs")
     assert response.status_code == 401
@@ -457,16 +535,14 @@ def test_matching_results_corrupt_artifacts_are_500(
         "?segment_key=F_1st_year_AC_2",
         headers=headers,
     )
-    assert response.status_code == 500
-    assert "JSON list" in response.json()["detail"]
+    _assert_generic_500(response)
 
     students_response = client.get(
         f"/api/workspaces/{workspace_id}/matching/runs/run_bad_json_list/students"
         "?segment_key=F_1st_year_AC_2",
         headers=headers,
     )
-    assert students_response.status_code == 500
-    assert "JSON list" in students_response.json()["detail"]
+    _assert_generic_500(students_response)
 
     _seed_run_with_assignment(
         db_session,
@@ -482,16 +558,14 @@ def test_matching_results_corrupt_artifacts_are_500(
         "?segment_key=F_1st_year_AC_2",
         headers=headers,
     )
-    assert response.status_code == 500
-    assert "JSON object" in response.json()["detail"]
+    _assert_generic_500(response)
 
     rooms_response = client.get(
         f"/api/workspaces/{workspace_id}/matching/runs/run_bad_summary/rooms"
         "?segment_key=F_1st_year_AC_2",
         headers=headers,
     )
-    assert rooms_response.status_code == 500
-    assert "JSON object" in rooms_response.json()["detail"]
+    _assert_generic_500(rooms_response)
 
     _seed_run_with_assignment(
         db_session,
@@ -507,8 +581,7 @@ def test_matching_results_corrupt_artifacts_are_500(
         "?segment_key=F_1st_year_AC_2",
         headers=headers,
     )
-    assert response.status_code == 500
-    assert "missing a student record" in response.json()["detail"]
+    _assert_generic_500(response)
 
 
 # ---------------------------------------------------------------------------
@@ -609,8 +682,7 @@ def test_fairness_report_non_object_snapshot_is_500(
     response = client.get(
         f"/api/workspaces/{workspace_id}/fairness/run_fairness_string", headers=headers
     )
-    assert response.status_code == 500
-    assert "JSON object" in response.json()["detail"]
+    _assert_generic_500(response)
 
 
 # ---------------------------------------------------------------------------

@@ -1,0 +1,4 @@
+admission_number,full_name,gender,year_group,ac_type,room_size,dob,phone_number
+FAKE0001,Example Student One,F,1st_year,AC,2,2005-04-12,9000000001
+FAKE0002,Example Student Two,F,1st_year,AC,2,2005-06-03,9000000002
+FAKE0003,Example Student Three,M,2nd_year,NonAC,3,2004-01-27,9000000003

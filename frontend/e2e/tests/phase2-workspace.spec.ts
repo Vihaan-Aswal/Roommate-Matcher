@@ -11,7 +11,19 @@ test.describe("Workspace foundation", () => {
     await expect(page).toHaveURL(/\/$/);
 
     await page.goto("/app");
-    await expect(page).toHaveURL(/\/login$/);
+    await expect(page).toHaveURL(/\/try$/);
+  });
+
+  test("a guest opens the demo workspace without signing in", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("link", { name: /open the desk/i }).first().click();
+    await expect(page).toHaveURL(/\/try$/);
+    await expect(page.getByRole("button", { name: /open the demo workspace/i })).toBeVisible();
+    expect(await page.getByLabel("Email").count()).toBe(0);
+
+    await page.getByRole("button", { name: /open the demo workspace/i }).click();
+    await expect(page).toHaveURL(/\/app\/[a-f0-9-]+\/dashboard$/, { timeout: 60_000 });
+    await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
   });
 
   test("demo flow lands on a seeded dashboard", async ({ page }) => {

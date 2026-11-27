@@ -13,11 +13,10 @@ import random
 import uuid
 from dataclasses import dataclass
 
-from sqlalchemy import select, and_, exists, func
+from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 
 from app.models.preference_profile import PreferenceProfile
-from app.models.segment import Segment
 from app.models.student import Student
 from app.services.ingestion.form_response import (
     QUESTION_KEYS,

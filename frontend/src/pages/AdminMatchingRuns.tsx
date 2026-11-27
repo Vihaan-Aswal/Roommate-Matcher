@@ -46,7 +46,10 @@ export function AdminMatchingRuns(): JSX.Element {
       const result = await magicFillWorkspace(workspaceId, segment.segment_key);
       toast({
         title: "Magic Fill complete",
-        description: `${segmentLabel(segment)}: ${result.profiles_created} generated profiles.`,
+        description:
+          result.profiles_created === 0
+            ? "No missing profiles in this segment."
+            : `${segmentLabel(segment)}: ${result.profiles_created} generated profiles.`,
       });
       segmentsQuery.refetch();
     } catch (err) {
@@ -60,11 +63,17 @@ export function AdminMatchingRuns(): JSX.Element {
     }
   }
 
-  const segments = segmentsQuery.data?.segments ?? [];
+  const segments = useMemo(
+    () => segmentsQuery.data?.segments ?? [],
+    [segmentsQuery.data?.segments],
+  );
   const runs = runsQuery.data?.runs ?? [];
   const hasRunningRun = runs.some(
     (run) => run.status === "running" || run.status === "pending",
   );
+  const mutationRun = runs.find((run) => run.run_id === runMutation.data?.run_id);
+  const runCompleted =
+    runMutation.data?.status === "completed" || mutationRun?.status === "completed";
 
   const readySegments = useMemo(
     () => segments.filter((segment) => segment.status === "Ready"),
@@ -72,6 +81,7 @@ export function AdminMatchingRuns(): JSX.Element {
   );
 
   const defaultSegmentKey = segments[0]?.segment_key ?? null;
+  const completedSegmentKey = mutationRun?.segment_keys?.[0] ?? defaultSegmentKey;
 
   const segmentColumns: DataTableColumn<SegmentOverview>[] = [
     {
@@ -173,8 +183,9 @@ export function AdminMatchingRuns(): JSX.Element {
             </span>
           );
         }
-        const roomRoute = defaultSegmentKey
-          ? `/app/${workspaceId}/matching-runs/${encodeURIComponent(row.run_id)}/rooms?segment=${encodeURIComponent(defaultSegmentKey)}&needsReview=0`
+        const rowSegmentKey = row.segment_keys?.[0] ?? defaultSegmentKey;
+        const roomRoute = rowSegmentKey
+          ? `/app/${workspaceId}/matching-runs/${encodeURIComponent(row.run_id)}/rooms?segment=${encodeURIComponent(rowSegmentKey)}&needsReview=0`
           : `/app/${workspaceId}/matching-runs`;
         return (
           <div className="desk-row" style={{ gap: 12 }}>
@@ -245,16 +256,16 @@ export function AdminMatchingRuns(): JSX.Element {
       </div>
 
       {runMutation.isSuccess ? (
-        runMutation.data.status === "completed" ? (
+        runCompleted ? (
           <InlineAlert
             title="Matching run completed"
-            message={`Run ${runMutation.data.run_id} finished with status ${runMutation.data.status}.`}
+            message={`Run ${runMutation.data.run_id} finished with status completed.`}
             tone="success"
             actions={
               <Button asChild size="sm" variant="outline">
                 <Link
                   to={`/app/${workspaceId}/matching-runs/${encodeURIComponent(runMutation.data.run_id)}/rooms${
-                    defaultSegmentKey ? `?segment=${encodeURIComponent(defaultSegmentKey)}` : ""
+                    completedSegmentKey ? `?segment=${encodeURIComponent(completedSegmentKey)}` : ""
                   }`}
                 >
                   Open the rooms

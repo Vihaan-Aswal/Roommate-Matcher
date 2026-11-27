@@ -42,10 +42,6 @@ const runResponse = await (
   })
 ).json();
 const run = runResponse.run_id ? runResponse : null;
-const segments = await (
-  await fetch(`${api}/api/workspaces/${demo.workspace_id}/segments`, { headers: auth })
-).json();
-const segmentKey = segments.segments?.[0]?.segment_key ?? "";
 const formLink = await (
   await fetch(`${api}/api/workspaces/${demo.workspace_id}/form-link`, { headers: auth })
 ).json();

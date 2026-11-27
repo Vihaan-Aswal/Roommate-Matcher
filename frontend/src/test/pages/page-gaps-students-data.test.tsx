@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen } from "@testing-library/react";
 import { vi } from "vitest";
 
 import { AdminStudentsData } from "../../pages/AdminStudentsData";
@@ -312,6 +312,21 @@ describe("AdminStudentsData upload flows", () => {
     fireEvent.click(screen.getByRole("button", { name: /upload rooms/i }));
 
     expect(await screen.findByText("rooms apply rejected")).toBeInTheDocument();
+  });
+
+  it("offers both CSV templates and the AI prompt summary", () => {
+    renderWithProviders(<AdminStudentsData />);
+
+    const templateLinks = screen.getAllByRole("link", {
+      name: /download the csv template/i,
+    });
+    expect(templateLinks.map((link) => link.getAttribute("href"))).toEqual([
+      "/templates/students.csv",
+      "/templates/rooms.csv",
+    ]);
+    expect(
+      screen.getByText("Generate fill-in data with ChatGPT or Claude"),
+    ).toBeInTheDocument();
   });
 });
 

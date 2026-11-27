@@ -1,5 +1,4 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
 import { ShieldAlert } from "lucide-react";
 
 import { useAuth } from "../providers/AuthProvider";
@@ -10,7 +9,6 @@ const REAL_ADMIN_TOKEN_KEY = "real_admin_token";
 
 export function ImpersonationBanner(): JSX.Element | null {
   const { user } = useAuth();
-  const navigate = useNavigate();
 
   if (!user?.impersonatedTenantId) return null;
 

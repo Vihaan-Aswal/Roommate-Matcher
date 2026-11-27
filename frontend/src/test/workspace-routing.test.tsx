@@ -51,7 +51,7 @@ describe("Workspace Routing and Guards", () => {
     vi.clearAllMocks();
   });
 
-  it("test_unauthenticated_redirect_to_login", async () => {
+  it("test_unauthenticated_redirect_to_try", async () => {
     // Unauthenticated user
     vi.mocked(useAuth).mockReturnValue({
       user: null,
@@ -65,8 +65,28 @@ describe("Workspace Routing and Guards", () => {
     render(<App />);
 
     // The route is lazy; the guard's redirect resolves after the chunk loads.
-    await waitFor(() => expect(window.location.pathname).toBe("/login"));
+    await waitFor(() => expect(window.location.pathname).toBe("/try"));
     expect(screen.queryByText(/Create New Workspace/i)).not.toBeInTheDocument();
+  });
+
+  it("test_demo_guest_redirected_from_platform_to_app", async () => {
+    vi.mocked(useAuth).mockReturnValue({
+      user: {
+        authKind: "app_jwt",
+        email: "demo@example.com",
+        isDemo: true,
+        isPlatformAdmin: false,
+      },
+      isLoading: false,
+      login: vi.fn(),
+      logout: vi.fn(),
+      startDemo: vi.fn(),
+    } as any);
+
+    window.history.pushState({}, "Test page", "/platform");
+    render(<App />);
+
+    await waitFor(() => expect(window.location.pathname).toBe("/app"));
   });
 
   it("test_authenticated_shows_workspace_chooser", async () => {

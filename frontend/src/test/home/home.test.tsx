@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import App from "../../App";
@@ -28,7 +28,7 @@ describe("public homepage route", () => {
     expect(screen.getByText(/room allocation desk/i)).toBeInTheDocument();
     const deskLinks = screen.getAllByRole("link", { name: /open the desk/i });
     expect(deskLinks.length).toBeGreaterThan(0);
-    deskLinks.forEach((link) => expect(link).toHaveAttribute("href", "/login"));
+    deskLinks.forEach((link) => expect(link).toHaveAttribute("href", "/try"));
     expect(
       screen.getByRole("button", { name: /^play the sample run$/i }),
     ).toBeInTheDocument();
@@ -69,6 +69,15 @@ describe("public homepage route", () => {
     expect(fetchSpy).not.toHaveBeenCalled();
 
     fetchSpy.mockRestore();
+  });
+
+  it("moves focus to the main argument when the skip link is used", () => {
+    window.history.pushState({}, "Homepage", "/");
+    render(<App />);
+
+    fireEvent.click(screen.getByRole("link", { name: /skip to the argument/i }));
+
+    expect(screen.getByRole("main")).toHaveFocus();
   });
 
   it("serves the full pipeline by default and keeps the classic film at ?classic=1", async () => {

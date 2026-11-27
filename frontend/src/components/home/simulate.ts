@@ -341,10 +341,6 @@ export function labelForScore(score: number, factors?: FactorResult[]): Label {
   return "Poor";
 }
 
-function emptyAnswers(): Answers {
-  return {};
-}
-
 function pairKey(a: number, b: number): string {
   return a < b ? `${a}:${b}` : `${b}:${a}`;
 }
@@ -538,10 +534,6 @@ function assignSegment(
     rooms.push(makeRoom(roomId(index), segmentIndex, membersOfRoom, book));
   });
   return { rooms };
-}
-
-function allRoomScores(rooms: Room[]): number[] {
-  return rooms.map((room) => room.score);
 }
 
 function recomputeRooms(rooms: Room[], book: PairBook): void {

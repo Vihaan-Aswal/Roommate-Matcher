@@ -37,7 +37,6 @@ function renderPage() {
   return render(
     <MemoryRouter
       initialEntries={["/login"]}
-      future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
     >
       <Routes>
         <Route
@@ -91,6 +90,25 @@ describe("LoginPage", () => {
     expect(screen.getByLabelText("Email")).toBeInTheDocument();
     expect(screen.getByLabelText("Password")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Sign in" })).toBeInTheDocument();
+    expect(
+      screen.getByText(/kept for up to 24 hours; expired demos are cleaned up periodically/i),
+    ).toBeInTheDocument();
+  });
+
+  it("hides the sign-in form on the entry-only demo page", () => {
+    render(
+      <MemoryRouter initialEntries={["/try"]}>
+        <Routes>
+          <Route path="/try" element={<LoginPage entryOnly />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(
+      screen.getByRole("button", { name: /open the demo workspace/i }),
+    ).toBeInTheDocument();
+    expect(screen.queryByLabelText("Email")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Password")).not.toBeInTheDocument();
   });
 
   it("sends an already-signed-in visitor with a demo session straight to that workspace", () => {

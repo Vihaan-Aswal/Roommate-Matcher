@@ -38,6 +38,7 @@ export function useInView<T extends HTMLElement>(): {
     window.addEventListener("mm-motion-lite", onLite);
 
     if (typeof IntersectionObserver === "undefined") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- no-IntersectionObserver fallback shows content immediately
       setInView(true);
       return () => window.removeEventListener("mm-motion-lite", onLite);
     }

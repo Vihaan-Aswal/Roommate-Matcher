@@ -1,8 +1,15 @@
 from functools import lru_cache
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+PLACEHOLDER_APP_JWT_SECRETS = frozenset(
+    {"change-me", "changeme", "replace-me", "your-secret-key", "secret"}
+)
+
 MAX_CSV_UPLOAD_BYTES: int = 5 * 1024 * 1024
+MAX_CSV_ROWS: int = 10_000
+MAX_CSV_CELL_CHARS: int = 1_000
 
 
 class Settings(BaseSettings):
@@ -28,6 +35,7 @@ class Settings(BaseSettings):
     # --- App-level auth ---
     app_jwt_secret: str = ""
     admin_emails: str = ""  # comma-separated
+    impersonation_ttl_minutes: int = 45
 
     # --- Frontend ---
     frontend_url: str = "http://localhost:5173"
@@ -35,6 +43,8 @@ class Settings(BaseSettings):
     # --- DFY / Demo ---
     whatsapp_dfy_number: str = ""
     demo_ttl_hours: int = 24
+    demo_global_cap_per_hour: int = 60
+    demo_max_students_per_segment: int = 100
     form_link_ttl_days: int = 30
     demo_rate_limit: str = "10/minute"
 
@@ -45,6 +55,35 @@ class Settings(BaseSettings):
     cleanup_job_secret: str | None = None
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+
+    @model_validator(mode="after")
+    def _require_production_config(self) -> "Settings":
+        if self.app_env != "production" and not self.database_url.startswith(
+            ("postgresql", "postgres")
+        ):
+            return self
+
+        problems: list[str] = []
+        app_secret = self.app_jwt_secret.strip()
+        if len(app_secret) < 32:
+            problems.append("APP_JWT_SECRET must be at least 32 characters.")
+        if app_secret.lower() in PLACEHOLDER_APP_JWT_SECRETS:
+            problems.append("APP_JWT_SECRET must not be a placeholder value.")
+        if not self.supabase_jwt_secret.strip():
+            problems.append("SUPABASE_JWT_SECRET is required in production.")
+        if not (self.cleanup_job_secret or "").strip():
+            problems.append("CLEANUP_JOB_SECRET is required in production.")
+        if self.app_env == "production" and any(
+            "localhost" in origin.lower() or "127.0.0.1" in origin
+            for origin in self.cors_allowed_origins
+        ):
+            problems.append(
+                "CORS_ALLOWED_ORIGINS must not contain localhost or 127.0.0.1 in production."
+            )
+
+        if problems:
+            raise ValueError(" ".join(problems))
+        return self
 
 
 @lru_cache

@@ -152,6 +152,29 @@ describe("AdminDashboard states", () => {
     expect(screen.getByText("No students yet")).toBeInTheDocument();
     expect(screen.getByText("No rooms yet")).toBeInTheDocument();
     expect(screen.getByText("0 of 0 answered")).toBeInTheDocument();
+
+    expect(screen.getByText("First run")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Upload the students CSV/ })).toHaveAttribute(
+      "href",
+      "/app/ws_test/students-data",
+    );
+    expect(screen.getByRole("link", { name: /Upload the rooms CSV/ })).toHaveAttribute(
+      "href",
+      "/app/ws_test/students-data",
+    );
+    expect(screen.getByRole("link", { name: /Collect preferences/ })).toHaveAttribute(
+      "href",
+      "/app/ws_test/form-collection",
+    );
+    expect(screen.getByRole("link", { name: /Run matching/ })).toHaveAttribute(
+      "href",
+      "/app/ws_test/matching-runs",
+    );
+    expect(screen.getByRole("link", { name: /Read results and export/ })).toHaveAttribute(
+      "href",
+      "/app/ws_test/matching-runs",
+    );
+    expect(screen.getByText(/Use fake data, not real student data/)).toBeInTheDocument();
   });
 
   it("asks for the room list once the roster is in", () => {
@@ -173,7 +196,7 @@ describe("AdminDashboard states", () => {
 
     renderWithProviders(<AdminDashboard />);
 
-    expect(screen.getByRole("link", { name: /share the form/i })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Share the form" })).toHaveAttribute(
       "href",
       "/app/ws_test/form-collection",
     );
@@ -204,6 +227,7 @@ describe("AdminDashboard states", () => {
       "/app/ws_test/fairness/run-777?segment=all",
     );
     expect(screen.getByText("2/2")).toBeInTheDocument();
+    expect(screen.queryByText("First run")).not.toBeInTheDocument();
   });
 
   it("opens a run that has not completed yet", () => {
@@ -327,6 +351,22 @@ describe("AdminDashboard states", () => {
       }),
     );
     expect(refetchMock).toHaveBeenCalled();
+  });
+
+  it("says there is nothing to fill when every student has a profile", async () => {
+    magicFillWorkspaceMock.mockResolvedValue({ profiles_created: 0 });
+    showDashboard(dashboardData({ runId: "run-1", runStatus: "completed" }));
+
+    renderWithProviders(<AdminDashboard />);
+
+    fireEvent.click(screen.getByRole("button", { name: /fill missing profiles/i }));
+
+    await waitFor(() =>
+      expect(toastMock).toHaveBeenCalledWith({
+        title: "Magic Fill complete",
+        description: "Every student already has a profile; nothing to fill.",
+      }),
+    );
   });
 
   it("reports a failed Magic Fill without refreshing", async () => {

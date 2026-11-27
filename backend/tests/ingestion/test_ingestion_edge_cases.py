@@ -106,9 +106,7 @@ def _student(
 
 
 def test_parse_csv_bytes_supports_utf8_bom() -> None:
-    # NOTE: a real UTF-8 BOM is *not* stripped today (reported defect); decode
-    # falls back to utf-8-sig only when plain UTF-8 decoding fails.
-    payload = "admission_number,full_name\nA1,Ann\n".encode("utf-8")
+    payload = b"\xef\xbb\xbf" + "admission_number,full_name\nA1,Ann\n".encode("utf-8")
     reader = parse_csv_bytes(payload, {"admission_number", "full_name"})
     assert reader.fieldnames == ["admission_number", "full_name"]
 

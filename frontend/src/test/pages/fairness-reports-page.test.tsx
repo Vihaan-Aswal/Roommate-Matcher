@@ -4,7 +4,6 @@ import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { vi } from "vitest";
 
 import { FairnessReportsPage } from "../../pages/reports/FairnessReportsPage";
-import { WorkspaceContext } from "../../providers/WorkspaceProvider";
 
 const { useAdminMatchingRunsQueryMock, useRunFairnessQueryMock } = vi.hoisted(
   () => ({
@@ -113,7 +112,7 @@ describe("FairnessReportsPage", () => {
 
     return render(
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={["/app/ws_test/fairness/run-100?segment=all"]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <MemoryRouter initialEntries={["/app/ws_test/fairness/run-100?segment=all"]}>
           <Routes>
             <Route
               path="/app/:workspaceId/fairness/:runId"

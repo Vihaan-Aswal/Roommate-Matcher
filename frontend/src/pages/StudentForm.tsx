@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { ArrowRight, Check } from "lucide-react";
 
@@ -37,6 +37,14 @@ export function StudentForm(): JSX.Element {
   const [questionErrors, setQuestionErrors] = useState<Partial<AnswerMap>>({});
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const { submit, submitting, submitError } = useFormSubmit();
+  const stepHeadingRef = useRef<HTMLHeadingElement>(null);
+  const previousStepRef = useRef<Step>(step);
+
+  useEffect(() => {
+    if (previousStepRef.current === step) return;
+    previousStepRef.current = step;
+    stepHeadingRef.current?.focus();
+  }, [step]);
 
   const { data: config, isLoading, isError } = useQuery({
     queryKey: ["publicForm", token],
@@ -178,7 +186,9 @@ export function StudentForm(): JSX.Element {
             <div className="desk-stack">
               <div className="desk-stack-sm" style={{ gap: 4 }}>
                 <p className="desk-overline">Step 1 of 2</p>
-                <h2 style={{ fontSize: "1.3rem" }}>Who is answering</h2>
+                <h2 ref={stepHeadingRef} tabIndex={-1} style={{ fontSize: "1.3rem" }}>
+                  Who is answering
+                </h2>
                 <p className="desk-help">
                   We match these two fields against the roster. They are not shared with anyone.
                 </p>
@@ -235,7 +245,9 @@ export function StudentForm(): JSX.Element {
             <div className="desk-stack">
               <div className="desk-stack-sm" style={{ gap: 4 }}>
                 <p className="desk-overline">Step 2 of 2</p>
-                <h2 style={{ fontSize: "1.3rem" }}>Twelve questions</h2>
+                <h2 ref={stepHeadingRef} tabIndex={-1} style={{ fontSize: "1.3rem" }}>
+                  Twelve questions
+                </h2>
                 <p className="desk-help">
                   Answer every question. A missing answer is treated as “no preference”, which weakens
                   your score.
@@ -304,7 +316,9 @@ export function StudentForm(): JSX.Element {
                 <Check size={18} strokeWidth={2.2} aria-hidden="true" />
                 <p className="desk-overline">Submitted</p>
               </div>
-              <h2 style={{ fontSize: "1.5rem" }}>Thank you</h2>
+              <h2 ref={stepHeadingRef} tabIndex={-1} style={{ fontSize: "1.5rem" }}>
+                Thank you
+              </h2>
               <p className="desk-body">
                 {statusMessage ?? "Your response has been recorded successfully."}
               </p>

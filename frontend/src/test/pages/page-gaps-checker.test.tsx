@@ -29,8 +29,9 @@ vi.mock("../../hooks/useManualCheckerMutation", () => ({
 }));
 
 vi.mock("@radix-ui/react-select", () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const React = require("react");
-  const Dummy = React.forwardRef(({ children }: any, ref: any) => children || null);
+  const Dummy = React.forwardRef(({ children }: any, _ref: any) => children || null);
   Dummy.displayName = "Dummy";
 
   return {
@@ -246,6 +247,16 @@ describe("ManualCheckerPage states", () => {
     });
 
     expect(screen.getByText("Ready to run compatibility report.")).toBeInTheDocument();
+  });
+
+  it("says one existing student when the room takes two", () => {
+    useSegmentStudentsQueryMock.mockReturnValue(
+      segmentStudentsQuery({ data: { ...SEGMENT_STUDENTS, room_size: 2 } }),
+    );
+
+    renderChecker();
+
+    expect(screen.getByText("Select exactly 1 existing student.")).toBeInTheDocument();
   });
 
   it("filters the roster by name or admission number", () => {

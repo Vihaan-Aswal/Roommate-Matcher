@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight } from "lucide-react";
 
 import { getPlatformTenants } from "../../lib/apiClient";
 import { adminQueryKeys } from "../../hooks/adminQueryKeys";

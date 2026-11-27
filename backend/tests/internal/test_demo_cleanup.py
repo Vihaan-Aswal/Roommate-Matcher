@@ -25,6 +25,7 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.models.tenant import Tenant
+from app.services.demo_cleanup import purge_expired_demo_tenants
 
 
 # ---------------------------------------------------------------------------
@@ -201,3 +202,40 @@ def test_cleanup5_mixed_tenants_only_expired_demos_purged(
     assert db_session.query(Tenant).filter(Tenant.id == expired_demo.id).first() is None
     assert db_session.query(Tenant).filter(Tenant.id == live_demo.id).first() is not None
     assert db_session.query(Tenant).filter(Tenant.id == real_tenant.id).first() is not None
+
+
+def test_service_limit_bounds_the_purge(db_session: Session):
+    """limit=2 purges the two oldest expired demos and leaves the rest untouched."""
+    now = datetime.now(UTC)
+    oldest = _make_tenant(
+        db_session,
+        is_demo=True,
+        demo_expires_at=now - timedelta(hours=3),
+        slug_suffix="oldest",
+    )
+    second = _make_tenant(
+        db_session,
+        is_demo=True,
+        demo_expires_at=now - timedelta(hours=2),
+        slug_suffix="second",
+    )
+    newest_expired = _make_tenant(
+        db_session,
+        is_demo=True,
+        demo_expires_at=now - timedelta(hours=1),
+        slug_suffix="newest-expired",
+    )
+    active = _make_tenant(
+        db_session,
+        is_demo=True,
+        demo_expires_at=now + timedelta(hours=1),
+        slug_suffix="active",
+    )
+
+    purged = purge_expired_demo_tenants(db_session, limit=2)
+
+    assert set(purged) == {str(oldest.id), str(second.id)}
+    remaining = {
+        tenant.id for tenant in db_session.query(Tenant).filter(Tenant.is_demo.is_(True)).all()
+    }
+    assert remaining == {newest_expired.id, active.id}

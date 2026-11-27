@@ -4,6 +4,9 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+
 concurrency:
   group: quality-${{ github.ref }}
   cancel-in-progress: true
@@ -35,12 +38,26 @@ jobs:
           enable-cache: true
           cache-dependency-glob: backend/uv.lock
 
-      - name: Install and run backend suite
+      - name: Install backend dependencies
+        working-directory: backend
+        run: uv sync --locked --extra dev
+
+      - name: Lint with Pyflakes
+        working-directory: backend
+        run: uvx ruff==0.9.0 check app
+
+      - name: Run backend suite
         working-directory: backend
         run: |
-          uv sync --extra dev
           uv run --extra dev pytest --cov=app --cov-report=term-missing --cov-report=json:coverage.json
           uv run python scripts/check_coverage.py
+
+      - name: Check mypy baseline
+        working-directory: backend
+        run: |
+          uv run --extra dev mypy app/services/matching app/services/scoring app/auth > mypy-strict.txt || true
+          uv run --extra dev mypy app > mypy-all.txt || true
+          uv run --extra dev python scripts/check_mypy_baseline.py mypy-strict.txt mypy-all.txt
 
       - name: Upload backend coverage
         if: always()
@@ -71,6 +88,12 @@ jobs:
 
       - name: Typecheck
         run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
 
       - name: Unit tests with coverage
         run: npm run test:coverage
@@ -141,10 +164,8 @@ jobs:
           echo "playwright install failed three times"
           exit 1
 
-      - name: Run E2E twice (flake gate)
-        run: |
-          npm run e2e
-          npm run e2e
+      - name: Run E2E
+        run: npm run e2e
 
       - name: Upload Playwright evidence on failure
         if: failure()

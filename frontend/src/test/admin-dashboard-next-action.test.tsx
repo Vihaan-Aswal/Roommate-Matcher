@@ -60,7 +60,7 @@ function renderDashboard(data: ReturnType<typeof dashboardData>) {
 
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={["/app/ws_test/dashboard"]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter initialEntries={["/app/ws_test/dashboard"]}>
         <WorkspaceContext.Provider
           value={{ workspaceId: "ws_test", workspaceName: "Test Workspace", navigateToWorkspace: () => {} }}
         >

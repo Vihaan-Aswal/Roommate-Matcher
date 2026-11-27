@@ -1,12 +1,17 @@
 from __future__ import annotations
 
+import logging
 import threading
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import select, exists
+from app.models.matching_run import MatchingRun
 from app.models.preference_profile import PreferenceProfile
+from app.models.room_assignment import RoomAssignment
+from app.models.segment import Segment
 
 from app.auth.dependencies import require_workspace_access, require_workspace_editor
+from app.config import get_settings
 from app.models.tenant import Tenant
 from app.auth.contracts import AuthenticatedUser
 from app.models.workspace import Workspace
@@ -31,6 +36,7 @@ from app.services.orchestration.run_workflow import (
 from app.api.deps.run_access import resolve_run_or_403
 
 router = APIRouter(prefix="/api/workspaces/{workspace_id}/matching", tags=["matching"])
+logger = logging.getLogger(__name__)
 
 _RUN_LOCK = threading.Lock()
 
@@ -42,6 +48,7 @@ def run_matching(
     db: Session = Depends(get_db),
     workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_editor),
 ) -> MatchingRunResponse:
+    _user, tenant, _workspace = workspace_ctx
     try:
         with _RUN_LOCK:
             if has_running_run(db, workspace_id):
@@ -50,7 +57,13 @@ def run_matching(
                     detail="A matching run is already in progress for this workspace.",
                 )
             run_row, targets = create_matching_run(
-                db, workspace_id, payload.scope, payload.segment_key
+                db,
+                workspace_id,
+                payload.scope,
+                payload.segment_key,
+                max_students_per_segment=(
+                    get_settings().demo_max_students_per_segment if tenant.is_demo else None
+                ),
             )
             run_queue.enqueue_matching_run(
                 run_row.id,
@@ -87,6 +100,24 @@ def get_matching_runs(
 ) -> MatchingRunListResponse:
     runs = list_matching_runs(db, workspace_id)
     progress = run_queue.progress_snapshot()
+
+    segment_keys_by_run: dict[str, list[str]] = {}
+    if runs:
+        segment_rows = db.execute(
+            select(MatchingRun.run_id, Segment.segment_key)
+            .join(RoomAssignment, RoomAssignment.matching_run_id == MatchingRun.id)
+            .join(Segment, Segment.id == RoomAssignment.segment_id)
+            .where(
+                MatchingRun.workspace_id == workspace_id,
+                MatchingRun.run_id.in_([run.run_id for run in runs]),
+            )
+            .distinct()
+        ).all()
+        for run_id, segment_key in segment_rows:
+            segment_keys_by_run.setdefault(run_id, []).append(segment_key)
+        for keys in segment_keys_by_run.values():
+            keys.sort()
+
     return MatchingRunListResponse(
         runs=[
             {
@@ -101,6 +132,7 @@ def get_matching_runs(
                     if run.status == "running" and run.run_id in progress
                     else run.segments_completed
                 ),
+                "segment_keys": segment_keys_by_run.get(run.run_id, []),
                 "error_message": run.error_message,
             }
             for run in runs
@@ -114,6 +146,7 @@ from fastapi import Query
 def get_matching_run_rooms(
     workspace_id: uuid.UUID,
     run_id: str,
+    request: Request,
     segment_key: str = Query(...),
     db: Session = Depends(get_db),
     workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_access),
@@ -123,8 +156,14 @@ def get_matching_run_rooms(
         rooms = get_run_rooms_from_persisted_artifacts(db, run_id=run_id, segment_key=segment_key, workspace_id=workspace_id)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-    except ValueError as exc:
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    except ValueError:
+        logger.exception(
+            "Matching artifacts read failed method=%s path=%s request_id=%s",
+            request.method,
+            request.url.path,
+            request.state.request_id,
+        )
+        raise HTTPException(status_code=500, detail="Internal server error.")
 
     has_generated = bool(db.scalar(
         select(
@@ -144,6 +183,7 @@ def get_matching_run_rooms(
 def get_matching_run_students(
     workspace_id: uuid.UUID,
     run_id: str,
+    request: Request,
     segment_key: str = Query(...),
     db: Session = Depends(get_db),
     workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_access),
@@ -153,8 +193,14 @@ def get_matching_run_students(
         students = get_run_students_from_persisted_artifacts(db, run_id=run_id, segment_key=segment_key, workspace_id=workspace_id)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-    except ValueError as exc:
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    except ValueError:
+        logger.exception(
+            "Matching artifacts read failed method=%s path=%s request_id=%s",
+            request.method,
+            request.url.path,
+            request.state.request_id,
+        )
+        raise HTTPException(status_code=500, detail="Internal server error.")
 
     has_generated = bool(db.scalar(
         select(
@@ -183,7 +229,6 @@ def get_all_segments_students(
     from app.models.room_assignment import RoomAssignment
     from app.models.segment import Segment
     from sqlalchemy import select
-    import json
     
     # We just need to know which segments are part of the run
     # and then call get_run_students_from_persisted_artifacts for each

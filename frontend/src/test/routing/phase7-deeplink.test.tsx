@@ -4,7 +4,6 @@ import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { vi } from "vitest";
 
 import { StudentResultsPage } from "../../pages/matching/StudentResultsPage";
-import { WorkspaceContext } from "../../providers/WorkspaceProvider";
 
 const {
   useAdminSegmentsQueryMock,
@@ -164,7 +163,7 @@ describe("phase 7 deep links", () => {
 
     return render(
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={[normalizedEntry]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <MemoryRouter initialEntries={[normalizedEntry]}>
           <Routes>
             <Route
               path="/app/:workspaceId/matching-runs/:runId/students"

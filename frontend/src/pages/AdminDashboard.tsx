@@ -73,7 +73,10 @@ export function AdminDashboard(): JSX.Element {
       const result = await magicFillWorkspace(workspaceId, null);
       toast({
         title: "Magic Fill complete",
-        description: `Created ${result.profiles_created} generated profiles across this workspace.`,
+        description:
+          result.profiles_created === 0
+            ? "Every student already has a profile; nothing to fill."
+            : `Created ${result.profiles_created} generated profiles across this workspace.`,
       });
       dashboardQuery.refetch();
     } catch (err) {
@@ -175,9 +178,6 @@ export function AdminDashboard(): JSX.Element {
       : null,
   ].filter((blocker): blocker is NonNullable<typeof blocker> => blocker !== null);
 
-  const collectionRatio =
-    typeof stats?.percentage_complete === "number" ? Math.min(100, Math.max(0, stats.percentage_complete)) : 0;
-
   return (
     <section className="desk-stack">
       <AdminPageHeader
@@ -233,6 +233,84 @@ export function AdminDashboard(): JSX.Element {
               </Link>
             </Button>
           </div>
+
+          {runId ? null : (
+            <div className="desk-section">
+              <div className="desk-section-head">
+                <h2 className="desk-section-title">First run</h2>
+                <p className="desk-help">five steps to a proposal</p>
+              </div>
+              <ol className="desk-list" style={{ listStyle: "none", padding: 0 }}>
+                <li>
+                  <Link className="desk-list-row" to={`/app/${workspaceId}/students-data`}>
+                    <span className="desk-list-main">
+                      <span className="desk-list-title">
+                        <span className="desk-stage-step">01</span> Upload the students CSV
+                      </span>
+                      <span className="desk-list-meta">
+                        admission_number, full_name, gender, year_group, ac_type, room_size, dob, phone_number
+                      </span>
+                    </span>
+                    <ArrowRight size={15} strokeWidth={1.8} aria-hidden="true" />
+                  </Link>
+                </li>
+                <li>
+                  <Link className="desk-list-row" to={`/app/${workspaceId}/students-data`}>
+                    <span className="desk-list-main">
+                      <span className="desk-list-title">
+                        <span className="desk-stage-step">02</span> Upload the rooms CSV
+                      </span>
+                      <span className="desk-list-meta">
+                        room_id, segment_key, capacity (2–4); segments come from the students file
+                      </span>
+                    </span>
+                    <ArrowRight size={15} strokeWidth={1.8} aria-hidden="true" />
+                  </Link>
+                </li>
+                <li>
+                  <Link className="desk-list-row" to={`/app/${workspaceId}/form-collection`}>
+                    <span className="desk-list-main">
+                      <span className="desk-list-title">
+                        <span className="desk-stage-step">03</span> Collect preferences
+                      </span>
+                      <span className="desk-list-meta">
+                        share the form link; for a rehearsal, Magic Fill on this dashboard can
+                        simulate missing responses.
+                      </span>
+                    </span>
+                    <ArrowRight size={15} strokeWidth={1.8} aria-hidden="true" />
+                  </Link>
+                </li>
+                <li>
+                  <Link className="desk-list-row" to={`/app/${workspaceId}/matching-runs`}>
+                    <span className="desk-list-main">
+                      <span className="desk-list-title">
+                        <span className="desk-stage-step">04</span> Run matching
+                      </span>
+                      <span className="desk-list-meta">
+                        run one ready segment or all; runs are append-only
+                      </span>
+                    </span>
+                    <ArrowRight size={15} strokeWidth={1.8} aria-hidden="true" />
+                  </Link>
+                </li>
+                <li>
+                  <Link className="desk-list-row" to={`/app/${workspaceId}/matching-runs`}>
+                    <span className="desk-list-main">
+                      <span className="desk-list-title">
+                        <span className="desk-stage-step">05</span> Read results and export
+                      </span>
+                      <span className="desk-list-meta">rooms, student reasons, fairness, CSV export</span>
+                    </span>
+                    <ArrowRight size={15} strokeWidth={1.8} aria-hidden="true" />
+                  </Link>
+                </li>
+              </ol>
+              <p className="desk-help" style={{ marginTop: 10, color: "var(--wax)" }}>
+                Use fake data, not real student data — the demo workspace is throwaway.
+              </p>
+            </div>
+          )}
 
           <div className="desk-figures">
             <StatCard
