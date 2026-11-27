@@ -234,6 +234,83 @@ export function AdminDashboard(): JSX.Element {
             </Button>
           </div>
 
+          {runId ? null : (
+            <div className="desk-section">
+              <div className="desk-section-head">
+                <h2 className="desk-section-title">First run</h2>
+                <p className="desk-help">five steps to a proposal</p>
+              </div>
+              <ol className="desk-list" style={{ listStyle: "none", padding: 0 }}>
+                <li>
+                  <Link className="desk-list-row" to={`/app/${workspaceId}/students-data`}>
+                    <span className="desk-list-main">
+                      <span className="desk-list-title">
+                        <span className="desk-stage-step">01</span> Upload the students CSV
+                      </span>
+                      <span className="desk-list-meta">
+                        admission_number, full_name, gender, year_group, ac_type, room_size, dob, phone_number
+                      </span>
+                    </span>
+                    <ArrowRight size={15} strokeWidth={1.8} aria-hidden="true" />
+                  </Link>
+                </li>
+                <li>
+                  <Link className="desk-list-row" to={`/app/${workspaceId}/students-data`}>
+                    <span className="desk-list-main">
+                      <span className="desk-list-title">
+                        <span className="desk-stage-step">02</span> Upload the rooms CSV
+                      </span>
+                      <span className="desk-list-meta">
+                        room_id, segment_key, capacity (2–4); segments come from the students file
+                      </span>
+                    </span>
+                    <ArrowRight size={15} strokeWidth={1.8} aria-hidden="true" />
+                  </Link>
+                </li>
+                <li>
+                  <Link className="desk-list-row" to={`/app/${workspaceId}/form-collection`}>
+                    <span className="desk-list-main">
+                      <span className="desk-list-title">
+                        <span className="desk-stage-step">03</span> Collect preferences
+                      </span>
+                      <span className="desk-list-meta">
+                        share the form link, or use Magic Fill to simulate responses with synthetic profiles
+                      </span>
+                    </span>
+                    <ArrowRight size={15} strokeWidth={1.8} aria-hidden="true" />
+                  </Link>
+                </li>
+                <li>
+                  <Link className="desk-list-row" to={`/app/${workspaceId}/matching-runs`}>
+                    <span className="desk-list-main">
+                      <span className="desk-list-title">
+                        <span className="desk-stage-step">04</span> Run matching
+                      </span>
+                      <span className="desk-list-meta">
+                        run one ready segment or all; runs are append-only
+                      </span>
+                    </span>
+                    <ArrowRight size={15} strokeWidth={1.8} aria-hidden="true" />
+                  </Link>
+                </li>
+                <li>
+                  <Link className="desk-list-row" to={`/app/${workspaceId}/matching-runs`}>
+                    <span className="desk-list-main">
+                      <span className="desk-list-title">
+                        <span className="desk-stage-step">05</span> Read results and export
+                      </span>
+                      <span className="desk-list-meta">rooms, student reasons, fairness, CSV export</span>
+                    </span>
+                    <ArrowRight size={15} strokeWidth={1.8} aria-hidden="true" />
+                  </Link>
+                </li>
+              </ol>
+              <p className="desk-help" style={{ marginTop: 10, color: "var(--wax)" }}>
+                Use fake data, not real student data — the demo workspace is throwaway.
+              </p>
+            </div>
+          )}
+
           <div className="desk-figures">
             <StatCard
               label="Total Students"
