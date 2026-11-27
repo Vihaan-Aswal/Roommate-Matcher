@@ -60,7 +60,10 @@ export function AdminMatchingRuns(): JSX.Element {
     }
   }
 
-  const segments = segmentsQuery.data?.segments ?? [];
+  const segments = useMemo(
+    () => segmentsQuery.data?.segments ?? [],
+    [segmentsQuery.data?.segments],
+  );
   const runs = runsQuery.data?.runs ?? [];
   const hasRunningRun = runs.some(
     (run) => run.status === "running" || run.status === "pending",

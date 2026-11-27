@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useMemo } from "react";
+import React, { createContext, useCallback, useContext, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useWorkspacesQuery } from "../hooks/useWorkspacesQuery";
 
@@ -28,9 +28,12 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     return ws ? ws.name : null;
   }, [workspaceId, data]);
 
-  const navigateToWorkspace = (id: string) => {
-    navigate(`/app/${encodeURIComponent(id)}/dashboard`);
-  };
+  const navigateToWorkspace = useCallback(
+    (id: string) => {
+      navigate(`/app/${encodeURIComponent(id)}/dashboard`);
+    },
+    [navigate]
+  );
 
   const value = useMemo<WorkspaceState>(
     () => ({
@@ -38,7 +41,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       workspaceName,
       navigateToWorkspace,
     }),
-    [workspaceId, workspaceName]
+    [workspaceId, workspaceName, navigateToWorkspace]
   );
 
   return (

@@ -99,7 +99,7 @@ export function ManualCheckerPage(): JSX.Element {
       (segment) => segment.segment_key === segmentKey,
     );
     return segmentRow?.room_size ?? null;
-  }, [segmentKey, segmentStudentsQuery.data?.room_size, segmentsQuery.data?.segments]);
+  }, [segmentKey, segmentStudentsQuery.data, segmentsQuery.data?.segments]);
 
   const validationMessage = resolveValidationMessage(
     segmentKey,

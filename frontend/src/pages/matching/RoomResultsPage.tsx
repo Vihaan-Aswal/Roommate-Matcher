@@ -51,7 +51,10 @@ export function RoomResultsPage(): JSX.Element {
     (segment) => segment.segment_key === selectedSegment,
   ) ?? { segment_key: selectedSegment ?? "" };
 
-  const rooms = roomsQuery.data?.rooms ?? [];
+  const rooms = useMemo(
+    () => roomsQuery.data?.rooms ?? [],
+    [roomsQuery.data?.rooms],
+  );
   const filteredRooms = useMemo(
     () => (needsReviewOnly ? rooms.filter((room) => room.needs_review) : rooms),
     [needsReviewOnly, rooms],
