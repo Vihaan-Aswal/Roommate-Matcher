@@ -34,7 +34,7 @@ from app.services.public_form.token_service import get_active_token, regenerate_
 from app.services.ingestion.form_collection import compute_form_collection_status, list_non_submitters
 from app.schemas.workspace import FormLinkResponse
 from app.schemas.form import FormStatusResponse, NonSubmittersResponse, NonSubmitterResponseRow
-from app.schemas.segment import SegmentListResponse, SegmentStatusResponse, SegmentStudentsResponse
+from app.schemas.segment import SegmentListResponse, SegmentStudentsResponse
 from app.services.segments.status import compute_segment_status, get_segment_students_preference_status, list_segment_overviews
 from app.models.segment import Segment
 from app.schemas.magic_fill import MagicFillRequest, MagicFillResponse

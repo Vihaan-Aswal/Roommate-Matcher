@@ -13,7 +13,7 @@ import random
 import uuid
 from dataclasses import dataclass
 
-from sqlalchemy import select, and_, exists, func
+from sqlalchemy import select, exists, func
 from sqlalchemy.orm import Session
 
 from app.models.preference_profile import PreferenceProfile
