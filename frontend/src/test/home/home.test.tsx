@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import App from "../../App";
@@ -69,6 +69,15 @@ describe("public homepage route", () => {
     expect(fetchSpy).not.toHaveBeenCalled();
 
     fetchSpy.mockRestore();
+  });
+
+  it("moves focus to the main argument when the skip link is used", () => {
+    window.history.pushState({}, "Homepage", "/");
+    render(<App />);
+
+    fireEvent.click(screen.getByRole("link", { name: /skip to the argument/i }));
+
+    expect(screen.getByRole("main")).toHaveFocus();
   });
 
   it("serves the full pipeline by default and keeps the classic film at ?classic=1", async () => {

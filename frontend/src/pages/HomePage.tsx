@@ -98,7 +98,11 @@ export function HomePage(): JSX.Element {
 
   return (
     <div className="mm-home" id="top">
-      <a className="mm-skip" href="#main">
+      <a
+        className="mm-skip"
+        href="#main"
+        onClick={() => document.getElementById("main")?.focus()}
+      >
         Skip to the argument
       </a>
 
@@ -118,7 +122,7 @@ export function HomePage(): JSX.Element {
         </div>
       </header>
 
-      <main id="main">
+      <main id="main" tabIndex={-1}>
         <section
           className="mm-hero"
           aria-labelledby="hero-heading"

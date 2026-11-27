@@ -83,6 +83,34 @@ describe("StudentForm", () => {
     ).toBeInTheDocument();
   });
 
+  it("moves focus to the step heading on continue and back", () => {
+    renderWithProviders(
+      <Routes>
+        <Route path="/:token" element={<StudentForm />} />
+      </Routes>,
+      { initialEntries: ["/test-token"] },
+    );
+
+    fireEvent.change(screen.getByLabelText("Admission Number"), {
+      target: { value: "ADM502" },
+    });
+    fireEvent.change(screen.getByLabelText("Last 4 digits of Phone Number"), {
+      target: { value: "1234" },
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /continue to questions/i }),
+    );
+    expect(
+      screen.getByRole("heading", { name: "Twelve questions" }),
+    ).toHaveFocus();
+
+    fireEvent.click(screen.getByRole("button", { name: /^back$/i }));
+    expect(
+      screen.getByRole("heading", { name: "Who is answering" }),
+    ).toHaveFocus();
+  });
+
   it("validates unanswered questions before submit", () => {
     renderWithProviders(
       <Routes>
@@ -151,6 +179,7 @@ describe("StudentForm", () => {
     await waitFor(() => {
       expect(screen.getByText("Thank you")).toBeInTheDocument();
     });
+    expect(screen.getByRole("heading", { name: "Thank you" })).toHaveFocus();
 
     expect(submitMock).toHaveBeenCalledOnce();
   });
