@@ -44,6 +44,7 @@ const server = spawn(
       SUPABASE_JWT_AUDIENCE: process.env.SUPABASE_JWT_AUDIENCE || "authenticated",
       ADMIN_EMAILS: process.env.ADMIN_EMAILS || "e2e-admin@example.com",
       DEMO_RATE_LIMIT: process.env.DEMO_RATE_LIMIT || "100000/minute",
+      DEMO_GLOBAL_CAP_PER_HOUR: process.env.DEMO_GLOBAL_CAP_PER_HOUR || "100000",
     },
   },
 );

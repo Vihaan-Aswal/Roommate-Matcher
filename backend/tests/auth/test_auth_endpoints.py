@@ -1,5 +1,6 @@
 """Integration tests for /api/auth/* endpoints using TestClient."""
 import uuid
+from datetime import UTC, datetime, timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -31,6 +32,64 @@ def test_demo_endpoint_creates_session(client: TestClient):
     assert "tenant_id" in data
     assert "workspace_id" in data
     assert "expires_at" in data
+
+
+def test_demo_endpoint_blocks_when_hourly_cap_reached(
+    client: TestClient, db_session, monkeypatch
+):
+    monkeypatch.setenv("DEMO_GLOBAL_CAP_PER_HOUR", "2")
+    get_settings.cache_clear()
+
+    expires_at = datetime.now(UTC) + timedelta(hours=1)
+    db_session.add_all(
+        [
+            Tenant(
+                slug=f"demo-cap-{uuid.uuid4().hex[:6]}",
+                display_name="Demo One",
+                is_demo=True,
+                demo_expires_at=expires_at,
+            ),
+            Tenant(
+                slug=f"demo-cap-{uuid.uuid4().hex[:6]}",
+                display_name="Demo Two",
+                is_demo=True,
+                demo_expires_at=expires_at,
+            ),
+        ]
+    )
+    db_session.commit()
+
+    resp = client.post("/api/auth/demo", json={"email": "capped@demo.com"})
+
+    assert resp.status_code == 429
+    assert (
+        resp.json()["detail"]
+        == "The demo is busy right now. Please try again in a few minutes."
+    )
+    assert resp.headers["retry-after"] == "300"
+    assert db_session.query(Tenant).count() == 2
+
+
+def test_demo_cap_ignores_tenants_older_than_an_hour(
+    client: TestClient, db_session, monkeypatch
+):
+    monkeypatch.setenv("DEMO_GLOBAL_CAP_PER_HOUR", "1")
+    get_settings.cache_clear()
+
+    db_session.add(
+        Tenant(
+            slug=f"demo-old-{uuid.uuid4().hex[:6]}",
+            display_name="Old Demo",
+            is_demo=True,
+            demo_expires_at=datetime.now(UTC) + timedelta(days=1),
+            created_at=datetime.now(UTC) - timedelta(hours=2),
+        )
+    )
+    db_session.commit()
+
+    resp = client.post("/api/auth/demo", json={"email": "after-old@demo.com"})
+
+    assert resp.status_code == 200, resp.text
 
 
 def test_demo_database_failure_returns_503_and_cleans_up(

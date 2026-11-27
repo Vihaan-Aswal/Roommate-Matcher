@@ -31,6 +31,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, EmailStr
+from sqlalchemy import func, select
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.rate_limit import limiter
@@ -192,6 +193,21 @@ def create_demo_session(
     now = datetime.now(UTC)
     ttl_hours = settings.demo_ttl_hours
     demo_expires_at = now + timedelta(hours=ttl_hours)
+
+    recent_demo_count = db.scalar(
+        select(func.count())
+        .select_from(Tenant)
+        .where(
+            Tenant.is_demo.is_(True),
+            Tenant.created_at >= now - timedelta(hours=1),
+        )
+    ) or 0
+    if recent_demo_count >= settings.demo_global_cap_per_hour:
+        raise HTTPException(
+            status_code=429,
+            detail="The demo is busy right now. Please try again in a few minutes.",
+            headers={"Retry-After": "300"},
+        )
 
     tenant_id: uuid.UUID | None = None
     seed_result = None
