@@ -50,7 +50,6 @@ def db_session() -> Generator[Session, None, None]:
         yield session
     finally:
         session.close()
-        Base.metadata.drop_all(engine)
         engine.dispose()
 
 
