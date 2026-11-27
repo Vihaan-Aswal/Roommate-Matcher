@@ -4,6 +4,7 @@ import { LogOut, Menu } from "lucide-react";
 import { useAuth } from "../providers/AuthProvider";
 import { useWorkspace } from "../providers/WorkspaceProvider";
 import { ImpersonationBanner } from "../components/ImpersonationBanner";
+import { RouteErrorBoundary } from "../components/RouteErrorBoundary";
 
 /**
  * The desk: a dark forest rail holding the workspace and the work sequence,
@@ -81,6 +82,7 @@ export function AdminLayout(): JSX.Element {
   const { user, signOut } = useAuth();
   const { workspaceName } = useWorkspace();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
 
   async function handleSignOut() {
     await signOut();
@@ -162,7 +164,9 @@ export function AdminLayout(): JSX.Element {
 
         <main className="desk-paper" id="desk-main" tabIndex={-1}>
           <div className="desk-page">
-            <Outlet />
+            <RouteErrorBoundary key={pathname}>
+              <Outlet />
+            </RouteErrorBoundary>
           </div>
         </main>
       </div>
