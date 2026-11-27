@@ -76,6 +76,62 @@ def _enforce_invalid_row_cap(
         )
 
 
+def _persist_valid_submission(
+    db: Session,
+    *,
+    tenant_id: uuid.UUID,
+    workspace_id: uuid.UUID,
+    student: Student,
+    admission_number: str,
+    phone_last4: str,
+    submitted_at: datetime,
+    normalized_answers: dict[str, str | None],
+    encoded_answers: dict[str, float],
+) -> None:
+    form_response = FormResponse(
+        tenant_id=tenant_id,
+        workspace_id=workspace_id,
+        student_id=student.id,
+        submitted_admission_number=admission_number,
+        submitted_phone_last4=phone_last4,
+        submitted_at=submitted_at,
+        validation_status="valid",
+        invalid_reason=None,
+        **normalized_answers,
+    )
+    db.add(form_response)
+    db.flush()
+
+    should_activate = True
+    active_profile = _latest_valid_profile(db, student.id)
+    if active_profile is not None:
+        previous_response = db.get(FormResponse, active_profile.source_form_response_id)
+        if (
+            previous_response is not None
+            and _to_utc_naive(previous_response.submitted_at) > submitted_at
+        ):
+            should_activate = False
+
+    if should_activate:
+        _deactivate_active_profiles(db, student.id)
+        db.flush()
+
+    db.add(
+        PreferenceProfile(
+            tenant_id=tenant_id,
+            workspace_id=workspace_id,
+            student_id=student.id,
+            source_form_response_id=form_response.id,
+            has_preferences=True,
+            is_active=should_activate,
+            is_generated=False,
+            **normalized_answers,
+            **encoded_answers,
+        )
+    )
+    db.commit()
+
+
 @router.get("/{public_form_token}")
 def get_public_form(public_form_token: str, db: Session = Depends(get_db)) -> dict[str, Any]:
     link = db.scalars(
@@ -224,54 +280,31 @@ def submit_public_form(
         db.commit()
         return {"status": "recorded", "valid": False, "error": "invalid_form_option"}
 
-    form_response = FormResponse(
-        tenant_id=tenant_id,
-        workspace_id=workspace_id,
-        student_id=student.id,
-        submitted_admission_number=payload.submitted_admission_number,
-        submitted_phone_last4=payload.submitted_phone_last4,
-        submitted_at=submitted_at,
-        validation_status="valid",
-        invalid_reason=None,
-        **normalized_answers,
-    )
-    db.add(form_response)
-    db.flush()
-
     encoded_answers = _build_encoded_answers(normalized_answers)
 
-    should_activate = True
-    active_profile = _latest_valid_profile(db, student.id)
-    if active_profile is not None:
-        previous_response = db.get(FormResponse, active_profile.source_form_response_id)
-        if (
-            previous_response is not None
-            and _to_utc_naive(previous_response.submitted_at) > submitted_at
-        ):
-            should_activate = False
-
-    if should_activate:
-        _deactivate_active_profiles(db, student.id)
-        db.flush()
-
-    profile = PreferenceProfile(
-        tenant_id=tenant_id,
-        workspace_id=workspace_id,
-        student_id=student.id,
-        source_form_response_id=form_response.id,
-        has_preferences=True,
-        is_active=should_activate,
-        is_generated=False,
-        **normalized_answers,
-        **encoded_answers,
-    )
-    db.add(profile)
-    try:
-        db.commit()
-    except IntegrityError:
-        # A concurrent submission won the one-active-profile index; that
-        # request's profile is the canonical one, so report success here too.
-        db.rollback()
-        return {"status": "submitted", "valid": True}
-
-    return {"status": "submitted", "valid": True}
+    attempts = 0
+    while True:
+        try:
+            _persist_valid_submission(
+                db,
+                tenant_id=tenant_id,
+                workspace_id=workspace_id,
+                student=student,
+                admission_number=payload.submitted_admission_number,
+                phone_last4=payload.submitted_phone_last4,
+                submitted_at=submitted_at,
+                normalized_answers=normalized_answers,
+                encoded_answers=encoded_answers,
+            )
+            return {"status": "submitted", "valid": True}
+        except IntegrityError:
+            db.rollback()
+            attempts += 1
+            if attempts >= 2:
+                raise HTTPException(
+                    status_code=409,
+                    detail=(
+                        "This response was just submitted from another tab. "
+                        "Refresh and submit again if it is still missing."
+                    ),
+                )

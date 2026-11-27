@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from app.models.workspace import Workspace
 from app.models.student import Student
 from app.models.form_response import FormResponse
+from app.models.preference_profile import PreferenceProfile
 
 VALID_ANSWERS = {
     "q1_raw": "Before 11 PM (early)", "q2_raw": "Very tidy - I like things clean and organized",
@@ -138,9 +139,41 @@ def test_double_submission_unique_conflict_still_reports_success(
         },
     )
 
-    assert calls["count"] >= 1
+    assert calls["count"] == 2
     assert resp.status_code == 200
     assert resp.json() == {"status": "submitted", "valid": True}
+    assert db_session.query(FormResponse).count() == 1
+    assert db_session.query(PreferenceProfile).count() == 1
+
+
+def test_double_submission_second_conflict_is_409(
+    client, test_setup, db_session, monkeypatch
+):
+    calls = {"count": 0}
+
+    def always_conflict():
+        calls["count"] += 1
+        raise IntegrityError("INSERT ...", {}, Exception("one active profile per student"))
+
+    monkeypatch.setattr(db_session, "commit", always_conflict)
+
+    resp = client.post(
+        "/api/public/forms/VALID_TOKEN/submit",
+        json={
+            "submitted_admission_number": "ADM001",
+            "submitted_phone_last4": "7890",
+            "answers": VALID_ANSWERS,
+        },
+    )
+
+    assert calls["count"] == 2
+    assert resp.status_code == 409
+    assert resp.json()["detail"] == (
+        "This response was just submitted from another tab. "
+        "Refresh and submit again if it is still missing."
+    )
+    assert db_session.query(FormResponse).count() == 0
+    assert db_session.query(PreferenceProfile).count() == 0
 
 
 def test_resubmission_with_aware_stored_timestamp(
