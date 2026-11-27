@@ -87,6 +87,8 @@ def test_database_engine_adds_postgres_pool_settings(monkeypatch: pytest.MonkeyP
     import app.database
 
     monkeypatch.setenv("DATABASE_URL", "postgresql+psycopg2://user:pass@localhost/db")
+    monkeypatch.setenv("CLEANUP_JOB_SECRET", "test-cleanup-secret-32-characters-long")
+    monkeypatch.setenv("CORS_ALLOWED_ORIGINS", '["https://example.com"]')
     app.config.get_settings.cache_clear()
     captured: dict[str, object] = {}
     real_create_engine = sqlalchemy.create_engine
