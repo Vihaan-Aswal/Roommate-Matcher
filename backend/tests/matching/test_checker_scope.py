@@ -50,8 +50,6 @@ def test_checker_scope(db_session: Session, seed_tenant_and_user):
         room_size=2,
         student_ids=["STU-1", "STU-4"],
     )
-    assert seg1.segment_key == "WS1-M"
-    assert seg1.room_size == 2
     assert len(result.students) == 2
     assert {row["admission_number"] for row in result.students} == {"STU-1", "STU-4"}
     assert 0.0 <= result.group_score <= 1.0

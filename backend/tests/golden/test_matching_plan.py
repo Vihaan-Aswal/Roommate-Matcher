@@ -5,6 +5,8 @@ import os
 from itertools import combinations
 from pathlib import Path
 
+import pytest
+
 from app.services.matching.engine import run_matching_for_segment
 from app.services.scoring.pipeline import compute_pair_score
 from app.services.scoring.types import ScoringProfile
@@ -215,6 +217,10 @@ def test_matching_and_scoring_plans_match_golden() -> None:
     plan = _build_plan()
 
     if os.environ.get("UPDATE_GOLDEN") == "1":
+        if "CI" in os.environ:
+            pytest.fail(
+                "UPDATE_GOLDEN is disabled in CI; generate locally and commit the diff"
+            )
         GOLDEN_PATH.write_text(
             json.dumps(plan, indent=2, sort_keys=True) + "\n", encoding="utf-8"
         )
