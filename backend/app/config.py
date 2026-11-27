@@ -3,6 +3,8 @@ from functools import lru_cache
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 MAX_CSV_UPLOAD_BYTES: int = 5 * 1024 * 1024
+MAX_CSV_ROWS: int = 10_000
+MAX_CSV_CELL_CHARS: int = 1_000
 
 
 class Settings(BaseSettings):
