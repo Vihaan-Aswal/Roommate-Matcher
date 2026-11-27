@@ -2616,19 +2616,27 @@
     display: none;
   }
 
+  .cp-rail-list {
+    grid-template-columns: repeat(8, minmax(44px, 1fr));
+    overflow-x: auto;
+  }
+
   .cp-rail-step {
     align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
     padding: 0;
   }
 
   .cp-rail-num {
     width: 18px;
     height: 18px;
-    font-size: 6.2px;
+    font-size: 12px;
   }
 
   .cp-rail-list::before {
-    top: 9px;
+    top: 22px;
   }
 
   .cp-caption {
