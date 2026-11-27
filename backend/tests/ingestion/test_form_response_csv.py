@@ -123,6 +123,23 @@ def test_ingest_form_responses_csv_accepts_valid_rows(db_session: Session, tmp_p
     ).all()
     assert len(profiles) == 2
 
+def test_ingest_form_responses_csv_accepts_a_utf8_bom_header(
+    db_session: Session, tmp_path: Path
+) -> None:
+    workspace_id = _seed_student(db_session, "ADM9030", "1234")
+    db_session.commit()
+
+    csv_path = Path(
+        _write_csv(tmp_path, "form_responses_bom.csv", [_row("ADM9030", "1234")])
+    )
+    csv_path.write_bytes(b"\xef\xbb\xbf" + csv_path.read_bytes())
+
+    result = ingest_form_responses_csv(db_session, workspace_id, str(csv_path))
+
+    assert result["accepted_rows"] == 1
+    assert result["rejected_rows"] == 0
+
+
 def test_ingest_form_responses_csv_rejects_unknown_admission(db_session: Session, tmp_path: Path) -> None:
     workspace_id = _seed_student(db_session, "ADM9010", "1234")
     db_session.commit()

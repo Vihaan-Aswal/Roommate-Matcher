@@ -45,7 +45,7 @@ class _CsvRow:
 def _iter_rows(csv_path: str) -> Iterator[_CsvRow]:
     seen_in_file: set[str] = set()
 
-    with Path(csv_path).open("r", encoding="utf-8", newline="") as handle:
+    with Path(csv_path).open("r", encoding="utf-8-sig", newline="") as handle:
         reader = csv.DictReader(handle)
         _validate_header(reader.fieldnames)
 
