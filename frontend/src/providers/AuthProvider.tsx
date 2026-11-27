@@ -23,9 +23,11 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
-import { supabase } from "../lib/supabase";
+import type { Session } from "@supabase/supabase-js";
+import { getSupabase, hasSupabaseSessionHint } from "../lib/supabase";
 import { setApiToken } from "../lib/apiClient";
 
 // ---------------------------------------------------------------------------
@@ -82,6 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const subscriptionRef = useRef<{ unsubscribe: () => void } | null>(null);
 
   useEffect(() => {
     setApiToken(token);
@@ -134,6 +137,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     []
   );
 
+  // --- Internal: apply a Supabase session, keeping app-JWT precedence ---
+  const applySupabaseSession = useCallback(
+    async (session: Session | null) => {
+      // Do NOT overwrite state if an app JWT (demo or impersonation) is actively in use.
+      // Those take precedence. If the user exits demo/impersonation, they trigger a hard reload.
+      if (
+        sessionStorage.getItem(DEMO_TOKEN_KEY) ||
+        sessionStorage.getItem(IMPERSONATION_TOKEN_KEY)
+      ) {
+        return;
+      }
+
+      if (session?.access_token) {
+        const appUser = await exchangeSupabaseToken(session.access_token);
+        setUser(appUser);
+        setToken(session.access_token);
+      } else if (!sessionStorage.getItem(DEMO_TOKEN_KEY)) {
+        setUser(null);
+        setToken(null);
+      }
+    },
+    [exchangeSupabaseToken],
+  );
+
+  const subscribeToSupabase = useCallback(async () => {
+    if (subscriptionRef.current) return;
+    const supabase = await getSupabase();
+    if (subscriptionRef.current) return;
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      void applySupabaseSession(session);
+    });
+    subscriptionRef.current = subscription;
+  }, [applySupabaseSession]);
+
   // --- Bootstrap on mount ---
   useEffect(() => {
     let cancelled = false;
@@ -166,7 +205,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
-      // Check for Supabase session
+      // Load the Supabase SDK only when a session may already exist.
+      if (!hasSupabaseSessionHint()) {
+        if (!cancelled) setIsLoading(false);
+        return;
+      }
+
+      const supabase = await getSupabase();
+      if (cancelled) return;
+
       const {
         data: { session },
       } = await supabase.auth.getSession();
@@ -179,52 +226,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
-      if (!cancelled) setIsLoading(false);
+      if (!cancelled) {
+        // Subscribe to sign-in / sign-out / token refresh from any tab.
+        await subscribeToSupabase();
+        setIsLoading(false);
+      }
     }
 
     bootstrap();
 
-    // Subscribe to Supabase auth changes (sign-in / sign-out / token refresh)
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (cancelled) return;
-
-      // Do NOT overwrite state if an app JWT (demo or impersonation) is actively in use.
-      // Those take precedence. If the user exits demo/impersonation, they trigger a hard reload.
-      if (sessionStorage.getItem(DEMO_TOKEN_KEY) || sessionStorage.getItem(IMPERSONATION_TOKEN_KEY)) {
-        return;
-      }
-
-      if (session?.access_token) {
-        const appUser = await exchangeSupabaseToken(session.access_token);
-        setUser(appUser);
-        setToken(session.access_token);
-      } else {
-        // Check if we're still on a demo session before clearing
-        const demoToken = sessionStorage.getItem(DEMO_TOKEN_KEY);
-        if (!demoToken) {
-          setUser(null);
-          setToken(null);
-        }
-      }
-    });
-
     return () => {
       cancelled = true;
-      subscription.unsubscribe();
+      subscriptionRef.current?.unsubscribe();
+      subscriptionRef.current = null;
     };
-  }, [hydrateFromBackend, exchangeSupabaseToken]);
+  }, [hydrateFromBackend, exchangeSupabaseToken, subscribeToSupabase]);
 
   // --- Public actions ---
 
   const signInWithEmail = useCallback(
     async (email: string, password: string) => {
+      const supabase = await getSupabase();
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw new Error(error.message);
-      // onAuthStateChange fires automatically — no need to set state here
+
+      // The listener may not exist yet, so exchange the session directly.
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        const appUser = await exchangeSupabaseToken(session.access_token);
+        setUser(appUser);
+        setToken(session.access_token);
+      }
+      await subscribeToSupabase();
     },
-    []
+    [exchangeSupabaseToken, subscribeToSupabase]
   );
 
   const startDemoSession = useCallback(async (email: string) => {
@@ -255,7 +292,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     sessionStorage.removeItem(REAL_ADMIN_TOKEN_KEY);
     setUser(null);
     setToken(null);
-    await supabase.auth.signOut();
+    if (hasSupabaseSessionHint()) {
+      const supabase = await getSupabase();
+      await supabase.auth.signOut();
+    }
   }, []);
 
   const value = useMemo<AuthState>(

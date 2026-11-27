@@ -1,15 +1,11 @@
 /**
- * supabase.ts — singleton Supabase browser client.
+ * supabase.ts — lazily created Supabase browser client.
  *
- * Import `supabase` anywhere in the frontend to access the Supabase JS client.
- * This is the ONLY place where the client is instantiated.
- *
- * A missing environment must not crash the whole app: the demo workspace is
- * local and needs no Supabase. When the two variables are absent we build a
- * placeholder client (it performs no network call until auth is used) and log
- * an error so a real deployment misconfiguration is still visible.
+ * The SDK is large and anonymous demo visitors never need it, so it is loaded
+ * only when `getSupabase()` is called. `isSupabaseConfigured` and the console
+ * error stay eager so a deployment misconfiguration is still visible.
  */
-import { createClient } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 const configuredUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const configuredAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
@@ -23,17 +19,44 @@ if (!isSupabaseConfigured) {
   );
 }
 
-export const supabase = createClient(
-  configuredUrl || "http://localhost:54321",
-  configuredAnonKey || "missing-anon-key",
-  {
-    auth: {
-      // Supabase JS stores its session in localStorage by default.
-      // We leave this as-is for real users.  Demo tokens are stored separately
-      // in sessionStorage by AuthProvider.
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true,
-    },
-  },
-);
+let clientPromise: Promise<SupabaseClient> | null = null;
+
+export function getSupabase(): Promise<SupabaseClient> {
+  if (!clientPromise) {
+    clientPromise = import("@supabase/supabase-js").then(({ createClient }) =>
+      createClient(
+        configuredUrl || "http://localhost:54321",
+        configuredAnonKey || "missing-anon-key",
+        {
+          auth: {
+            // Supabase JS stores its session in localStorage by default.
+            // We leave this as-is for real users.  Demo tokens are stored separately
+            // in sessionStorage by AuthProvider.
+            persistSession: true,
+            autoRefreshToken: true,
+            detectSessionInUrl: true,
+          },
+        },
+      ),
+    );
+  }
+  return clientPromise;
+}
+
+/** True when a Supabase session may already exist, so the SDK is worth loading. */
+export function hasSupabaseSessionHint(): boolean {
+  try {
+    if (globalThis.location?.hash.includes("access_token")) {
+      return true;
+    }
+    const storage = globalThis.localStorage;
+    if (!storage) {
+      return false;
+    }
+    return Object.keys(storage).some(
+      (key) => key.startsWith("sb-") && key.endsWith("-auth-token"),
+    );
+  } catch {
+    return false;
+  }
+}
