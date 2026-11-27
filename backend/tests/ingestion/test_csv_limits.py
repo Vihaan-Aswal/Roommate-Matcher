@@ -1,6 +1,7 @@
 """Bounds on CSV row count, cell length and duplicate headers."""
 from __future__ import annotations
 
+import csv
 import uuid
 
 import pytest
@@ -24,6 +25,22 @@ def _workspace(db_session: Session) -> tuple[uuid.UUID, uuid.UUID]:
     db_session.add(workspace)
     db_session.flush()
     return tenant.id, workspace.id
+
+
+def test_invalid_utf8_is_rejected() -> None:
+    with pytest.raises(ValueError, match="encoding not supported"):
+        parse_csv_bytes(b"admission_number\n\xff\n", {"admission_number"})
+
+
+def test_unparseable_csv_is_wrapped_in_value_error() -> None:
+    original_limit = csv.field_size_limit()
+    csv.field_size_limit(8)
+    try:
+        reader = parse_csv_bytes(b"a\n0123456789\n", {"a"})
+        with pytest.raises(ValueError, match="CSV could not be parsed"):
+            list(reader)
+    finally:
+        csv.field_size_limit(original_limit)
 
 
 def test_duplicate_headers_after_stripping_are_rejected() -> None:
