@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import uuid
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from pathlib import Path
@@ -53,6 +54,14 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response = await call_next(request)
         for name, value in SECURITY_HEADERS.items():
             response.headers.setdefault(name, value)
+        return response
+
+
+class RequestIDMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        request.state.request_id = uuid.uuid4().hex
+        response = await call_next(request)
+        response.headers.setdefault("X-Request-ID", request.state.request_id)
         return response
 
 
@@ -141,6 +150,7 @@ def create_app(*, frontend_dist_dir: Path | None = None) -> FastAPI:
         allow_headers=["*"],
     )
     application.add_middleware(SecurityHeadersMiddleware)
+    application.add_middleware(RequestIDMiddleware)
     application.include_router(auth_router)  # auth router handles its own /api/auth prefix
     application.include_router(workspaces_router)
     application.include_router(public_form_router, prefix="/api/public/forms", tags=["public_form"])
@@ -152,8 +162,13 @@ def create_app(*, frontend_dist_dir: Path | None = None) -> FastAPI:
     application.include_router(internal_router)
 
     @application.exception_handler(Exception)
-    async def unhandled_exception(_request: Request, exc: Exception) -> JSONResponse:
-        logger.exception("Unhandled application error: %s", exc)
+    async def unhandled_exception(request: Request, exc: Exception) -> JSONResponse:
+        logger.exception(
+            "Unhandled %s %s request_id=%s",
+            request.method,
+            request.url.path,
+            getattr(request.state, "request_id", "-"),
+        )
         return JSONResponse(status_code=500, content={"detail": "Internal server error."})
 
     @application.get("/health/live", include_in_schema=False)

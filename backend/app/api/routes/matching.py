@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import logging
 import threading
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import select, exists
 from app.models.matching_run import MatchingRun
@@ -34,6 +35,7 @@ from app.services.orchestration.run_workflow import (
 from app.api.deps.run_access import resolve_run_or_403
 
 router = APIRouter(prefix="/api/workspaces/{workspace_id}/matching", tags=["matching"])
+logger = logging.getLogger(__name__)
 
 _RUN_LOCK = threading.Lock()
 
@@ -136,6 +138,7 @@ from fastapi import Query
 def get_matching_run_rooms(
     workspace_id: uuid.UUID,
     run_id: str,
+    request: Request,
     segment_key: str = Query(...),
     db: Session = Depends(get_db),
     workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_access),
@@ -145,8 +148,14 @@ def get_matching_run_rooms(
         rooms = get_run_rooms_from_persisted_artifacts(db, run_id=run_id, segment_key=segment_key, workspace_id=workspace_id)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-    except ValueError as exc:
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    except ValueError:
+        logger.exception(
+            "Matching artifacts read failed method=%s path=%s request_id=%s",
+            request.method,
+            request.url.path,
+            request.state.request_id,
+        )
+        raise HTTPException(status_code=500, detail="Internal server error.")
 
     has_generated = bool(db.scalar(
         select(
@@ -166,6 +175,7 @@ def get_matching_run_rooms(
 def get_matching_run_students(
     workspace_id: uuid.UUID,
     run_id: str,
+    request: Request,
     segment_key: str = Query(...),
     db: Session = Depends(get_db),
     workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_access),
@@ -175,8 +185,14 @@ def get_matching_run_students(
         students = get_run_students_from_persisted_artifacts(db, run_id=run_id, segment_key=segment_key, workspace_id=workspace_id)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-    except ValueError as exc:
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    except ValueError:
+        logger.exception(
+            "Matching artifacts read failed method=%s path=%s request_id=%s",
+            request.method,
+            request.url.path,
+            request.state.request_id,
+        )
+        raise HTTPException(status_code=500, detail="Internal server error.")
 
     has_generated = bool(db.scalar(
         select(

@@ -120,6 +120,12 @@ def _run_matching(
     return response.json()["run_id"]
 
 
+def _assert_generic_500(response) -> None:
+    assert response.status_code == 500
+    assert response.json() == {"detail": "Internal server error."}
+    assert response.headers.get("x-request-id")
+
+
 def _seed_run_with_assignment(
     db_session: Session,
     tenant_id,
@@ -492,16 +498,14 @@ def test_matching_results_corrupt_artifacts_are_500(
         "?segment_key=F_1st_year_AC_2",
         headers=headers,
     )
-    assert response.status_code == 500
-    assert "JSON list" in response.json()["detail"]
+    _assert_generic_500(response)
 
     students_response = client.get(
         f"/api/workspaces/{workspace_id}/matching/runs/run_bad_json_list/students"
         "?segment_key=F_1st_year_AC_2",
         headers=headers,
     )
-    assert students_response.status_code == 500
-    assert "JSON list" in students_response.json()["detail"]
+    _assert_generic_500(students_response)
 
     _seed_run_with_assignment(
         db_session,
@@ -517,16 +521,14 @@ def test_matching_results_corrupt_artifacts_are_500(
         "?segment_key=F_1st_year_AC_2",
         headers=headers,
     )
-    assert response.status_code == 500
-    assert "JSON object" in response.json()["detail"]
+    _assert_generic_500(response)
 
     rooms_response = client.get(
         f"/api/workspaces/{workspace_id}/matching/runs/run_bad_summary/rooms"
         "?segment_key=F_1st_year_AC_2",
         headers=headers,
     )
-    assert rooms_response.status_code == 500
-    assert "JSON object" in rooms_response.json()["detail"]
+    _assert_generic_500(rooms_response)
 
     _seed_run_with_assignment(
         db_session,
@@ -542,8 +544,7 @@ def test_matching_results_corrupt_artifacts_are_500(
         "?segment_key=F_1st_year_AC_2",
         headers=headers,
     )
-    assert response.status_code == 500
-    assert "missing a student record" in response.json()["detail"]
+    _assert_generic_500(response)
 
 
 # ---------------------------------------------------------------------------
@@ -644,8 +645,7 @@ def test_fairness_report_non_object_snapshot_is_500(
     response = client.get(
         f"/api/workspaces/{workspace_id}/fairness/run_fairness_string", headers=headers
     )
-    assert response.status_code == 500
-    assert "JSON object" in response.json()["detail"]
+    _assert_generic_500(response)
 
 
 # ---------------------------------------------------------------------------
