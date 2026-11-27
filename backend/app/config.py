@@ -35,6 +35,7 @@ class Settings(BaseSettings):
     # --- App-level auth ---
     app_jwt_secret: str = ""
     admin_emails: str = ""  # comma-separated
+    impersonation_ttl_minutes: int = 45
 
     # --- Frontend ---
     frontend_url: str = "http://localhost:5173"

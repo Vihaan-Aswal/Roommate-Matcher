@@ -23,7 +23,6 @@ from app.models import Tenant, Workspace
 from app.models.platform_audit_event import PlatformAuditEvent
 
 _ALGORITHM = "HS256"
-_IMPERSONATION_TTL_HOURS = 4   # short-lived; non-configurable for now
 
 
 def _secret() -> str:
@@ -61,6 +60,7 @@ def issue_impersonation_token(
     Writes one row to platform_audit_events before returning.
     """
     now = datetime.now(UTC)
+    ttl_minutes = get_settings().impersonation_ttl_minutes
     payload: dict[str, Any] = {
         "sub": f"impersonate:{admin_supabase_user_id}",
         "email": admin_email,
@@ -70,7 +70,7 @@ def issue_impersonation_token(
         "is_demo": False,
         "impersonated_tenant": str(tenant.id),   # triggers impersonation path in get_authenticated_user
         "iat": now,
-        "exp": now + timedelta(hours=_IMPERSONATION_TTL_HOURS),
+        "exp": now + timedelta(minutes=ttl_minutes),
     }
     token = jwt.encode(payload, _secret(), algorithm=_ALGORITHM)
 
@@ -112,7 +112,7 @@ def _write_audit_event(
             "tenant_display_name": tenant.display_name,
             "workspace_id": str(workspace.id) if workspace else None,
             "workspace_name": workspace.name if workspace else None,
-            "impersonation_ttl_hours": _IMPERSONATION_TTL_HOURS,
+            "impersonation_ttl_minutes": get_settings().impersonation_ttl_minutes,
         },
     )
     db.add(event)
