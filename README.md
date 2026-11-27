@@ -261,7 +261,7 @@ cd frontend && npm run e2e:install && npm run e2e
 1. **Render auto-deploys** the backend on every push to the configured branch.
    - Build command (current): `pip install -e ".[dev]"`
    - Start command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips="*"`
-   - Health probes: `GET /health/live` checks the process only; `GET /health` also pings the database and returns 503 when it is unavailable. Render currently probes `/health/live`; pointing it at `/health` is recommended so database failures trigger a restart (pending D-HEALTH).
+   - Health probes: `GET /health/live` checks the process only; `GET /health` also pings the database and returns 503 when it is unavailable. Keep Render's `healthCheckPath` on `/health/live`; monitor `/health` externally and alert on 503. Do not point Render's health check at `/health` unless the platform supports readiness checks without restarting (pending D-HEALTH).
 2. **Vercel auto-deploys** the frontend on every push.
    - Build command: `npm run build` (from `frontend/`)
    - Output directory: `frontend/dist`
@@ -299,9 +299,9 @@ cd frontend && npm run e2e:install && npm run e2e
 
 ---
 
-### Demo Cleanup (currently manual)
+### Demo Cleanup (periodic, not guaranteed at 24 hours)
 
-The scheduled workflow (`.github/workflows/demo-cleanup.yml`) is disabled pending D-CRON, so expired demo tenants are **not** purged automatically. Re-enable it in GitHub Actions (Workflows → Demo Tenant Cleanup → Enable workflow, or trigger it with *Run workflow*), or call the endpoint directly:
+The scheduled workflow (`.github/workflows/demo-cleanup.yml`) is disabled pending D-CRON. Expired demos are purged in bounded batches on backend boot and can be purged on demand, but not necessarily at the 24-hour mark. Re-enable the workflow in GitHub Actions (Workflows → Demo Tenant Cleanup → Enable workflow, or trigger it with *Run workflow*), or call the endpoint directly:
 
 ```bash
 curl --fail --request POST \

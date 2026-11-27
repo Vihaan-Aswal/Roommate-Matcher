@@ -114,10 +114,13 @@ async def _lifespan(_application: FastAPI):
         db = SessionLocal()
         try:
             sweep_stale_runs(db, boot_time=datetime.now(UTC))
-            purged = purge_expired_demo_tenants(db, limit=50)
-            logger.info("Purged %d expired demo tenants on boot", len(purged))
         except Exception:  # noqa: BLE001
             logger.exception("Failed to sweep stale matching runs on boot")
+        try:
+            purged = purge_expired_demo_tenants(db, limit=200)
+            logger.info("Purged %d expired demo tenants on boot", len(purged))
+        except Exception:  # noqa: BLE001
+            logger.exception("Failed to purge expired demo tenants on boot")
         finally:
             db.close()
     yield
