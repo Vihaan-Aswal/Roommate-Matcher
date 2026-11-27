@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.database import get_db
-from app.models.tenant import Tenant
+from app.services.demo_cleanup import purge_expired_demo_tenants
 
 router = APIRouter(prefix="/api/internal", tags=["internal"], include_in_schema=False)
 
@@ -73,23 +73,7 @@ def cleanup_demo_tenants(
     child-row deletion here before deleting the tenant.
     """
     now = datetime.now(UTC)
-
-    expired: list[Tenant] = (
-        db.query(Tenant)
-        .filter(
-            Tenant.is_demo.is_(True),
-            Tenant.demo_expires_at.isnot(None),
-            Tenant.demo_expires_at < now,
-        )
-        .all()
-    )
-
-    purged_ids: list[str] = []
-    for tenant in expired:
-        purged_ids.append(str(tenant.id))
-        db.delete(tenant)
-
-    db.commit()
+    purged_ids = purge_expired_demo_tenants(db, now=now)
 
     return CleanupResult(
         purged_count=len(purged_ids),

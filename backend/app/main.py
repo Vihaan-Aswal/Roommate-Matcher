@@ -21,6 +21,7 @@ from slowapi.middleware import SlowAPIMiddleware
 
 from app.database import SessionLocal, get_db
 from app.rate_limit import limiter
+from app.services.demo_cleanup import purge_expired_demo_tenants
 from app.services.orchestration.run_workflow import sweep_stale_runs
 
 settings = get_settings()
@@ -113,6 +114,8 @@ async def _lifespan(_application: FastAPI):
         db = SessionLocal()
         try:
             sweep_stale_runs(db, boot_time=datetime.now(UTC))
+            purged = purge_expired_demo_tenants(db, limit=50)
+            logger.info("Purged %d expired demo tenants on boot", len(purged))
         except Exception:  # noqa: BLE001
             logger.exception("Failed to sweep stale matching runs on boot")
         finally:
