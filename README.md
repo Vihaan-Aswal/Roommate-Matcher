@@ -465,7 +465,7 @@ python demo-data/seed.py --reset --schema-only
 - `phone_last4` is demo-grade verification, not strong identity; there is no OTP or backoff.
 - Result payloads are not paginated (`students/all-segments` can be ~321 KiB at 330 students).
 - Demo data has a 24h TTL; cleanup is periodic (boot batch of 200 plus the internal endpoint). The GitHub cron is owner-handled.
-- Security posture: CSP covers only `object-src`, `base-uri`, `frame-ancestors`; impersonation TTL is 45 minutes with no revocation denylist; cryptography 44.0.3 advisories are not on the RS256/ES256 verification path; react-router 6.30.6 has 2 moderate open-redirect advisories fixed only in major 7.
+- Security posture: CSP covers only `object-src`, `base-uri`, `frame-ancestors`; impersonation TTL is 45 minutes with no revocation denylist. Production dependencies are React Router 7.18.7 and cryptography 50.0.2; `npm audit --omit=dev` is clean, and CI gates only high/critical production advisories.
 - A tab opened before cross-tab sign-in needs a reload after the lazy Supabase change.
 - A local production preview on `:4173` needs its origin added to CORS; the production Vercel origin is allowlisted.
 - mypy is strict on matching/scoring/auth, but 38 existing errors are baselined (104 total); CI fails only if the count rises.
