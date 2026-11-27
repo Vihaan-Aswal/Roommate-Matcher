@@ -46,6 +46,7 @@ SECURITY_HEADERS = {
     "Referrer-Policy": "strict-origin-when-cross-origin",
     "X-Frame-Options": "DENY",
     "Strict-Transport-Security": "max-age=31536000",
+    "Content-Security-Policy": "object-src 'none'; base-uri 'self'; frame-ancestors 'none'",
 }
 
 

@@ -10,6 +10,7 @@ SECURITY_HEADERS = {
     "referrer-policy": "strict-origin-when-cross-origin",
     "x-frame-options": "DENY",
     "strict-transport-security": "max-age=31536000",
+    "content-security-policy": "object-src 'none'; base-uri 'self'; frame-ancestors 'none'",
 }
 
 
