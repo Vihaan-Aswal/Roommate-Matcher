@@ -6,6 +6,12 @@ Built as a fully local, production-structured full-stack system — FastAPI back
 
 ---
 
+## Try the demo
+
+Open **https://roommate-matcher.vercel.app/**, click **Open the desk**, then **Open the demo workspace** — no account needed. The workspace is throwaway and seeded with fake students, rooms, and responses. The free Render backend sleeps when idle, so the first load can take up to ~1 minute. Staff sign-in remains at `/login`.
+
+---
+
 ## The problem
 
 Traditional hostel allocation is purely logistical — it fills beds, not compatibility gaps. The result is avoidable roommate conflicts that escalate into welfare issues for administrators to manage.
