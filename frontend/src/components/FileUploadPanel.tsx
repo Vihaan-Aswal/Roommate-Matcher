@@ -13,6 +13,8 @@ interface FileUploadPanelProps {
   /** Exact headers the importer requires; shown before the upload, not after a failure. */
   columns?: string[];
   step?: number;
+  /** Downloadable CSV example for this importer. */
+  templateHref?: string;
 }
 
 export function FileUploadPanel({
@@ -25,6 +27,7 @@ export function FileUploadPanel({
   onFileSelected,
   columns,
   step = 1,
+  templateHref,
 }: FileUploadPanelProps): JSX.Element {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
@@ -62,6 +65,15 @@ export function FileUploadPanel({
       <p className="desk-help" style={{ maxWidth: "52ch" }}>
         {description}
       </p>
+
+      {templateHref ? (
+        <p className="desk-help">
+          <a className="desk-link" download href={templateHref}>
+            Download the CSV template
+          </a>{" "}
+          — exact headers and three example rows.
+        </p>
+      ) : null}
 
       {columns ? (
         <details className="desk-disclosure">

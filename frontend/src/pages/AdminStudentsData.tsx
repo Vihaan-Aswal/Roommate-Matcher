@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check } from "lucide-react";
+import { Check, Copy } from "lucide-react";
 
 import { AdminPageHeader } from "../components/AdminPageHeader";
 import { FileUploadPanel } from "../components/FileUploadPanel";
@@ -37,6 +37,18 @@ const STUDENT_COLUMNS = [
 ];
 
 const ROOM_COLUMNS = ["room_id", "segment_key", "capacity"];
+
+const AI_PROMPT = `Generate fake, non-personal test data for a hostel room-allocation demo. Return two CSV files.
+
+students.csv — headers exactly:
+admission_number,full_name,gender,year_group,ac_type,room_size,dob,phone_number
+
+Rules: 20 unique admission numbers (FAKE0001…); gender M or F; year_group a label like 1st_year or 2nd_year; ac_type AC or NonAC; room_size 2, 3 or 4; dob YYYY-MM-DD; phone_number digits only. Use at most 4 combinations of gender + year_group + ac_type + room_size.
+
+rooms.csv — headers exactly:
+room_id,segment_key,capacity
+
+Rules: segment_key is gender_year_group_ac_type_room_size using the same values (e.g. F_1st_year_AC_2); capacity is 2, 3 or 4 and equals that segment's room_size; add enough rooms for every student. Do not invent extra segments.`;
 
 function AppliedStamp({
   title,
@@ -92,6 +104,7 @@ export function AdminStudentsData(): JSX.Element {
   const [roomFile, setRoomFile] = useState<File | null>(null);
   const [roomDiff, setRoomDiff] = useState<RoomImportDiffResponse | null>(null);
   const [roomResult, setRoomResult] = useState<RoomImportApplyResponse | null>(null);
+  const [promptCopied, setPromptCopied] = useState(false);
 
   return (
     <section className="desk-stack">
@@ -111,6 +124,7 @@ export function AdminStudentsData(): JSX.Element {
               description="The roster: who lives in this workspace, with the four boundary fields that decide their segment."
               buttonLabel="Upload Students"
               columns={STUDENT_COLUMNS}
+              templateHref="/templates/students.csv"
               isUploading={previewStudents.isPending}
               onUpload={async (file) => {
                 setStudentFile(file);
@@ -194,6 +208,7 @@ export function AdminStudentsData(): JSX.Element {
               description="Room ids, the segment each room belongs to, and how many beds it holds."
               buttonLabel="Upload Rooms"
               columns={ROOM_COLUMNS}
+              templateHref="/templates/rooms.csv"
               isUploading={previewRooms.isPending}
               onUpload={async (file) => {
                 setRoomFile(file);
@@ -261,6 +276,37 @@ export function AdminStudentsData(): JSX.Element {
           )}
         </div>
       </div>
+
+      <details className="desk-disclosure desk-section">
+        <summary>Generate fill-in data with ChatGPT or Claude</summary>
+        <div className="desk-stack-sm" style={{ paddingBottom: 8 }}>
+          <p className="desk-help" style={{ maxWidth: "62ch" }}>
+            Paste this into ChatGPT or Claude. It returns two CSV blocks that fit the importers — use
+            fake data only.
+          </p>
+          <pre className="desk-mono" style={{ whiteSpace: "pre-wrap", margin: 0 }}>
+            {AI_PROMPT}
+          </pre>
+          <div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                navigator.clipboard.writeText(AI_PROMPT);
+                setPromptCopied(true);
+                setTimeout(() => setPromptCopied(false), 2000);
+              }}
+            >
+              {promptCopied ? (
+                <Check size={13} strokeWidth={2} aria-hidden="true" />
+              ) : (
+                <Copy size={13} strokeWidth={1.8} aria-hidden="true" />
+              )}
+              {promptCopied ? "Copied" : "Copy prompt"}
+            </Button>
+          </div>
+        </div>
+      </details>
 
       <div className="desk-section">
         <div className="desk-section-head">
