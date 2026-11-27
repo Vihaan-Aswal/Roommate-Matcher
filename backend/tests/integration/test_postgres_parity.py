@@ -97,6 +97,9 @@ def _alembic(url: str, *args: str) -> subprocess.CompletedProcess[str]:
     environment = os.environ.copy()
     environment["DATABASE_URL"] = url
     environment["ALEMBIC_DATABASE_URL"] = url
+    environment.setdefault(
+        "CLEANUP_JOB_SECRET", "test-cleanup-secret-32-characters-long"
+    )
     completed = subprocess.run(
         [sys.executable, "-m", "alembic", *args],
         cwd=BACKEND_DIR,
