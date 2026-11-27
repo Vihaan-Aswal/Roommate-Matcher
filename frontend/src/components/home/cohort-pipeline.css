@@ -2617,14 +2617,15 @@
   }
 
   .cp-rail-list {
-    grid-template-columns: repeat(8, minmax(44px, 1fr));
+    grid-template-columns: repeat(8, minmax(40px, 1fr));
+    gap: 2px;
     overflow-x: auto;
   }
 
   .cp-rail-step {
     align-items: center;
     justify-content: center;
-    min-width: 44px;
+    min-width: 40px;
     min-height: 44px;
     padding: 0;
   }
