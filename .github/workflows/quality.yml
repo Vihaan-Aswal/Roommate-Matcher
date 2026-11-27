@@ -85,6 +85,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+
       - name: Unit tests with coverage
         run: npm run test:coverage
 
