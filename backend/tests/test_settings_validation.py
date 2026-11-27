@@ -49,9 +49,10 @@ def test_short_or_placeholder_app_jwt_secret_is_rejected(secret: str) -> None:
 
 
 @pytest.mark.parametrize("origin", ["http://localhost:5173", "https://127.0.0.1"])
-def test_localhost_cors_origin_is_rejected(origin: str) -> None:
-    with pytest.raises(ValidationError, match="CORS_ALLOWED_ORIGINS"):
-        _production(cors_allowed_origins=[origin])
+def test_production_accepts_a_localhost_cors_origin(origin: str) -> None:
+    settings = _production(cors_allowed_origins=[origin])
+
+    assert settings.cors_allowed_origins == [origin]
 
 
 def test_all_violations_are_reported_together() -> None:
@@ -60,7 +61,6 @@ def test_all_violations_are_reported_together() -> None:
             app_jwt_secret="",
             supabase_jwt_secret="",
             cleanup_job_secret=None,
-            cors_allowed_origins=["http://localhost:5173"],
         )
 
     message = str(exc_info.value)
@@ -68,7 +68,6 @@ def test_all_violations_are_reported_together() -> None:
         "APP_JWT_SECRET",
         "SUPABASE_JWT_SECRET",
         "CLEANUP_JOB_SECRET",
-        "CORS_ALLOWED_ORIGINS",
     ):
         assert name in message
 
