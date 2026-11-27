@@ -14,12 +14,14 @@ from fastapi.testclient import TestClient
 from sqlalchemy import update
 from sqlalchemy.orm import Session
 
+from app.config import get_settings
 from app.models.matching_run import MatchingRun
 from app.models.preference_profile import PreferenceProfile
 from app.models.room import Room
 from app.models.room_assignment import RoomAssignment
 from app.models.segment import Segment
 from app.models.student import Student
+from app.models.tenant import Tenant
 from app.models.workspace import Workspace
 
 
@@ -328,6 +330,41 @@ def test_matching_history_reports_each_runs_own_segment(
     assert history.status_code == 200
     row = next(item for item in history.json()["runs"] if item["run_id"] == run_id)
     assert row["segment_keys"] == ["M_1st_year_AC_2"]
+
+
+def test_demo_workspace_rejects_a_segment_over_the_student_cap(
+    client: TestClient, db_session: Session, seed_tenant_and_user, monkeypatch
+) -> None:
+    tenant_id = seed_tenant_and_user["tenant_id"]
+    workspace_id = seed_tenant_and_user["workspace_id"]
+    headers = seed_tenant_and_user["headers"]
+
+    tenant = db_session.get(Tenant, tenant_id)
+    tenant.is_demo = True
+    db_session.commit()
+    monkeypatch.setattr(get_settings(), "demo_max_students_per_segment", 1)
+
+    _seed_segment(
+        db_session,
+        tenant_id,
+        workspace_id,
+        segment_key="F_1st_year_AC_2",
+        gender="F",
+        admission_prefix="CAP",
+    )
+
+    response = client.post(
+        f"/api/workspaces/{workspace_id}/matching/runs",
+        json={"scope": "segment", "segment_key": "F_1st_year_AC_2"},
+        headers=headers,
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == (
+        "Demo workspaces are limited to 1 students per segment. "
+        "Use a regular workspace for larger cohorts."
+    )
+    assert db_session.query(MatchingRun).count() == 0
 
 
 def test_matching_runs_requires_workspace_access(client: TestClient) -> None:

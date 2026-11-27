@@ -216,6 +216,19 @@ Paths are abbreviated: every route except `/health` and `/health/live` lives und
 
 ---
 
+## Matching performance
+
+Approximate engine timings on the reference machine:
+
+| Cohort | 2-bed | 3-bed | 4-bed |
+|---|---|---|---|
+| 200 students | 9.0s | 13.9s | 13.4s |
+| 500 students | 113s | 154s | — |
+
+**Known limitation:** demo and guest workspaces cap each segment at 100 students. Larger cohorts need a regular workspace.
+
+---
+
 ## Testing
 
 The project ships with three layers of tests:

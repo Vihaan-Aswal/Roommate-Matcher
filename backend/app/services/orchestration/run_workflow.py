@@ -300,9 +300,26 @@ def _persist_segment_artifacts(
 
 
 def create_matching_run(
-    db: Session, workspace_id: uuid.UUID, scope: RunScope, segment_key: str | None
+    db: Session,
+    workspace_id: uuid.UUID,
+    scope: RunScope,
+    segment_key: str | None,
+    *,
+    max_students_per_segment: int | None = None,
 ) -> tuple[MatchingRun, list[Segment]]:
     targets = _resolve_target_segments(db, scope, segment_key, workspace_id)
+    if max_students_per_segment is not None:
+        for target in targets:
+            student_count = db.scalar(
+                select(func.count())
+                .select_from(Student)
+                .where(Student.segment_id == target.id, Student.is_active == True)
+            ) or 0
+            if student_count > max_students_per_segment:
+                raise ValueError(
+                    f"Demo workspaces are limited to {max_students_per_segment} students "
+                    "per segment. Use a regular workspace for larger cohorts."
+                )
     run_row = MatchingRun(
         tenant_id=targets[0].tenant_id,
         workspace_id=targets[0].workspace_id,

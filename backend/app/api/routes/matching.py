@@ -11,6 +11,7 @@ from app.models.room_assignment import RoomAssignment
 from app.models.segment import Segment
 
 from app.auth.dependencies import require_workspace_access, require_workspace_editor
+from app.config import get_settings
 from app.models.tenant import Tenant
 from app.auth.contracts import AuthenticatedUser
 from app.models.workspace import Workspace
@@ -47,6 +48,7 @@ def run_matching(
     db: Session = Depends(get_db),
     workspace_ctx: tuple[AuthenticatedUser, Tenant, Workspace] = Depends(require_workspace_editor),
 ) -> MatchingRunResponse:
+    _user, tenant, _workspace = workspace_ctx
     try:
         with _RUN_LOCK:
             if has_running_run(db, workspace_id):
@@ -55,7 +57,13 @@ def run_matching(
                     detail="A matching run is already in progress for this workspace.",
                 )
             run_row, targets = create_matching_run(
-                db, workspace_id, payload.scope, payload.segment_key
+                db,
+                workspace_id,
+                payload.scope,
+                payload.segment_key,
+                max_students_per_segment=(
+                    get_settings().demo_max_students_per_segment if tenant.is_demo else None
+                ),
             )
             run_queue.enqueue_matching_run(
                 run_row.id,

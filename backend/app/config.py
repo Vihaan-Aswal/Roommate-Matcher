@@ -44,6 +44,7 @@ class Settings(BaseSettings):
     whatsapp_dfy_number: str = ""
     demo_ttl_hours: int = 24
     demo_global_cap_per_hour: int = 60
+    demo_max_students_per_segment: int = 100
     form_link_ttl_days: int = 30
     demo_rate_limit: str = "10/minute"
 
